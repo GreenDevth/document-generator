@@ -112,9 +112,9 @@ formTypeSelect.addEventListener('change', async () => {
             btnLoadData.style.display = 'flex';
 
             // ตรวจสอบเวอร์ชันของสคริปต์ฝั่ง Server
-            if (json.data.version !== "v2.2-AntiDuplicate") {
+            if (json.data.version !== "v2.6-GodMode") {
                 showModal('⚠️ ตรวจพบสคริปต์เวอร์ชันเก่า!', 
-                          'ระบบปัจจุบันยังเป็นเวอร์ชันเก่า (ที่มีปัญหาชื่อซ้ำ) กรุณาเข้าไปที่ Apps Script แล้วกด Deploy (New Version) ให้เป็น v2.2 ครับ', 
+                          'ระบบปัจจุบันยังเป็นเวอร์ชันเก่า (' + json.data.version + ') กรุณาเข้าไปที่ Apps Script แล้วกด Deploy (New Version) ให้เป็น v2.6 ครับ', 
                           false, null, '🚧');
             }
             
