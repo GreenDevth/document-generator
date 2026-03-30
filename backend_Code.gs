@@ -145,11 +145,12 @@ function handlePDFRequest(request) {
 }
 
 /**
- * สร้าง PDF จาก Google Slides Template
+ * สร้าง PDF จาก Template (รองรับ Google Docs และ Google Slides)
  */
 function createPDF(formConfig, rowData, isPreview) {
   const templateFile = DriveApp.getFileById(formConfig.templateId);
   const parentFolder = DriveApp.getFolderById(formConfig.folderId);
+  const mimeType = templateFile.getMimeType();
 
   const timestamp = Utilities.formatDate(new Date(), "GMT+7", "yyyyMMdd_HHmmss");
   const randomId = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
@@ -157,21 +158,42 @@ function createPDF(formConfig, rowData, isPreview) {
   const tempName = (isPreview ? 'PREVIEW_' : '') + '[' + subject + ']_' + timestamp + '_' + randomId;
   
   const tempFile = templateFile.makeCopy(tempName, parentFolder);
-  const presentation = SlidesApp.openById(tempFile.getId());
-  const slides = presentation.getSlides();
+  
+  // รองรับทั้ง Google Docs และ Google Slides
+  if (mimeType === MimeType.GOOGLE_SLIDES) {
+    const presentation = SlidesApp.openById(tempFile.getId());
+    const slides = presentation.getSlides();
 
-  slides.forEach(slide => {
-    slide.getShapes().forEach(shape => replaceInText(shape.getText(), rowData));
-    slide.getTables().forEach(table => {
-      for (let r = 0; r < table.getNumRows(); r++) {
-        for (let c = 0; c < table.getRow(r).getNumCells(); c++) {
-          replaceInText(table.getCell(r, c).getText(), rowData);
+    slides.forEach(slide => {
+      slide.getShapes().forEach(shape => replaceInTextSlides(shape.getText(), rowData));
+      slide.getTables().forEach(table => {
+        for (let r = 0; r < table.getNumRows(); r++) {
+          for (let c = 0; c < table.getRow(r).getNumCells(); c++) {
+            replaceInTextSlides(table.getCell(r, c).getText(), rowData);
+          }
         }
-      }
+      });
     });
-  });
+    presentation.saveAndClose();
+  } 
+  else if (mimeType === MimeType.GOOGLE_DOCS) {
+    const doc = DocumentApp.openById(tempFile.getId());
+    const body = doc.getBody();
+    const header = doc.getHeader();
+    const footer = doc.getFooter();
 
-  presentation.saveAndClose();
+    if (body) replaceInTextDocs(body, rowData);
+    if (header) replaceInTextDocs(header, rowData);
+    if (footer) replaceInTextDocs(footer, rowData);
+    
+    doc.saveAndClose();
+  } 
+  else {
+    throw new Error('ประเภทไฟล์เทมเพลตไม่รองรับ ต้องเป็น Google Docs หรือ Google Slides เท่านั้น (พบ: ' + mimeType + ')');
+  }
+
+  // พัก 3 วินาทีเพื่อให้เซิร์ฟเวอร์ Google อัพเดทข้อมูลที่เปลี่ยนแปลงลงไฟล์ ก่อนแปลงเป็น PDF
+  Utilities.sleep(3000);
 
   const pdfBlob = tempFile.getAs(MimeType.PDF);
   const pdfFile = parentFolder.createFile(pdfBlob).setName(tempName + ".pdf");
@@ -187,9 +209,9 @@ function createPDF(formConfig, rowData, isPreview) {
 }
 
 /**
- * แทนที่ข้อความ
+ * แทนที่ข้อความ (สำหรับ Google Slides)
  */
-function replaceInText(textRange, data) {
+function replaceInTextSlides(textRange, data) {
   for (let [key, value] of Object.entries(data)) {
     let valStr = "";
     if (Array.isArray(value)) {
@@ -203,6 +225,29 @@ function replaceInText(textRange, data) {
     keysToTry.forEach(k => {
       textRange.replaceAllText(`{{${k}}}`, valStr, false);
       textRange.replaceAllText(`{{ ${k} }}`, valStr, false);
+    });
+  }
+}
+
+/**
+ * แทนที่ข้อความ (สำหรับ Google Docs)
+ */
+function replaceInTextDocs(element, data) {
+  for (let [key, value] of Object.entries(data)) {
+    let valStr = "";
+    if (Array.isArray(value)) {
+      valStr = value.join(', ');
+    } else {
+      valStr = (value === null || value === undefined) ? "" : value.toString();
+    }
+
+    let keysToTry = [key, key.toLowerCase(), key.toUpperCase(), key.replace('input_', '')];
+    
+    keysToTry.forEach(k => {
+      let findText1 = `\\{\\{${k}\\}\\}`;
+      let findText2 = `\\{\\{ ${k} \\}\\}`;
+      element.replaceText(findText1, valStr);
+      element.replaceText(findText2, valStr);
     });
   }
 }
