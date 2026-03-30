@@ -462,7 +462,7 @@ function addResultLink(url, name, round, total) {
     a.target = '_blank';
     a.innerHTML = `
         <span>📄 ไฟล์รอบที่ ${round}: ${name}</span>
-        <span style="color: var(--primary);">ดาวน์โหลด 📥</span>
+        <span style="color: var(--primary);">เปิดดู / พิมพ์ 📄</span>
     `;
     // จัดการซ่อนปุ่มดาวน์โหลดเดี่ยวของเดิม (ถ้ามี)
     if (round === 1) {

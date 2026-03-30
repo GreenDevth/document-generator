@@ -1,5 +1,5 @@
 // ==========================================================================
-// GOOGLE APPS SCRIPT BACKEND V2.5-FullPower (Official Latest)
+// GOOGLE APPS SCRIPT BACKEND V2.6-GodMode (Official Latest & PDF Restored)
 // พัฒนาโดย: Antigravity AI
 // สำหรับ: ระบบสร้างเอกสาร PDF อัจฉริยะ (FM-สท.03-x)
 // ==========================================================================
@@ -62,11 +62,10 @@ function doPost(e) {
 
 /**
  * [ DIAGNOSTIC HELPER ]
- * หา Sheet ด้วยความยืดหยุ่นสูง (031 vs 03-1.json)
  */
 function getTargetSheet(formId) {
   const ss = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
-  const cleanId = formId.replace('.json', '').replace('-', ''); // แปลง 03-1.json เป็น 031
+  const cleanId = formId.replace('.json', '').replace('-', '');
   
   let sheet = ss.getSheetByName(cleanId);
   if (!sheet) sheet = ss.getSheetByName(formId);
@@ -93,7 +92,7 @@ function getSchema(formId) {
   const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
   
   return createJsonResponse('success', {
-    version: "v2.5-FullPower",
+    version: "v2.6-GodMode",
     headers: headers,
     spreadsheetName: ss.getName()
   });
@@ -135,10 +134,9 @@ function handlePDFRequest(request) {
   
   if (!formConfig) throw new Error('ไม่พบการตั้งค่า Template/Folder สำหรับ: ' + cleanId);
 
-  // 1. กระบวนการสร้างไฟล์ PDF (Core Logic restored from appscript.js)
+  // --- RESTORED CORE PDF LOGIC ---
   const result = createPDF(formConfig, data, isPreview);
 
-  // 2. บันทึกข้อมูลลง Google Sheet หากไม่ใช่การกด Preview
   if (!isPreview) {
     saveToSheet(sheet, data, rowIndex);
   }
@@ -147,7 +145,7 @@ function handlePDFRequest(request) {
 }
 
 /**
- * ฟังก์ชันสร้าง PDF จาก Google Slides Template
+ * สร้าง PDF จาก Google Slides Template
  */
 function createPDF(formConfig, rowData, isPreview) {
   const templateFile = DriveApp.getFileById(formConfig.templateId);
@@ -183,13 +181,13 @@ function createPDF(formConfig, rowData, isPreview) {
 
   return {
     fileId: pdfFile.getId(),
-    url: pdfFile.getDownloadUrl(),
+    url: pdfFile.getUrl(), // ใช้ URL ปกติเพื่อให้เปิดหน้า Preview สำหรับพิมพ์
     name: pdfFile.getName()
   };
 }
 
 /**
- * ฟังก์ชันช่วยแทนที่ข้อความ
+ * แทนที่ข้อความ
  */
 function replaceInText(textRange, data) {
   for (let [key, value] of Object.entries(data)) {
