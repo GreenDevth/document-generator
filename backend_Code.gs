@@ -92,12 +92,12 @@ function createPDF(formConfig, rowData, isPreview, tableData, cleanId) {
       });
     }
 
-    // เติมหน่วย ชม. ให้ช่องความยาว (รองรับทั้ง dur และ ความยาว)
+    // --- 034 TOTAL POWER: ปรับปรุงการจัดการหน่วยเวลา (V3.2) ---
     for (let k in finalData) {
-      const keyLower = k.toLowerCase();
-      if ((keyLower.includes('dur') || keyLower.includes('ความยาว')) && finalData[k]) {
-        let val = finalData[k].toString().trim();
-        if (val && !val.includes('ชม.') && !isNaN(parseFloat(val))) {
+      const kl = k.toLowerCase();
+      if ((kl.includes('dur') || kl.includes('ความยาว')) && finalData[k]) {
+        let val = finalData[k].toString().split('ชม.')[0].trim(); // ล้างของเดิมออกก่อน
+        if (val && !isNaN(parseFloat(val))) {
           finalData[k] = val + ' ชม.';
         }
       }
