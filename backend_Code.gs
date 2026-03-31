@@ -138,7 +138,7 @@ function handlePDFRequest(request) {
   const result = createPDF(formConfig, data, isPreview, tableData);
 
   if (!isPreview) {
-    saveToSheet(sheet, data, rowIndex);
+    saveToSheet(sheet, data, rowIndex, tableData);
   }
 
   return createJsonResponse('success', result);
@@ -311,22 +311,64 @@ function fillTableRows(element, tableData) {
 }
 
 /**
- * บันทึกข้อมูล
+ * บันทึกข้อมูล (รองรับการบันทึกหลายแถวรวดเดียวจากตารางทะเบียน)
  */
-function saveToSheet(sheet, rowData, rowIndex) {
+function saveToSheet(sheet, baseData, rowIndex, tableData) {
   const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-  const row = headers.map(h => {
-    let val = rowData[h.toString().trim()];
-    if (val === undefined || val === null) return "";
-    const valStr = val.toString();
-    if (/[0-9๐-๙]/.test(valStr)) return "'" + valStr;
-    return valStr;
-  });
+  
+  // กรณีมีข้อมูลตาราง (Batch) ให้บันทึกแยกแถวกัน
+  if (tableData && Array.isArray(tableData) && tableData.length > 0) {
+    const rowsToAppend = tableData.map(itemData => {
+      // รวมข้อมูลหลัก (subject, cb) เข้ากับข้อมูลรายบรรทัด (ep, dur)
+      const mergedData = { ...baseData, ...itemData };
+      return headers.map(h => {
+        let key = h.toString().trim();
+        let val = mergedData[key];
+        
+        // ค้นหาแบบไม่สนตัวพิมพ์ (Case-insensitive mapping)
+        if (val === undefined) {
+          const matchedKey = Object.keys(mergedData).find(k => k.toLowerCase() === key.toLowerCase());
+          if (matchedKey) val = mergedData[matchedKey];
+        }
+        
+        if (Array.isArray(val)) return val.join(', ');
+        return (val === undefined || val === null) ? "" : val;
+      });
+    });
 
-  if (rowIndex && rowIndex > 1) {
-    sheet.getRange(rowIndex, 1, 1, row.length).setValues([row]);
-  } else {
-    sheet.appendRow(row);
+    // ถ้าเป็นการบันทึกใหม่ (Append)
+    if (rowIndex <= 0) {
+      rowsToAppend.forEach(row => sheet.appendRow(row));
+    } else {
+      // ถ้าเป็นการแก้ไข (Edit) - ในโหมด Batch จะแทนที่แถวเดิมด้วยแถวแรก และ Append ที่เหลือ (หรือจะลบแล้วแทรกใหม่ก็ได้)
+      // เพื่อความง่าย: แทนที่แถวที่เลือกด้วยข้อมูลชุดแรก และ Append รายการที่เหลือ
+      sheet.getRange(rowIndex, 1, 1, headers.length).setValues([rowsToAppend[0]]);
+      if (rowsToAppend.length > 1) {
+        const remainingRows = rowsToAppend.slice(1);
+        remainingRows.forEach(row => sheet.appendRow(row));
+      }
+    }
+  } 
+  // กรณีข้อมูลปกติ (ไม่มีตาราง)
+  else {
+    const row = headers.map(h => {
+      let key = h.toString().trim();
+      let val = baseData[key];
+      
+      if (val === undefined) {
+        const matchedKey = Object.keys(baseData).find(k => k.toLowerCase() === key.toLowerCase());
+        if (matchedKey) val = baseData[matchedKey];
+      }
+      
+      if (Array.isArray(val)) return val.join(', ');
+      return (val === undefined || val === null) ? "" : val;
+    });
+
+    if (rowIndex > 0) {
+      sheet.getRange(rowIndex, 1, 1, row.length).setValues([row]);
+    } else {
+      sheet.appendRow(row);
+    }
   }
 }
 

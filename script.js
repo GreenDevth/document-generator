@@ -277,6 +277,7 @@ function renderTableRegistry(headers) {
     container.className = 'table-batch-container';
     
     container.innerHTML = `
+        <div id="rescueContainer"></div>
         <div class="batch-header">
             <div class="batch-title">📜 รายการที่ต้องบันทึกลงทะเบียน/รายการอุปกรณ์</div>
             <button type="button" class="btn-add" id="btnAddRow" title="เพิ่มแถวรายการ">
@@ -302,11 +303,39 @@ function renderTableRegistry(headers) {
     const btnAdd = container.querySelector('#btnAddRow');
     btnAdd.onclick = () => addBatchRow(headers);
     
-    // เริ่มต้นให้มี 1 แถวเสมอ
-    addBatchRow(headers);
+    // เริ่มต้นตรวจสอบข้อมูลร่าง (Rescue)
+    checkRescueData(headers);
 }
 
-function addBatchRow(headers) {
+function checkRescueData(headers) {
+    const rescueData = localStorage.getItem('rescue_batch');
+    if (rescueData) {
+        const rescueContainer = document.getElementById('rescueContainer');
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'btn-warning';
+        btn.innerHTML = `<span>⚡ ตรวจพบข้อมูลเดิมที่เคยกู้ไว้ คุณต้องการเรียกคืนให้คุณไหม?</span>`;
+        btn.onclick = () => {
+            restoreBatchData(JSON.parse(rescueData), headers);
+            btn.remove();
+            localStorage.removeItem('rescue_batch');
+        };
+        rescueContainer.appendChild(btn);
+    } else {
+        // ถ้าไม่มีข้อมูลกู้ ให้เริ่มด้วย 1 แถวว่าง
+        addBatchRow(headers);
+    }
+}
+
+function restoreBatchData(data, headers) {
+    const tbody = document.getElementById('batchTableBody');
+    tbody.innerHTML = ''; // ล้างทั้งหมดก่อน
+    data.forEach(rowData => {
+        addBatchRow(headers, rowData);
+    });
+}
+
+function addBatchRow(headers, existingData = null) {
     const tbody = document.getElementById('batchTableBody');
     const rowIndex = tbody.children.length;
     
@@ -322,14 +351,18 @@ function addBatchRow(headers) {
         input.dataset.key = h;
         input.placeholder = labelMap[low] || h;
 
+        // ถ้ามีข้อมูลเดิม (จากการกู้คืน)
+        if (existingData && existingData[h]) {
+            input.value = existingData[h];
+        } 
         // Auto-increment EP logic
-        if (low === 'ep') {
+        else if (low === 'ep' && !existingData) {
             input.classList.add('auto-increment');
             input.value = `EP${rowIndex + 1}`;
         }
         
-        // Auto-fill logic: ดึงค่าจากแถวบนมาใส่ถ้าเป็น Format หรือ วิทยากร
-        if (rowIndex > 0) {
+        // Auto-fill logic
+        if (!existingData && rowIndex > 0) {
             const prevRow = tbody.children[rowIndex - 1];
             const prevInput = prevRow.querySelector(`input[data-key="${h}"]`);
             if (prevInput && (low === 'format' || low === 'teach' || low === 'dma')) {
