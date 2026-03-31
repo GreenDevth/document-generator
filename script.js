@@ -22,17 +22,17 @@ let isProcessing = false; // ตัวแปรป้องกันการส
 const labelMap = {
     'subject': 'ชื่อรายการที่ผลิต',
     'owner': 'ผู้รับผิดชอบการผลิต',
-    'extDocNo': 'เอกสารเลขที่ (ภายนอก)',
-    'extDocDate': 'ลงวันที่เอกสาร',
+    'extdocno': 'เอกสารเลขที่ (ภายนอก)',
+    'extdocdate': 'ลงวันที่เอกสาร',
     'activity': 'ชื่อกิจกรรม / รายการ',
     'location': 'สถานที่จัดกิจกรรม',
-    'actDate': 'วันที่จัดกิจกรรม',
-    'actMouth': 'เดือน (จัดงาน)',
-    'actAC': 'พ.ศ. (จัดงาน)',
-    'actTime': 'เวลา (จัดงาน)',
-    'finDate': 'วันที่กำหนดส่ง',
-    'finMouth': 'เดือน (กำหนดส่ง)',
-    'finAC': 'พ.ศ. (กำหนดส่ง)',
+    'actdate': 'วันที่จัดกิจกรรม',
+    'actmouth': 'เดือน (จัดงาน)',
+    'actac': 'พ.ศ. (จัดงาน)',
+    'acttime': 'เวลา (จัดงาน)',
+    'findate': 'วันที่กำหนดส่ง',
+    'finmouth': 'เดือน (กำหนดส่ง)',
+    'finac': 'พ.ศ. (กำหนดส่ง)',
     'producer': 'ผู้รับผิดชอบการผลิต',
     'team': 'ทีมงานผลิต',
     'checkbox': 'หน่วยงานที่ได้รับมอบหมาย',
@@ -46,18 +46,18 @@ const labelMap = {
     'fomat': 'รูปแบบรายการ',
     'duration': 'ความยาวรายการ (นาที)',
     'second': 'ความยาวรายการ (วินาที)',
-    'sucDate': 'ผลิตแล้วเสร็จวันที่',
-    'sucMouth': 'เดือน (ที่ผลิตเสร็จ)',
-    'sucAC': 'พ.ศ. (ที่ผลิตเสร็จ)',
-    'useDate': 'กำหนดออกอากาศ/นำไปใช้วันที่',
-    'useMouth': 'เดือน (ที่ออกอากาศ)',
-    'useAC': 'พ.ศ. (ที่ออกอากาศ)',
+    'sucdate': 'ผลิตแล้วเสร็จวันที่',
+    'sucmouth': 'เดือน (ที่ผลิตเสร็จ)',
+    'sucac': 'พ.ศ. (ที่ผลิตเสร็จ)',
+    'usedate': 'กำหนดออกอากาศ/นำไปใช้วันที่',
+    'usemouth': 'เดือน (ที่ออกอากาศ)',
+    'useac': 'พ.ศ. (ที่ออกอากาศ)',
     'more': 'หมายเหตุ / รายละเอียดเพิ่มเติม',
-    'extDocNoInt': 'เอกสารเลขที่ (ภายใน)',
-    'extDocDateInt': 'ลงวันที่ (ภายใน)',
-    'Date': 'วันที่',
-    'Mouth': 'เดือน',
-    'AC': 'พ.ศ.',
+    'extdocnoint': 'เอกสารเลขที่ (ภายใน)',
+    'extdocdateint': 'ลงวันที่ (ภายใน)',
+    'date': 'วันที่',
+    'mouth': 'เดือน',
+    'ac': 'พ.ศ.',
     'item': 'รายการอุปกรณ์',
     'format': 'รูปแบบสื่อ',
     'teach': 'วิทยากร/ผู้บรรยาย',
@@ -200,12 +200,13 @@ function renderFields(headers) {
         optionsContainer.style.marginTop = '15px';
 
         cbHeaders.forEach(header => {
+            const lowHeader = header.toLowerCase().trim();
             if (checkboxConfig[header]) {
                 checkboxConfig[header].forEach(opt => {
                     renderSingleCheckbox(optionsContainer, header, opt, opt);
                 });
             } else {
-                renderSingleCheckbox(optionsContainer, header, labelMap[header] || header, '✓');
+                renderSingleCheckbox(optionsContainer, header, labelMap[lowHeader] || header, '✓');
             }
         });
 
@@ -245,8 +246,8 @@ function renderFields(headers) {
 }
 
 function renderInputGroup(container, header) {
-    const low = header.toLowerCase();
-    const thaiLabel = labelMap[header] || header;
+    const low = header.toLowerCase().trim();
+    const thaiLabel = labelMap[low] || header;
 
     const label = document.createElement('label');
     label.textContent = thaiLabel;
