@@ -551,6 +551,7 @@ async function sendData(action) {
         });
 
         const tableData = collectTableData();
+        console.log("📦 Table Data to send:", tableData);
 
         for (let r = 0; r < rounds; r++) {
             const currentRoundData = { ...baseData };
@@ -604,6 +605,10 @@ async function sendData(action) {
             const result = await response.json();
             if (result.status === 'success') {
                 addResultLink(result.data.url, result.data.name, r + 1, rounds);
+                // แสดงข้อความจาก Backend (เพื่อให้รู้ว่าได้รับกี่รายการ)
+                if (rounds === 1) {
+                    document.getElementById('resultMsg').textContent = result.message || `สร้างเอกสารจำนวน ${rounds} ชุดเรียบร้อยแล้ว`;
+                }
             } else {
                 throw new Error(`รอบที่ ${r + 1} ล้มเหลว: ` + result.message);
             }
@@ -612,8 +617,9 @@ async function sendData(action) {
             if (rounds > 1) await new Promise(res => setTimeout(res, 500));
         }
 
-        document.getElementById('resultTitle').textContent = action === 'preview' ? 'สร้างตัวอย่างสำเร็จ' : 'สร้างไฟล์ทั้งหมดสำเร็จ! 🚀';
-        document.getElementById('resultMsg').textContent = `สร้างเอกสารจำนวน ${rounds} ชุดเรียบร้อยแล้ว`;
+        if (rounds > 1) {
+            document.getElementById('resultMsg').textContent = `สร้างเอกสารจำนวน ${rounds} ชุดเรียบร้อยแล้ว`;
+        }
         resultBox.style.display = 'block';
         resultBox.scrollIntoView({ behavior: 'smooth' });
 
