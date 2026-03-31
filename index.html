@@ -153,31 +153,34 @@
         </div>
     </div>
 
-    <!-- Data Explorer Modal -->
-    <div id="dataOverlay" class="modal-overlay">
-        <div class="modal-box" style="max-width: 800px;">
-            <span class="modal-icon">📂</span>
-            <div class="modal-title">เลือกข้อมูลเดิมจากระบบ</div>
-            <p class="modal-desc">คลิกที่แถวที่ต้องการ เพื่อนำข้อมูลกลับมาแก้ไขหรือพิมพ์ใหม่ครับ</p>
-            
-            <div class="data-table-container">
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>#</th>
-                            <th>วันที่กิจกรรม</th>
-                            <th>ชื่อเรื่อง / วิชา</th>
-                            <th>หน่วยงาน / เจ้าของงาน</th>
-                        </tr>
-                    </thead>
-                    <tbody id="dataBody">
-                        <!-- ข้อมูลจะถูก Render ที่นี่ -->
-                    </tbody>
-                </table>
+    <!-- [ DASHBOARD MODAL: ศูนย์จัดการข้อมูลแบบเต็มจอ ] -->
+    <div id="dashboardModal" class="modal-overlay">
+        <div class="modal-content modal-lg">
+            <div class="modal-header">
+                <span id="dashModalIcon" style="font-size: 1.8rem;">📊</span>
+                <h2 id="dashModalTitle">รายการข้อมูลทั้งหมด (Dashboard)</h2>
+                <button type="button" class="btn-close-dash" onclick="closeDashboardModal()">×</button>
             </div>
-
-            <div class="modal-btns" style="margin-top: 25px;">
-                <button class="modal-btn btn-cancel" onclick="document.getElementById('dataOverlay').classList.remove('active')">ปิดหน้าต่าง</button>
+            <div class="modal-body">
+                <div class="dash-search-container">
+                    <input type="text" id="dashSearch" placeholder="🔍 ค้นหาชื่อรายการหรือชื่อผู้ผลิต..." oninput="filterDashboard()">
+                    <button type="button" class="btn-refresh" onclick="fetchRecentData()">🔄 รีเฟรช</button>
+                </div>
+                <div class="dashboard-table-container">
+                    <table class="dashboard-table">
+                        <thead>
+                            <tr id="dashHeaderRow">
+                                <!-- Dynamic Headers -->
+                            </tr>
+                        </thead>
+                        <tbody id="dashBody">
+                            <!-- Dynamic Content -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer" style="padding: 15px; border-top: 1px solid rgba(0,0,0,0.05); display: flex; justify-content: flex-end;">
+                <button type="button" class="modal-btn btn-cancel" onclick="closeDashboardModal()">ปิดหน้าต่าง</button>
             </div>
         </div>
     </div>
