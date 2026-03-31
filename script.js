@@ -1,5 +1,5 @@
 // ==========================================================================
-// SMART DOCUMENT GENERATOR FRONTEND V2.9.1-ULTIMATE-PERSISTENCE
+// SMART DOCUMENT GENERATOR FRONTEND V2.9.2-ULTIMATE-RESTORE
 // ==========================================================================
 
 const scriptUrlInput = document.getElementById('scriptUrl');
@@ -50,7 +50,6 @@ scriptUrlInput.value = localStorage.getItem('gas_url') || defaultUrl;
 function toThaiDigits(num) { return num.toString().replace(/[0-9]/g, digit => "๐๑๒๓๔๕๖๗๘๙"[digit]); }
 function toArabicDigits(str) { return str.toString().replace(/[๐-๙]/g, digit => "๐๑๒๓๔๕๖๗๘๙".indexOf(digit)); }
 
-// --- PERSISTENCE LOGIC ---
 function saveAllDrafts() {
     const baseData = {};
     currentHeaders.forEach(h => {
@@ -67,7 +66,6 @@ function saveAllDrafts() {
     const tableData = collectTableData();
     if (tableData) localStorage.setItem('table_data_draft', JSON.stringify(tableData));
     else localStorage.removeItem('table_data_draft');
-    console.log("💾 Global Data Saved Automatically");
 }
 
 function restoreBaseData() {
@@ -95,13 +93,10 @@ function calcNextDate(day, monthThai, yearBE, daysToAdd) {
     const yearAD = parseInt(yearArabic) - 543;
     const date = new Date(yearAD, mIdx, parseInt(dayArabic));
     date.setDate(date.getDate() + daysToAdd);
-    const resultDay = date.getDate();
-    const resultYear = date.getFullYear() + 543;
-    const isThaiInput = /[๐-๙]/.test(day.toString()) || /[๐-๙]/.test(yearBE.toString());
     return {
-        day: isThaiInput ? toThaiDigits(resultDay) : resultDay,
+        day: (/[๐-๙]/.test(day.toString()) || /[๐-๙]/.test(yearBE.toString())) ? toThaiDigits(date.getDate()) : date.getDate(),
         month: thaiMonths[date.getMonth()],
-        year: isThaiInput ? toThaiDigits(resultYear) : resultYear
+        year: (/[๐-๙]/.test(day.toString()) || /[๐-๙]/.test(yearBE.toString())) ? toThaiDigits(date.getFullYear() + 543) : date.getFullYear() + 543
     };
 }
 
@@ -109,10 +104,8 @@ formTypeSelect.addEventListener('change', async () => {
     const url = scriptUrlInput.value.trim();
     const formId = formTypeSelect.value;
     if (!url || !formId || formId === "-- เลือกแบบฟอร์ม --") return;
-    
     localStorage.setItem('gas_url', url);
     localStorage.setItem('form_id_draft', formId);
-    
     showLoading('กำลังดึงโครงสร้างข้อมูล...');
     try {
         const response = await fetch(url, {
@@ -137,7 +130,7 @@ function renderFields(headers, formId) {
     const currentTableHeaders = headers.filter(h => tableKeywords.some(k => h.toLowerCase().includes(k)));
     const basicHeaders = headers.filter(h => !currentTableHeaders.includes(h));
 
-    // 1. Checkboxes
+    // Checkboxes
     const cbHeaders = basicHeaders.filter(h => h.toLowerCase().startsWith('cb') || checkboxConfig[h]);
     const regularHeaders = basicHeaders.filter(h => !cbHeaders.includes(h));
 
@@ -166,7 +159,7 @@ function renderFields(headers, formId) {
         fieldsContainer.appendChild(cbGroup);
     }
 
-    // 2. Regular Fields
+    // Regular Fields
     let i = 0;
     while (i < regularHeaders.length) {
         const header = regularHeaders[i];
@@ -215,6 +208,7 @@ function renderTableRegistry(headers) {
 
 function addBatchRow(headers, existingData = null) {
     const tbody = document.getElementById('batchTableBody');
+    const rowIndex = tbody.children.length;
     const tr = document.createElement('tr');
     tr.className = 'batch-row';
     headers.forEach(h => {
@@ -237,8 +231,18 @@ function addBatchRow(headers, existingData = null) {
             input = document.createElement('input'); input.type = 'text'; input.dataset.key = h;
             input.placeholder = labelMap[low] || h;
             input.oninput = () => saveAllDrafts();
-            if (existingData && existingData[h]) input.value = existingData[h];
-            else if (low === 'ep' && !existingData) input.value = `EP${tbody.children.length + 1}`;
+            if (existingData && existingData[h]) {
+                input.value = existingData[h];
+            } else if (low === 'ep' && !existingData) {
+                input.value = `EP${rowIndex + 1}`;
+            } else if (!existingData && rowIndex > 0) {
+                // AUTO-FILL LOGIC: ดึงข้อมูลจากแถวบน
+                const prevRow = tbody.children[rowIndex - 1];
+                const prevInput = prevRow.querySelector(`input[data-key="${h}"]`);
+                if (prevInput && (low.includes('format') || low.includes('teach') || low.includes('dma') || low.includes('สื่อ') || low.includes('วิทยากร') || low.includes('เสร็จ'))) {
+                    input.value = prevInput.value;
+                }
+            }
             td.appendChild(input);
         }
         tr.appendChild(td);
@@ -258,7 +262,7 @@ function checkTableRescue(headers) {
         const rescueContainer = document.getElementById('rescueContainer');
         const btn = document.createElement('button');
         btn.type = 'button'; btn.className = 'btn-warning';
-        btn.innerHTML = `<span>⚡ เรียกคือข้อมูลล่าสุด (${data.length} รายการ)</span>`;
+        btn.innerHTML = `<span>⚡ เรียกคืนตารางเดิม (${data.length} รายการ)</span>`;
         btn.onclick = () => { restoreBatchData(data, headers); btn.remove(); };
         rescueContainer.appendChild(btn);
     } else { addBatchRow(headers); }
@@ -290,9 +294,9 @@ async function sendData(action) {
     if (isProcessing) return;
     const url = scriptUrlInput.value.trim();
     const formId = formTypeSelect.value;
-    const rounds = isRecurringCheck.checked ? (parseInt(roundsInput.value) || 1) : 1;
+    const isRecurring = isRecurringCheck.checked && action === 'generate';
+    const rounds = isRecurring ? (parseInt(roundsInput.value) || 1) : 1;
     const interval = parseInt(intervalInput.value) || 7;
-    
     isProcessing = true; resultBox.style.display = 'none'; linksContainer.innerHTML = '';
     showLoading('กำลังส่งข้อมูล...');
     try {
@@ -324,10 +328,7 @@ async function sendData(action) {
                 });
             }
             showLoading(`กำลังสร้างไฟล์... (${r+1}/${rounds})`);
-            const response = await fetch(url, {
-                method: 'POST',
-                body: JSON.stringify({ action, formId, data: currentRoundData, tableData, rowIndex: 0 })
-            });
+            const response = await fetch(url, { method: 'POST', body: JSON.stringify({ action, formId, data: currentRoundData, tableData, rowIndex: 0 }) });
             const result = await response.json();
             if (result.status === 'success') {
                 addResultLink(result.data.url, result.data.name);
@@ -338,7 +339,7 @@ async function sendData(action) {
             } else { throw new Error(result.message); }
             if (rounds > 1) await new Promise(res => setTimeout(res, 500));
         }
-        if (rounds > 1) document.getElementById('resultMsg').innerHTML = `<strong>สร้างไฟล์ทั้งหมด ${rounds} ชุดสำเร็จ</strong>`;
+        if (rounds > 1) document.getElementById('resultMsg').innerHTML = `<strong>สำเร็จ ${rounds} ชุด</strong>`;
         resultBox.style.display = 'block'; resultBox.scrollIntoView({ behavior: 'smooth' });
     } catch (e) { showModal('❌ ข้อผิดพลาด', e.message, false, null, '⚠️'); }
     finally { isProcessing = false; hideLoading(); }
@@ -353,7 +354,7 @@ function renderInputGroup(container, h) {
 }
 
 function renderSingleCheckbox(container, name, labelText, value) {
-    const wrapper = document.createElement('label');
+    const wrapper = document.createElement('label'); wrapper.className = 'cb-wrapper';
     wrapper.style.display = 'flex'; wrapper.style.alignItems = 'center'; wrapper.style.gap = '10px';
     const cb = document.createElement('input'); cb.type = 'checkbox'; cb.name = name; cb.value = value;
     cb.onchange = () => saveAllDrafts();
@@ -387,26 +388,15 @@ function hideLoading() { document.getElementById('loadingOverlay').classList.rem
 document.getElementById('docForm').onsubmit = (e) => {
     e.preventDefault();
     const rounds = isRecurringCheck.checked ? (parseInt(roundsInput.value) || 1) : 1;
-    showModal('💾 ยืนยันการทำงาน', `ต้องการสร้างไฟล์ ${rounds} ชุดหรือไม่?`, true, () => sendData('generate'));
+    showModal('💾 ยืนยันการบันทึก', `ต้องการสร้างไฟล์หรือไม่?`, true, () => sendData('generate'));
 };
 document.getElementById('btnPreview').onclick = () => sendData('preview');
 
-// --- AUTO RELOAD ENGINE (V2.9.1) ---
 function autoReload() {
-    const savedFormId = localStorage.getItem('form_id_draft');
-    if (savedFormId && savedFormId !== "-- เลือกแบบฟอร์ม --") {
-        console.log("🔄 Auto-Reloading Form:", savedFormId);
-        formTypeSelect.value = savedFormId;
-        // ใช้ setTimeout เล็กน้อยเพื่อให้แน่ใจว่าระบบ Listener พร้อมทำงาน
-        setTimeout(() => {
-            formTypeSelect.dispatchEvent(new Event('change'));
-        }, 100);
+    const saved = localStorage.getItem('form_id_draft');
+    if (saved && saved !== "-- เลือกแบบฟอร์ม --") {
+        formTypeSelect.value = saved;
+        setTimeout(() => { formTypeSelect.dispatchEvent(new Event('change')); }, 100);
     }
 }
-
-// เรียกใช้งานเมื่อ DOM พร้อม
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', autoReload);
-} else {
-    autoReload();
-}
+if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', autoReload); } else { autoReload(); }
