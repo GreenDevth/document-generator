@@ -631,21 +631,48 @@ textarea:focus {
 .btn-add {
     background: var(--primary-light);
     color: var(--primary);
+    padding: 10px 20px;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    border: 1px solid var(--primary-light);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .btn-add:hover {
     background: var(--primary);
     color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(79, 70, 229, 0.15);
+}
+
+.btn-add svg {
+    stroke-width: 3;
 }
 
 .btn-remove {
-    background: #fee2e2;
-    color: #ef4444;
+    background: #fff1f2;
+    color: #e11d48;
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border: 1px solid #ffe4e6;
+    transition: all 0.2s;
 }
 
 .btn-remove:hover {
-    background: #ef4444;
+    background: #be123c;
     color: white;
+    border-color: #be123c;
+    transform: rotate(90deg);
 }
 
 .batch-footer {
