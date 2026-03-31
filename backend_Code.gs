@@ -1,5 +1,5 @@
 // ==========================================================================
-// GOOGLE APPS SCRIPT BACKEND V2.9.2-GODMODE (PDF TABLE REPAIR)
+// GOOGLE APPS SCRIPT BACKEND V3.0-TOTAL-POWER (indexed columns FIX)
 // ==========================================================================
 
 const CONFIG = {
@@ -7,7 +7,7 @@ const CONFIG = {
   DEBUG_MODE: true,
   FORMS: {
     '031': { templateId: '1zcM4L5gSnNRLF2vgzpiE5E5a7C3g-o8qHG_BDppAm-A', folderId: '1i2szOSdvsEnfYrGbGM-0wALzQ1QPqkbc' },
-    '033': { templateId: '1B4o6jYsKBGRKg2dS5qdCDsRHbpJA42GANk55sG_HKlQ', folderId: '1B4o6jYsKBGRKg2dS5qdCDsRHbpJA42GANk55sG_HKlQ' }, // Fix Folder ID if needed
+    '033': { templateId: '1B4o6jYsKBGRKg2dS5qdCDsRHbpJA42GANk55sG_HKlQ', folderId: '1B4o6jYsKBGRKg2dS5qdCDsRHbpJA42GANk55sG_HKlQ' }, 
     '034': { templateId: '1CriGH1mgj1-MZcBvdNUfC5TYbMytf063U6Tau312ej0', folderId: '1WhGML56hu4IKawJyb1CCr-xM1BMTE1Vv' },
     '035': { templateId: '11HT5_VmKVB7msoJ6j8oVH2NnLm2VGeGKyCt03SQQj3Y', folderId: '1mWf-fALH6UPl_COPLtk7AmMhsC-sLEHr' }
   }
@@ -28,13 +28,15 @@ function doPost(e) {
     if (action === 'generate' || action === 'preview') return handlePDFRequest(request);
     if (action === 'getRecentData') return getRecentData(request.formId);
     if (action === 'updateRow') return updateRow(request);
+    if (action === 'deleteProject') return deleteProject(request);
+    if (action === 'deleteData') return deleteData(request);
     return createJsonResponse('error', null, 'Invalid action');
   } catch (err) { return createJsonResponse('error', null, err.toString()); }
 }
 
 function getTargetSheet(formId) {
   const ss = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
-  const cleanId = formId.replace('.json', '').replace('-', '');
+  const cleanId = formId.toString().replace('.json', '').replace('-', '').trim();
   let sheet = ss.getSheetByName(cleanId) || ss.getSheetByName(formId);
   return { sheet, ss, cleanId };
 }
@@ -43,7 +45,7 @@ function getSchema(formId) {
   const { sheet } = getTargetSheet(formId);
   if (!sheet) return createJsonResponse('error', null, 'ไม่พบ Sheet');
   const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-  return createJsonResponse('success', { version: "v2.9.2-GodMode", headers });
+  return createJsonResponse('success', { version: "v3.0-TotalPower", headers });
 }
 
 function handlePDFRequest(request) {
@@ -54,10 +56,8 @@ function handlePDFRequest(request) {
   
   if (!formConfig) throw new Error('ไม่พบข้อมูล Template สำหรับ: ' + cleanId);
 
-  // 1. สร้าง PDF
-  const result = createPDF(formConfig, data, isPreview, tableData);
+  const result = createPDF(formConfig, data, isPreview, tableData, cleanId);
 
-  // 2. บันทึกข้อมูลลง Sheet (ถ้าไม่ใช่ Preview)
   let rowsCount = (tableData && Array.isArray(tableData)) ? tableData.length : 1;
   if (!isPreview) {
     saveToSheet(sheet, data, parseInt(rowIndex) || 0, tableData);
@@ -66,7 +66,7 @@ function handlePDFRequest(request) {
   return createJsonResponse('success', result, `บันทึกข้อมูลเรียบร้อยแล้ว (ได้รับ ${rowsCount} รายการ)`);
 }
 
-function createPDF(formConfig, rowData, isPreview, tableData) {
+function createPDF(formConfig, rowData, isPreview, tableData, cleanId) {
   const templateFile = DriveApp.getFileById(formConfig.templateId);
   const parentFolder = DriveApp.getFolderById(formConfig.folderId);
   const timestamp = Utilities.formatDate(new Date(), "GMT+7", "yyyyMMdd_HHmmss");
@@ -78,31 +78,51 @@ function createPDF(formConfig, rowData, isPreview, tableData) {
   const body = doc.getBody();
 
   if (body) {
-    // --- SMART LOGIC แยกฟอร์ม 034 (Fixed 11-Row Grid) ---
-    if (cleanId === '034') {
-      if (tableData && tableData.length > 0) {
-        // จัดการเรื่อง " ชม." ท้ายช่องความยาวให้ชัวร์ 100%
-        const row11 = tableData[0];
-        for (let k in row11) {
-          if (k.toLowerCase().includes('dur') && row11[k]) {
-            if (!row11[k].toString().includes('ชม.')) row11[k] = row11[k] + ' ชม.';
-          }
+    const finalData = { ...rowData };
+    
+    // หากเป็น 034 และมาจากการรวมกลุ่ม (Dash) ให้ดึงข้อมูลกระจายตัว
+    if (cleanId === '034' && tableData && tableData.length > 0) {
+      tableData.forEach((row, i) => {
+        const idx = i + 1;
+        finalData['format' + idx] = row.format || row['รูปแบบสื่อ'] || row['format' + idx] || finalData['format' + idx] || "";
+        finalData['ep' + idx] = row.ep || row['ตอน'] || row['ep' + idx] || finalData['ep' + idx] || "";
+        finalData['teach' + idx] = row.teach || row['วิทยากร/ผู้บรรยาย'] || row['วิทยากร'] || row['teach' + idx] || finalData['teach' + idx] || "";
+        finalData['dur' + idx] = row.dur || row['ความยาว'] || row['dur' + idx] || finalData['dur' + idx] || "";
+        finalData['dma' + idx] = row.dma || row['ผลิตแล้วเสร็จวันที่'] || row['วันผลิตแล้วเสร็จ'] || row['dma' + idx] || finalData['dma' + idx] || "";
+      });
+    }
+
+    // เติมหน่วย ชม. ให้ช่องความยาว (รองรับทั้ง dur และ ความยาว)
+    for (let k in finalData) {
+      const keyLower = k.toLowerCase();
+      if ((keyLower.includes('dur') || keyLower.includes('ความยาว')) && finalData[k]) {
+        let val = finalData[k].toString().trim();
+        if (val && !val.includes('ชม.') && !isNaN(parseFloat(val))) {
+          finalData[k] = val + ' ชม.';
         }
-        replaceInElement(body, row11);
-        const header = doc.getHeader();
-        if (header) replaceInElement(header, row11);
-      }
-    } else {
-      // สำหรับฟอร์มอื่นๆ (031, 033, 035) ที่ต้องการเพิ่มแถวอัตโนมัติ
-      if (tableData && Array.isArray(tableData)) {
-        fillTableRowsSimple(body, tableData);
       }
     }
 
-    // เก็บรายละเอียดข้อมูลหลัก (Subject, Date, etc.)
-    replaceInElement(body, rowData);
+    // แทนที่ Tag สแกนทั้งเอกสาร (Universal Scan)
+    replaceInElement(body, finalData);
+    
+    // สำหรับฟอร์มอื่นๆ (031, 033, 035)
+    if (cleanId !== '034' && tableData && Array.isArray(tableData)) {
+      fillTableRowsSimple(body, tableData);
+    }
+    
+    // จัดการ Checkbox
+    const checkboxKeys = ['cb1', 'cb2', 'cb3', 'cb4', 'cb5', 'cb6'];
+    checkboxKeys.forEach(k => {
+      const val = finalData[k];
+      const isChecked = (val === '✓' || val === true || val === 'true');
+      const symbol = isChecked ? "☑" : "☐";
+      body.replaceText("\\{\\{" + k + "\\}\\}", symbol);
+      body.replaceText("\\{\\{ " + k + " \\}\\}", symbol);
+    });
+
     const header = doc.getHeader();
-    if (header) replaceInElement(header, rowData);
+    if (header) replaceInElement(header, finalData);
   }
 
   doc.saveAndClose();
@@ -116,71 +136,62 @@ function createPDF(formConfig, rowData, isPreview, tableData) {
   return { fileId: pdfFile.getId(), url: pdfFile.getUrl(), name: pdfFile.getName() };
 }
 
-function fillTableRowsSimple(body, tableData) {
-  const tables = body.getTables();
-  tables.forEach(table => {
-    let templateRowIndex = -1;
-    
-    // ค้นหาแถวที่มี Placeholder
-    for (let r = 0; r < table.getNumRows(); r++) {
-      let text = table.getRow(r).getText().toLowerCase();
-      if (text.includes('{{ep}}') || text.includes('{{ตอน}}') || text.includes('{{item}}')) {
-        templateRowIndex = r;
-        break;
+function replaceInElement(element, data) {
+  if (!element || !data) return;
+  const masterMap = {};
+  for (let [k, v] of Object.entries(data)) {
+    if (k) masterMap[k.toString().toLowerCase().trim()] = v;
+  }
+  const text = element.getText();
+  const tagPattern = /\{\{\s*([^}]+)\s*\}\}/g;
+  let match;
+  const tagsInDoc = [];
+  while ((match = tagPattern.exec(text)) !== null) {
+    tagsInDoc.push(match[0]);
+  }
+  const uniqueTags = [...new Set(tagsInDoc)];
+  uniqueTags.forEach(fullTag => {
+    const tagName = fullTag.replace(/[\{\}\s]/g, "").toLowerCase();
+    if (masterMap.hasOwnProperty(tagName)) {
+      const value = masterMap[tagName];
+      const finalVal = Array.isArray(value) ? value.join(', ') : (value !== null && value !== undefined ? value.toString() : "");
+      const escapedTag = fullTag.replace(/[\{\}\[\]\(\)\*\+\?\.\-\^\$\|]/g, "\\$&");
+      try {
+        element.replaceText(escapedTag, finalVal);
+      } catch (e) {
+        try { element.replaceText(fullTag.replace("{","\\{").replace("}","\\}"), finalVal); } catch(err) {}
       }
-    }
-
-    if (templateRowIndex !== -1) {
-      const templateRow = table.getRow(templateRowIndex);
-      
-      // ขั้นที่ 1: ลบแถวขยะ (จุดไข่ปลา) ที่อยู่ถัดจากเทมเพลตลงมาให้หมด
-      let lastRowIdx = table.getNumRows() - 1;
-      for (let r = lastRowIdx; r > templateRowIndex; r--) {
-        let rowText = table.getRow(r).getText().trim();
-        // ถ้าเป็นแถวที่มีแค่จุดหรือว่าง ให้ลบออก
-        if (rowText === "" || rowText.includes("....") || /^[\s.]+$/.test(rowText)) {
-          table.removeRow(r);
-        }
-      }
-
-      // ขั้นที่ 2: วนลูปสร้างแถวใหม่ตามข้อมูลที่มี
-      tableData.forEach((item, i) => {
-        let newRow = table.insertTableRow(templateRowIndex + i + 1, templateRow.copy());
-        // แทนที่ข้อมูลรายบรรทัด (EP, รูปแบบสื่อ, ฯลฯ)
-        for (let [key, val] of Object.entries(item)) {
-          const k = key.toLowerCase();
-          const v = val || "";
-          newRow.replaceText("\\{\\{" + k + "\\}\\}", v);
-          newRow.replaceText("\\{\\{ " + k + " \\}\\}", v);
-        }
-      });
-
-      // ขั้นที่ 3: ลบแถวเทมเพลตต้นฉบับทิ้ง
-      table.removeRow(templateRowIndex);
     }
   });
 }
 
-function replaceInElement(element, data) {
-  for (let [key, value] of Object.entries(data)) {
-    if (!key) continue;
-    const val = Array.isArray(value) ? value.join(', ') : (value !== null && value !== undefined ? value.toString() : "");
-    
-    // สร้าง Regex ที่รองรับ:
-    // 1. (?i) = ไม่สนตัวพิมพ์เล็กใหญ่
-    // 2. \\s* = รองรับเว้นวรรคกี่ช่องก็ได้ในปีกา
-    // 3. ป้องกันอักขระพิเศษใน Key ด้วยการแทนที่ .
-    const k = key.toString().toLowerCase().trim();
-    const pattern = "(?i)\\{\\{\\s*" + k + "\\s*\\}\\}";
-    
-    try {
-      element.replaceText(pattern, val);
-    } catch (e) {
-      // Fallback กรณี Regex ตัวบนมีอักขระที่ Apps Script ไม่ชอบ
-      element.replaceText("\\{\\{" + k + "\\}\\}", val);
-      element.replaceText("\\{\\{ " + k + " \\}\\}", val);
+function fillTableRowsSimple(body, tableData) {
+  const tables = body.getTables();
+  tables.forEach(table => {
+    let templateRowIndex = -1;
+    for (let r = 0; r < table.getNumRows(); r++) {
+      let text = table.getRow(r).getText().toLowerCase();
+      if (text.includes('{{ep}}') || text.includes('{{ตอน}}') || text.includes('{{item}}')) {
+        templateRowIndex = r; break;
+      }
     }
-  }
+    if (templateRowIndex !== -1) {
+      const templateRow = table.getRow(templateRowIndex);
+      let lastRowIdx = table.getNumRows() - 1;
+      for (let r = lastRowIdx; r > templateRowIndex; r--) {
+        let rowText = table.getRow(r).getText().trim();
+        if (rowText === "" || rowText.includes("....") || /^[\s.]+$/.test(rowText)) table.removeRow(r);
+      }
+      tableData.forEach((item, i) => {
+        let newRow = table.insertTableRow(templateRowIndex + i + 1, templateRow.copy());
+        for (let [key, val] of Object.entries(item)) {
+          newRow.replaceText("\\{\\{" + key.toLowerCase() + "\\}\\}", val || "");
+          newRow.replaceText("\\{\\{ " + key.toLowerCase() + " \\}\\}", val || "");
+        }
+      });
+      table.removeRow(templateRowIndex);
+    }
+  });
 }
 
 function saveToSheet(sheet, baseData, rowIndex, tableData) {
@@ -198,11 +209,9 @@ function saveToSheet(sheet, baseData, rowIndex, tableData) {
         return Array.isArray(val) ? val.join(', ') : (val || "");
       });
     });
-
     if (rowIndex <= 0) {
       rows.forEach(r => { sheet.appendRow(r); SpreadsheetApp.flush(); });
     } else {
-      // โหมดแก้ไข (รองรับแค่แถวเดียวสำหรับชุดเบื้องต้น)
       sheet.getRange(rowIndex, 1, 1, headers.length).setValues([rows[0]]);
     }
   }
@@ -218,7 +227,7 @@ function getRecentData(formId) {
   if (!sheet) return createJsonResponse('error', null, 'ไม่พบ Sheet');
   const lastRow = sheet.getLastRow();
   if (lastRow <= 1) return createJsonResponse('success', { records: [] });
-  const startRow = Math.max(2, lastRow - 19);
+  const startRow = Math.max(2, lastRow - 499);
   const numRows = lastRow - startRow + 1;
   const hs = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
   const d = sheet.getRange(startRow, 1, numRows, sheet.getLastColumn()).getValues();
@@ -233,17 +242,38 @@ function getRecentData(formId) {
 function updateRow(request) {
   const { formId, rowIndex, data } = request;
   const { sheet } = getTargetSheet(formId);
-  if (!sheet || !sheet.getRange) return createJsonResponse('error', null, 'ไม่พบ Sheet');
-  
+  if (!sheet) return createJsonResponse('error', null, 'ไม่พบ Sheet');
   const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
   const rowOutput = headers.map(h => {
     const key = h.toString().trim();
-    // รองรับทั้ง Key เดิมและ Key แบบ Lowercase
     let val = (data[key] !== undefined) ? data[key] : data[key.toLowerCase()];
-    if (val === undefined) val = "";
-    return Array.isArray(val) ? val.join(', ') : val.toString();
+    return Array.isArray(val) ? val.join(', ') : (val || "").toString();
   });
-  
   sheet.getRange(rowIndex, 1, 1, headers.length).setValues([rowOutput]);
-  return createJsonResponse('success', null, `อัปเดตข้อมูลแถวที่ ${rowIndex} สำเร็จครับ`);
+  return createJsonResponse('success', null, 'อัปเดตเรียบร้อย');
+}
+
+function deleteProject(request) {
+  const { formId, subject } = request;
+  const { sheet } = getTargetSheet(formId);
+  if (!sheet) return createJsonResponse('error', null, 'ไม่พบ Sheet');
+  const lastRow = sheet.getLastRow();
+  if (lastRow <= 1) return createJsonResponse('error', null, 'ไม่มีข้อมูล');
+  const data = sheet.getRange(1, 1, lastRow, sheet.getLastColumn()).getValues();
+  const searchSubject = (subject || "").toString().toLowerCase().trim();
+  let count = 0;
+  for (let r = lastRow - 1; r >= 1; r--) {
+    if ((data[r][3] || "").toString().toLowerCase().trim() === searchSubject) {
+      sheet.deleteRow(r + 1); count++;
+    }
+  }
+  return createJsonResponse('success', null, 'ลบแล้ว ' + count + ' แถว');
+}
+
+function deleteData(request) {
+  const { rowIndex } = request;
+  const { sheet } = getTargetSheet('001'); // Fallback
+  if (!sheet) return createJsonResponse('error', null, 'ไม่พบ Sheet');
+  sheet.deleteRow(rowIndex);
+  return createJsonResponse('success', null, 'ลบข้อมูลสำเร็จ');
 }
