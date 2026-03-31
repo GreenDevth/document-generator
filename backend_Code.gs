@@ -270,8 +270,8 @@ function fillTableRows(element, tableData) {
     
     // ค้นหาแถวที่มี Placeholder สำหรับ EP หรือ Format (เป็นตัวบ่งบอกเทมเพลต)
     for (let r = 0; r < table.getNumRows(); r++) {
-      let rowText = table.getRow(r).getText();
-      if (rowText.includes('{{ep}}') || rowText.includes('{{format}}') || rowText.includes('{{item}}')) {
+      let rowText = table.getRow(r).getText().toLowerCase();
+      if (rowText.includes('{{ep}}') || rowText.includes('{{format}}') || rowText.includes('{{item}}') || rowText.includes('{{ตอน}}') || rowText.includes('{{รูปแบบสื่อ}}')) {
         templateRowIndex = r;
         templateRow = table.getRow(r);
         break;
@@ -297,13 +297,10 @@ function fillTableRows(element, tableData) {
         // แทนที่ข้อมูลในแถวใหม่นี้
         for (let [key, value] of Object.entries(rowData)) {
           let valStr = (value === null || value === undefined) ? "" : value.toString();
-          let kLow = key.toLowerCase();
-          
-          // วนลูปแทนที่ทุกเคส
-          [kLow, kLow.toUpperCase()].forEach(k => {
-            newRow.replaceText(`\\{\\{${k}\\}\\}` , valStr);
-            newRow.replaceText(`\\{\\{ ${k} \\}\\}` , valStr);
-          });
+          // ใช้ Regex เพื่อหาและแทนที่แบบไม่สนตัวพิมพ์เล็ก-ใหญ่ และยืดหยุ่นเรื่องช่องว่าง
+          let escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); 
+          let regex = new RegExp(`\\\\{\\\\{\\\\s*${escapedKey}\\\\s*\\\\}\\\\}`, 'gi');
+          newRow.replaceText(regex.source, valStr);
         }
       });
       

@@ -523,6 +523,16 @@ async function sendData(action) {
             const currentRoundData = { ...baseData };
             let roundTableData = tableData;
 
+            // บากบั่นดึงข้อมูลแถวแรกจากตารางมาใส่ใน Data หลัก เพื่อให้บันทึกลง Sheet ได้ครบ
+            if (roundTableData && roundTableData.length > 0) {
+                const firstRow = roundTableData[0];
+                for (let key in firstRow) {
+                    if (!currentRoundData[key] || currentRoundData[key] === "") {
+                        currentRoundData[key] = firstRow[key];
+                    }
+                }
+            }
+
             if (r > 0) {
                 const daysToAdd = r * interval;
                 const dateFields = [
