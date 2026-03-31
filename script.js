@@ -360,35 +360,72 @@ function addBatchRow(headers, existingData = null) {
     headers.forEach(h => {
         const td = document.createElement('td');
         const low = h.toLowerCase();
-        const input = document.createElement('input');
-        input.type = 'text';
-        input.dataset.key = h;
-        input.placeholder = labelMap[low] || h;
         
-        // บันทึกร่างอัตโนมัติเมื่อมีการพิมพ์
-        input.oninput = () => saveTableDraft();
+        let inputWrapper;
+        let input;
 
-        // ถ้ามีข้อมูลเดิม (จากการกู้คืน)
-        if (existingData && existingData[h]) {
-            input.value = existingData[h];
-        } 
-        // Auto-increment EP logic
-        else if (low === 'ep' && !existingData) {
-            input.classList.add('auto-increment');
-            input.value = `EP${rowIndex + 1}`;
-        }
-        
-        // Auto-fill logic
-        if (!existingData && rowIndex > 0) {
-            const prevRow = tbody.children[rowIndex - 1];
-            const prevInput = prevRow.querySelector(`input[data-key="${h}"]`);
-            if (prevInput && (low === 'format' || low === 'teach' || low === 'dma')) {
-                input.value = prevInput.value;
-                input.classList.add('auto-fill');
+        // พิเศษสำหรับฟิลด์ความยาว (dur) ให้มีหน่วยเลือก
+        if (low === 'dur' || low === 'ความยาว') {
+            inputWrapper = document.createElement('div');
+            inputWrapper.className = 'unit-input-group';
+            
+            input = document.createElement('input');
+            input.type = 'text';
+            input.dataset.key = h;
+            input.placeholder = '0.00';
+            
+            const select = document.createElement('select');
+            select.className = 'unit-select';
+            select.dataset.unitFor = h;
+            ['ชม.', 'น.'].forEach(u => {
+                const opt = document.createElement('option');
+                opt.value = u;
+                opt.textContent = u;
+                select.appendChild(opt);
+            });
+            
+            inputWrapper.appendChild(input);
+            inputWrapper.appendChild(select);
+            
+            input.oninput = () => saveTableDraft();
+            select.onchange = () => saveTableDraft();
+
+            if (existingData && existingData[h]) {
+                const val = existingData[h].toString();
+                const matched = val.match(/^([\d.]+)\s*(.*)$/);
+                if (matched) {
+                    input.value = matched[1];
+                    select.value = matched[2] || 'ชม.';
+                } else {
+                    input.value = val;
+                }
+            }
+        } else {
+            input = document.createElement('input');
+            input.type = 'text';
+            input.dataset.key = h;
+            input.placeholder = labelMap[low] || h;
+            input.oninput = () => saveTableDraft();
+            inputWrapper = input;
+
+            if (existingData && existingData[h]) {
+                input.value = existingData[h];
+            } else if (low === 'ep' && !existingData) {
+                input.classList.add('auto-increment');
+                input.value = `EP${rowIndex + 1}`;
+            }
+
+            if (!existingData && rowIndex > 0) {
+                const prevRow = tbody.children[rowIndex - 1];
+                const prevInput = prevRow.querySelector(`input[data-key="${h}"]`);
+                if (prevInput && (low === 'format' || low === 'teach' || low === 'dma')) {
+                    input.value = prevInput.value;
+                    input.classList.add('auto-fill');
+                }
             }
         }
 
-        td.appendChild(input);
+        td.appendChild(inputWrapper);
         tr.appendChild(td);
     });
 
@@ -659,9 +696,18 @@ function collectTableData() {
     const data = [];
     rows.forEach(tr => {
         const rowObj = {};
-        const inputs = tr.querySelectorAll('input');
+        const inputs = tr.querySelectorAll('input[data-key]');
         inputs.forEach(input => {
-            rowObj[input.dataset.key] = input.value;
+            const key = input.dataset.key;
+            let val = input.value;
+            
+            // ตรวจเช็คว่ามีหน่วย (Select) คู่กันไหม
+            const unitSelect = tr.querySelector(`select[data-unit-for="${key}"]`);
+            if (unitSelect && val.trim() !== "") {
+                val = `${val} ${unitSelect.value}`;
+            }
+            
+            rowObj[key] = val;
         });
         data.push(rowObj);
     });
