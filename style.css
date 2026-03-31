@@ -57,7 +57,7 @@ body {
 
 .main-container {
     width: 100%;
-    max-width: 950px;
+    max-width: 1450px;
     background: var(--glass);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
@@ -528,6 +528,60 @@ textarea:focus {
     opacity: 1;
 }
 
+/* ส่วนจัดการ Recurring Mode (การส่งต่อเนื่อง) */
+.recurring-row {
+    background: #f8fafc;
+    padding: 20px;
+    border-radius: 18px;
+    margin-bottom: 25px;
+    border: 1px dashed var(--primary-light);
+    transition: all 0.3s ease;
+}
+
+.switch-label {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--primary);
+    cursor: pointer;
+    user-select: none;
+}
+
+.switch-label input[type="checkbox"] {
+    width: 22px;
+    height: 22px;
+    accent-color: var(--primary);
+}
+
+.recurring-controls {
+    display: none; /* ซ่อนไว้รอเปิดสวิตช์ */
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid #e2e8f0;
+    animation: fadeIn 0.4s ease;
+}
+
+.recurring-controls .form-group {
+    margin-bottom: 0;
+}
+
+.recurring-controls input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+}
+
+@media (max-width: 600px) {
+    .recurring-controls {
+        grid-template-columns: 1fr;
+    }
+}
+
 /* Loading Spinner */
 .spinner {
     width: 80px;
@@ -587,22 +641,43 @@ textarea:focus {
     padding: 0 10px 10px 10px;
 }
 
-.batch-table td {
-    padding: 5px;
-}
-
-.batch-row input {
-    width: 100%;
-    padding: 10px 12px;
-    font-size: 0.9rem;
+/* ส่วน Checkbox Group */
+.checkbox-group-area {
+    background: #f8fafc;
+    padding: 25px;
+    border-radius: 20px;
     border: 1px solid #e2e8f0;
-    box-shadow: none;
-    border-radius: 10px;
+    margin-bottom: 25px;
 }
 
-.batch-row input:focus {
+.cb-grid-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 15px;
+}
+
+.cb-wrapper {
+    background: white;
+    padding: 12px 18px;
+    border-radius: 12px;
+    border: 1px solid #f1f5f9;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    font-size: 0.95rem;
+    color: #475569;
+}
+
+.cb-wrapper:hover {
     border-color: var(--primary);
-    box-shadow: 0 0 0 3px var(--primary-light);
+    background: rgba(79, 70, 229, 0.05);
+    transform: translateY(-1px);
+}
+
+.cb-wrapper input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    accent-color: var(--primary);
 }
 
 .batch-row input.auto-increment {
@@ -696,6 +771,62 @@ textarea:focus {
 .unit-input-group:focus-within {
     border-color: var(--primary);
     box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+}
+
+.grid-034 {
+    border-collapse: separate !important;
+    border-spacing: 12px 10px !important; /* เว้นระยะห่างระหว่างคอลัมน์ให้ชัดเจน */
+    width: 100%;
+}
+
+.grid-034 th {
+    background: #e2e8f0; /* สีเทา Professional */
+    color: #1e293b !important; /* ตัวอักษรดำเข้ม */
+    text-align: center !important;
+    padding: 20px 15px !important;
+    font-weight: 800;
+    font-size: 0.9rem;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    border-radius: 15px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+    border: 1px solid #cbd5e1 !important; /* เพิ่มเส้นขอบบางๆ ให้เห็นชัดขึ้น */
+}
+
+.grid-034 td {
+    padding: 0 !important;
+    background: #ffffff;
+    border-radius: 15px; /* เซลล์มนรับกับหัวตาราง */
+    border: 1px solid #eef2f6;
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+    transition: all 0.2s;
+}
+
+.grid-034 td:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+    border-color: var(--primary-light);
+}
+
+.grid-034 tr:nth-child(even) {
+    background: transparent; /* ยกเลิกสีสลับแถวแบบเดิม */
+}
+
+.grid-034 input {
+    width: 100%;
+    height: 52px;
+    padding: 10px 18px !important;
+    border: none !important;
+    text-align: center;
+    font-size: 0.95rem !important;
+    background: transparent;
+    cursor: pointer;
+}
+
+.grid-034 input:focus {
+    background: #fff;
+    cursor: text;
 }
 
 .unit-input-group input {

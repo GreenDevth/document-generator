@@ -3,14 +3,17 @@
 // ==========================================================================
 
 const scriptUrlInput = document.getElementById('scriptUrl');
+if (scriptUrlInput) {
+    scriptUrlInput.value = 'https://script.google.com/macros/s/AKfycbz9oaurUPmKICdUsGV34G_ahDBWhGLK6K5zirAHd2kbTP7Zx2XtniWI2189FszuKaIy/exec';
+}
 const formTypeSelect = document.getElementById('formType');
 const dynamicSection = document.getElementById('dynamicContent');
 const fieldsContainer = document.getElementById('fieldsContainer');
-const resultBox = document.getElementById('resultBox');
 const isRecurringCheck = document.getElementById('isRecurring');
 const recurringControls = document.getElementById('recurringControls');
 const roundsInput = document.getElementById('recurringCount');
-const intervalInput = document.getElementById('intervalDays');
+const intervalDaysInput = document.getElementById('intervalDays');
+const resultBox = document.getElementById('resultBox');
 const linksContainer = document.getElementById('linksContainer');
 
 const thaiMonths = [
@@ -21,20 +24,17 @@ const thaiMonths = [
 let currentHeaders = [];
 let isProcessing = false;
 let currentEditRowIndex = 0;
-let dashboardData = []; // สำหรับเก็บข้อมูลทั้งหมดที่ดึงมา
+let dashboardData = [];
 
-// --- GLOBAL ACTIONS (ประกาศไว้ด้านบนเพื่อให้ปุ่มกดได้ทันที) ---
+// --- GLOBAL ACTIONS ---
 function clearLocalStorage() {
-    showModal('🧹 กวาดล้างข้อมูลร่าง (Local)', 'คุณต้องการลบข้อมูลที่ร่างไว้ "ในเบราว์เซอร์นี้" ทั้งหมดและเริ่มใหม่ใช่หรือไม่? (ที่อยู่ Apps Script URL จะยังคงอยู่ครับ)', true, () => {
-        localStorage.removeItem('form_id_draft');
-        localStorage.removeItem('base_data_draft');
-        localStorage.removeItem('table_data_draft');
+    showModal('🧹 กวาดล้างข้อมูล', 'คุณต้องการล้างข้อมูลในฟอร์มใช่หรือไม่?', true, () => {
         window.location.reload();
     }, '🗑️');
 }
 
 function clearForm() {
-    showModal('📋 เคลียร์ฟอร์ม', 'คุณต้องการลบข้อมูลที่พิมพ์ไว้และเริ่มสร้างรายการใหม่ใช่หรือไม่? (ข้อมูลในความจำเครื่องจะยังคงอยู่)', true, () => {
+    showModal('📋 เคลียร์ฟอร์ม', 'คุณต้องการลบข้อมูลที่พิมพ์ไว้และเริ่มสร้างรายการใหม่ใช่หรือไม่?', true, () => {
         const tbody = document.getElementById('batchTableBody');
         if (tbody) tbody.innerHTML = '';
         const inputs = fieldsContainer.querySelectorAll('input');
@@ -59,49 +59,18 @@ const labelMap = {
     'extdocnoint': 'เอกสารเลขที่ (ภายใน)', 'extdocdateint': 'ลงวันที่ (ภายใน)',
     'date': 'วันที่', 'mouth': 'เดือน', 'ac': 'พ.ศ.',
     'item': 'รายการอุปกรณ์', 'teach': 'วิทยากร/ผู้บรรยาย', 'dur': 'ความยาว',
-    'dma': 'วันผลิตแล้วเสร็จ', 'qty': 'จำนวน'
+    'dma': 'วันผลิตแล้วเสร็จ', 'qty': 'จำนวน', 'unit': 'หน่วย'
 };
-
 const checkboxConfig = { 'checkbox': ['หน่วยจัดและผลิตรายการวิทยุ', 'หน่วยจัดและผลิตรายการโทรทัศน์', 'หน่วยผลิตและพัฒนาสื่อการศึกษา'] };
 
-const defaultUrl = 'https://script.google.com/macros/s/AKfycbwtcuDQ6gzAg3tibBAKL0aVVn5l3C_adShptRkgZaQNUYCzacuQKZv_ywlLYUw24c_l/exec';
-scriptUrlInput.value = localStorage.getItem('gas_url') || defaultUrl;
+if (isRecurringCheck) {
+    isRecurringCheck.onchange = () => {
+        if (recurringControls) recurringControls.style.display = isRecurringCheck.checked ? 'grid' : 'none';
+    };
+}
 
 function toThaiDigits(num) { return num.toString().replace(/[0-9]/g, digit => "๐๑๒๓๔๕๖๗๘๙"[digit]); }
 function toArabicDigits(str) { return str.toString().replace(/[๐-๙]/g, digit => "๐๑๒๓๔๕๖๗๘๙".indexOf(digit)); }
-
-function saveAllDrafts() {
-    const baseData = {};
-    currentHeaders.forEach(h => {
-        const checkboxes = document.querySelectorAll(`input[name="${h}"]`);
-        if (checkboxes.length > 0) {
-            baseData[h] = Array.from(checkboxes).filter(cb => cb.checked).map(cb => cb.value);
-        } else {
-            const el = document.getElementById(`input_${h}`);
-            if (el) baseData[h] = el.value;
-        }
-    });
-    localStorage.setItem('form_id_draft', formTypeSelect.value);
-    localStorage.setItem('base_data_draft', JSON.stringify(baseData));
-    const tableData = collectTableData();
-    if (tableData) localStorage.setItem('table_data_draft', JSON.stringify(tableData));
-    else localStorage.removeItem('table_data_draft');
-}
-
-function restoreBaseData(dataMap = null) {
-    const data = dataMap || JSON.parse(localStorage.getItem('base_data_draft') || '{}');
-    if (!data) return;
-    for (let [h, val] of Object.entries(data)) {
-        const checkboxes = document.querySelectorAll(`input[name="${h}"]`);
-        if (checkboxes.length > 0) {
-            const vals = Array.isArray(val) ? val : [val];
-            checkboxes.forEach(cb => cb.checked = vals.includes(cb.value));
-        } else {
-            const el = document.getElementById(`input_${h}`);
-            if (el) el.value = val;
-        }
-    }
-}
 
 function calcNextDate(day, monthThai, yearBE, daysToAdd) {
     const dayArabic = toArabicDigits(day.toString());
@@ -122,8 +91,6 @@ formTypeSelect.addEventListener('change', async () => {
     const url = scriptUrlInput.value.trim();
     const formId = formTypeSelect.value;
     if (!url || !formId || formId === "-- เลือกแบบฟอร์ม --") return;
-    localStorage.setItem('gas_url', url);
-    localStorage.setItem('form_id_draft', formId);
     showLoading('กำลังดึงโครงสร้างข้อมูล...');
     try {
         const response = await fetch(url, {
@@ -135,7 +102,6 @@ formTypeSelect.addEventListener('change', async () => {
         if (json.status === 'success') {
             renderFields(json.data.headers, formId);
             dynamicSection.classList.add('active');
-            restoreBaseData();
             hideLoading();
         } else { throw new Error(json.message); }
     } catch (err) { hideLoading(); showModal('❌ ผิดพลาด', err.message, false, null, '⚠️'); }
@@ -144,11 +110,17 @@ formTypeSelect.addEventListener('change', async () => {
 function renderFields(headers, formId) {
     currentHeaders = headers;
     fieldsContainer.innerHTML = '';
+    const fid = formId.toString().trim();
+    
+    if (fid === '034') {
+        renderGrid034(headers);
+        return;
+    }
+
     const tableKeywords = ['ep', 'format', 'teach', 'dur', 'dma', 'item', 'qty', 'ตอน', 'รูปแบบสื่อ', 'วิทยากร', 'ความยาว', 'ผลิตแล้วเสร็จ'];
     const currentTableHeaders = headers.filter(h => tableKeywords.some(k => h.toLowerCase().includes(k)));
     const basicHeaders = headers.filter(h => !currentTableHeaders.includes(h));
 
-    // Checkboxes
     const cbHeaders = basicHeaders.filter(h => h.toLowerCase().startsWith('cb') || checkboxConfig[h]);
     const regularHeaders = basicHeaders.filter(h => !cbHeaders.includes(h));
 
@@ -177,7 +149,6 @@ function renderFields(headers, formId) {
         fieldsContainer.appendChild(cbGroup);
     }
 
-    // Regular Fields
     let i = 0;
     while (i < regularHeaders.length) {
         const header = regularHeaders[i];
@@ -205,11 +176,77 @@ function renderFields(headers, formId) {
     if (currentTableHeaders.length > 0) renderTableRegistry(currentTableHeaders);
 }
 
+function renderGrid034(headers) {
+    const basicHeaders = headers.filter(h => !['ep', 'teach', 'dur', 'dma', 'format'].some(k => h.toLowerCase().includes(k)));
+    const cbHeaders = basicHeaders.filter(h => h.toLowerCase().startsWith('cb') || checkboxConfig[h]);
+    const regularHeaders = basicHeaders.filter(h => !cbHeaders.includes(h));
+
+    if (cbHeaders.length > 0) {
+        const cbGroup = document.createElement('div');
+        cbGroup.className = 'form-group full-width checkbox-group-area';
+        cbGroup.innerHTML = `<label style="font-weight:700; color:var(--primary); margin-bottom:15px; display:block;">🔹 หน่วยงานที่เกี่ยวข้อง / รูปแบบการจัดส่ง</label>`;
+        const optionsContainer = document.createElement('div');
+        optionsContainer.className = 'cb-grid-container';
+        cbHeaders.forEach(header => {
+            const low = header.toLowerCase();
+            if (checkboxConfig[header]) {
+                checkboxConfig[header].forEach(opt => renderSingleCheckbox(optionsContainer, header, opt, opt));
+            } else {
+                const displayLabel = labelMap[low] || header;
+                renderSingleCheckbox(optionsContainer, header, displayLabel, '✓');
+            }
+        });
+        cbGroup.appendChild(optionsContainer);
+        fieldsContainer.appendChild(cbGroup);
+    }
+
+    regularHeaders.forEach(h => {
+        const group = document.createElement('div');
+        group.className = 'form-group';
+        if (h.toLowerCase().includes('subject')) group.classList.add('full-width');
+        renderInputGroup(group, h);
+        fieldsContainer.appendChild(group);
+    });
+
+    const gridContainer = document.createElement('div');
+    gridContainer.className = 'table-batch-container grid-034-container';
+    gridContainer.innerHTML = `
+        <h3>📝 รายการที่ผลิต (11 แถว)</h3>
+        <div class="batch-table-wrapper">
+            <table class="batch-table grid-034">
+                <thead>
+                    <tr>
+                        <th>รูปแบบสื่อ</th>
+                        <th>ชื่อเรื่อง/ตอน</th>
+                        <th>วิทยากร/ผู้บรรยาย</th>
+                        <th>ความยาว</th>
+                        <th>วันผลิตแล้วเสร็จ</th>
+                    </tr>
+                </thead>
+                <tbody id="grid034Body"></tbody>
+            </table>
+        </div>
+    `;
+    fieldsContainer.appendChild(gridContainer);
+    const tbody = gridContainer.querySelector('#grid034Body');
+    
+    for (let r = 1; r <= 11; r++) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><input type="text" id="input_format${r}"></td>
+            <td><input type="text" id="input_ep${r}"></td>
+            <td><input type="text" id="input_teach${r}"></td>
+            <td><input type="text" id="input_dur${r}"></td>
+            <td><input type="text" id="input_dma${r}"></td>
+        `;
+        tbody.appendChild(tr);
+    }
+}
+
 function renderTableRegistry(headers) {
     const container = document.createElement('div');
     container.className = 'table-batch-container';
     container.innerHTML = `
-        <div id="rescueContainer" style="margin-bottom: 15px;"></div>
         <div class="batch-header">
             <div class="batch-title">📜 รายการที่ต้องบันทึก (${headers.length} คอลัมน์)</div>
             <div style="display: flex; gap: 10px;">
@@ -223,7 +260,7 @@ function renderTableRegistry(headers) {
     `;
     fieldsContainer.appendChild(container);
     container.querySelector('#btnAddRow').onclick = () => addBatchRow(headers);
-    checkTableRescue(headers);
+    addBatchRow(headers);
 }
 
 function addBatchRow(headers, existingData = null) {
@@ -241,7 +278,6 @@ function addBatchRow(headers, existingData = null) {
             const sel = document.createElement('select'); sel.className = 'unit-select'; sel.dataset.unitFor = h;
             ['ชม.', 'น.'].forEach(u => { const o = document.createElement('option'); o.value = u; o.textContent = u; sel.appendChild(o); });
             grp.appendChild(input); grp.appendChild(sel);
-            input.oninput = () => saveAllDrafts(); sel.onchange = () => saveAllDrafts();
             if (existingData && existingData[h]) {
                 const m = existingData[h].toString().match(/^([\d.]+)\s*(.*)$/);
                 if (m) { input.value = m[1]; sel.value = m[2] || 'ชม.'; } else input.value = existingData[h];
@@ -250,7 +286,6 @@ function addBatchRow(headers, existingData = null) {
         } else {
             input = document.createElement('input'); input.type = 'text'; input.dataset.key = h;
             input.placeholder = labelMap[low] || h;
-            input.oninput = () => saveAllDrafts();
             if (existingData && existingData[h]) {
                 input.value = existingData[h];
             } else if (low === 'ep' && !existingData) {
@@ -294,6 +329,51 @@ function restoreBatchData(data, headers) {
 }
 
 function collectTableData() {
+    const fid = formTypeSelect.value.toString().trim();
+    if (fid === '034') {
+        const row = {};
+        // ดึงค่าแถวแรกไว้เป็นแม่แบบ (Template) สำหรับ Autofill
+        const tplFormat = document.getElementById(`input_format1`).value;
+        const tplTeach = document.getElementById(`input_teach1`).value;
+        let tplDur = document.getElementById(`input_dur1`).value;
+        if (tplDur && !tplDur.includes('ชม.')) tplDur = `${tplDur} ชม.`;
+        const tplDma = document.getElementById(`input_dma1`).value;
+
+        for (let r = 1; r <= 11; r++) {
+            let f = document.getElementById(`input_format${r}`).value;
+            let e = document.getElementById(`input_ep${r}`).value;
+            let t = document.getElementById(`input_teach${r}`).value;
+            let d = document.getElementById(`input_dur${r}`).value;
+            let a = document.getElementById(`input_dma${r}`).value;
+
+            // Smart Autofill: ถ้าแถว 2-11 ว่าง ให้ดึงค่าจากแถว 1 มาใช้
+            if (r > 1) {
+                if (!f) f = tplFormat;
+                if (!t) t = tplTeach;
+                if (!d) d = tplDur; else if (d && !d.includes('ชม.')) d = `${d} ชม.`;
+                if (!a) a = tplDma;
+            } else {
+                if (d && !d.includes('ชม.')) d = `${d} ชม.`;
+            }
+
+            row[`format${r}`] = f;
+            row[`ep${r}`] = e;
+            row[`teach${r}`] = t;
+            row[`dur${r}`] = d;
+            row[`dma${r}`] = a;
+
+            // เพิ่มเติม: สำหรับแถวที่ 1 ให้ส่งแบบไม่มีเลขกำกับด้วย เพื่อรองรับ Template ทุกรุ่น
+            if (r === 1) {
+                row['format'] = f;
+                row['ep'] = e;
+                row['teach'] = t;
+                row['dur'] = d;
+                row['dma'] = a;
+            }
+        }
+        return [row];
+    }
+    
     const rows = document.querySelectorAll('.batch-row');
     const data = [];
     rows.forEach(tr => {
@@ -320,6 +400,7 @@ async function fetchRecentData() {
     try {
         const response = await fetch(url, { 
             method: 'POST', 
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
             body: JSON.stringify({ action: 'getRecentData', formId, limit: 100 }) 
         });
         const json = await response.json();
@@ -334,11 +415,12 @@ async function fetchRecentData() {
 function displayHistoryModal(records) {
     const modal = document.getElementById('dashboardModal');
     const headerRow = document.getElementById('dashHeaderRow');
+    const fid = formTypeSelect.value.toString().trim(); // กำหนดค่า fid ให้ถูกต้อง
     
     // ตั้งค่าหัวตารางแบบ Spreadsheet ครบถ้วน
     headerRow.innerHTML = `
         <th>ลำดับ</th>
-        <th>ชื่อรายการ (Subject)</th>
+        <th>ชื่อรายการ (Subject) ${fid === '034' ? '<small style="display:block;color:#94a3b8;font-weight:300;">(รวบพริ้นต์ตารางเดียว)</small>' : ''}</th>
         <th>ตอน (EP)</th>
         <th>วิทยากร (Teacher)</th>
         <th>ความยาว (Dur)</th>
@@ -347,12 +429,24 @@ function displayHistoryModal(records) {
         <th>วันที่บันทึก</th>
         <th style="width: 250px; position: sticky; right: 0; background: var(--primary-light);">การปฏิบัติการ</th>
     `;
-    renderDashTable(records);
+    
+    // เพิ่มปุ่ม Refresh ใน UI Search
+    const searchWrap = document.querySelector('.dash-search-container');
+    const existingRefBtn = document.getElementById('btnRefreshDash');
+    if (existingRefBtn) existingRefBtn.remove();
+    const refBtn = document.createElement('button');
+    refBtn.id = 'btnRefreshDash'; refBtn.type = 'button'; refBtn.className = 'btn-refresh';
+    refBtn.innerHTML = '🔄 อัปเดตจาก Sheet';
+    refBtn.onclick = fetchRecentData;
+    searchWrap.appendChild(refBtn);
+
+    renderDashTable(records, fid); // ส่ง fid เข้าไปด้วยเพื่อความแม่นยำ
     modal.classList.add('active');
 }
 
-function renderDashTable(records) {
+function renderDashTable(records, dashboardFormId = null) {
     const body = document.getElementById('dashBody');
+    const formId = (dashboardFormId || formTypeSelect.value).toString().trim();
     body.innerHTML = '';
     
     if (records.length === 0) {
@@ -386,13 +480,72 @@ function renderDashTable(records) {
                 <div class="action-btns">
                     <button type="button" class="btn-action btn-save" onclick="saveRecordInline(${idx})" title="บันทึกลง Sheet">💾</button>
                     <button type="button" class="btn-action btn-edit" onclick="editRecord(${idx})" title="ดึงข้อมูลลงฟอร์ม">✍️</button>
-                    <button type="button" class="btn-action btn-pdf" onclick="generateRecordPDF(${idx})" title="สร้าง PDF">📄</button>
+                    <button type="button" class="btn-action btn-pdf" onclick="generateRecordPDF(${idx})" title="สร้าง PDF ใหม่จากข้อมูลใน Row นี้">📄</button>
                     <button type="button" class="btn-action btn-del" onclick="deleteRecord(${idx})" title="ลบออกจาก Sheet">🗑️</button>
                 </div>
             </td>
         `;
         body.appendChild(tr);
     });
+
+    // เพิ่มปุ่มพริ้นต์รวบยอด (Global PDF) สำหรับ 034
+    const searchContainer = document.querySelector('.dash-search-container');
+    const existingGlobalBtn = document.getElementById('btnGlobalPDF034');
+    if (existingGlobalBtn) existingGlobalBtn.remove();
+
+    if (formId === '034') {
+        const globalBtn = document.createElement('button');
+        globalBtn.type = 'button';
+        globalBtn.id = 'btnGlobalPDF034';
+        globalBtn.className = 'btn-pdf-global';
+        globalBtn.innerHTML = `
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+            สร้างไฟล์ PDF รวบยอด (034)
+        `;
+        globalBtn.onclick = generateBatchPDF034; // ผูกฟังก์ชันโดยตรง
+        searchContainer.appendChild(globalBtn);
+    }
+}
+
+async function generateBatchPDF034() {
+    alert('กำลังเตรียมสร้าง PDF รวบยอดจากตาราง Dashboard ครับ...');
+    try {
+        const url = scriptUrlInput.value.trim();
+        const formId = formTypeSelect.value.toString().trim();
+        const rows = document.querySelectorAll('#dashBody tr');
+        const tableData = [];
+        
+        rows.forEach(tr => {
+            const inputs = tr.querySelectorAll('.dash-inline-input');
+            if (inputs.length === 0) return;
+            const rowObj = {};
+            inputs.forEach(inp => {
+                let val = inp.value;
+                if (inp.dataset.field === 'dur' && val && !val.includes('ชม.')) val = `${val} ชม.`;
+                rowObj[inp.dataset.field] = val;
+            });
+            tableData.push(rowObj);
+        });
+
+        if (tableData.length === 0) {
+            showModal('⚠️ คำเตือน', 'ไม่พบข้อมูลในตาราง Dashboard ครับ', false, null, '🚧');
+            return;
+        }
+
+        showLoading(`กำลังสร้าง PDF สรุป 034 (${tableData.length} รายการ)...`);
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify({ action: 'generate', formId, data: tableData[0], tableData, rowIndex: 0 })
+        });
+        const result = await response.json();
+        if (result.status === 'success') {
+            showModal('📜 สร้างสรุปสำเร็จ', `เสร็จเรียบร้อยครับ`, false, () => {
+                if (result.data.url) window.open(result.data.url, '_blank');
+            }, '📄');
+        } else { throw new Error(result.message); }
+    } catch (e) { showModal('❌ ผิดพลาด', e.message, false, null, '⚠️'); }
+    finally { hideLoading(); }
 }
 
 async function saveRecordInline(idx) {
@@ -449,26 +602,56 @@ function filterDashboard() {
 
 function editRecord(idx) {
     const r = dashboardData[idx];
+    const fid = formTypeSelect.value.toString().trim();
     currentEditRowIndex = r._rowIndex;
     restoreBaseData(r);
     
-    // กู้คืนตารางโหนด
-    const tableKeywords = ['ep', 'format', 'teach', 'dur', 'dma', 'item', 'qty', 'ตอน', 'รูปแบบสื่อ', 'วิทยากร', 'ความยาว', 'ผลิตแล้วเสร็จ'];
-    const tableHeaders = currentHeaders.filter(h => tableKeywords.some(k => h.toLowerCase().includes(k)));
-    if (tableHeaders.length > 0) {
-        const tbody = document.getElementById('batchTableBody');
-        if (tbody) {
-            tbody.innerHTML = '';
-            if (r.tableData || r.tableBody || r._tableData) {
-                try {
-                    const rows = JSON.parse(r.tableData || r.tableBody || r._tableData);
-                    rows.forEach(rowData => addBatchRow(tableHeaders, rowData));
-                } catch(e) { addBatchRow(tableHeaders, r); }
-            } else { addBatchRow(tableHeaders, r); }
+    if (fid === '034') {
+        // --- 034 Special: ดึงทุกบรรทัดในประวัติที่มีชื่อเรื่องเดียวกันลง Grid ---
+        const subject = (r.subject || r['ชื่อรายการที่ผลิต'] || "").toString().toLowerCase().trim();
+        const related = dashboardData.filter(row => {
+            const rowSub = (row.subject || row['ชื่อรายการที่ผลิต'] || "").toString().toLowerCase().trim();
+            return rowSub === subject && subject !== "";
+        }).sort((a,b) => {
+             const epA = parseInt((a.ep || a['ตอน'] || "0").toString().replace(/\D/g, '')) || 0;
+             const epB = parseInt((b.ep || b['ตอน'] || "0").toString().replace(/\D/g, '')) || 0;
+             return epA - epB;
+        });
+
+        // เคลียร์และเติมข้อมูลลง Grid 11 ช่อง
+        for (let r = 1; r <= 11; r++) {
+            const data = related[r-1] || {};
+            const f = document.getElementById(`input_format${r}`);
+            const e = document.getElementById(`input_ep${r}`);
+            const t = document.getElementById(`input_teach${r}`);
+            const d = document.getElementById(`input_dur${r}`);
+            const a = document.getElementById(`input_dma${r}`);
+            if(f) f.value = data.format || data['รูปแบบสื่อ'] || '';
+            if(e) e.value = data.ep || data['ตอน'] || '';
+            if(t) t.value = data.teach || data['วิทยากร/ผู้บรรยาย'] || data['วิทยากร'] || '';
+            if(d) d.value = (data.dur || data['ความยาว'] || data['ความยาวรายการ (นาที)'] || '').toString().replace(' ชม.', '');
+            if(a) a.value = data.dma || data['ผลิตแล้วเสร็จวันที่'] || data['วันผลิตแล้วเสร็จ'] || '';
+        }
+    } else {
+        // กู้คืนตารางโหนด (ฟอร์มอื่น)
+        const tableKeywords = ['ep', 'format', 'teach', 'dur', 'dma', 'item', 'qty', 'ตอน', 'รูปแบบสื่อ', 'วิทยากร', 'ความยาว', 'ผลิตแล้วเสร็จ'];
+        const tableHeaders = currentHeaders.filter(h => tableKeywords.some(k => h.toLowerCase().includes(k)));
+        if (tableHeaders.length > 0) {
+            const tbody = document.getElementById('batchTableBody');
+            if (tbody) {
+                tbody.innerHTML = '';
+                if (r.tableData || r.tableBody || r._tableData) {
+                    try {
+                        const rows = JSON.parse(r.tableData || r.tableBody || r._tableData);
+                        rows.forEach(rowData => addBatchRow(tableHeaders, rowData));
+                    } catch(e) { addBatchRow(tableHeaders, r); }
+                } else { addBatchRow(tableHeaders, r); }
+            }
         }
     }
+    
     closeDashboardModal();
-    showModal('✅ โหลดข้อมูลสำเร็จ', `ดึงข้อมูลโครงการ "${r.subject || 'ไม่ระบุชื่อ'}" มาแก้ไขเรียบร้อยครับ`, false, null, '✨');
+    showModal('✅ โหลดข้อมูลสำเร็จ', `ดึงข้อมูลโครงการ "${r.subject || 'ไม่ระบุชื่อ'}" มาเตรียมแก้ไขเรียบร้อยครับ`, false, null, '✨');
 }
 
 async function deleteRecord(idx) {
@@ -477,7 +660,11 @@ async function deleteRecord(idx) {
     showModal('🗑️ ยืนยันการลบ', 'คุณต้องการลบรายการนี้ออกจาก Google Sheet ใช่หรือไม่?', true, async () => {
         showLoading('กำลังลบข้อมูล...');
         try {
-            const response = await fetch(url, { method: 'POST', body: JSON.stringify({ action: 'deleteData', rowIndex: r._rowIndex }) });
+            const response = await fetch(url, { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify({ action: 'deleteData', rowIndex: r._rowIndex }) 
+            });
             const json = await response.json();
             if (json.status === 'success') {
                 showModal('✅ สำเร็จ', 'ลบข้อมูลเรียบร้อยแล้วครับ', false, () => {
@@ -561,13 +748,28 @@ async function sendData(action) {
             }
         });
         const tableData = collectTableData();
+        const interval = parseInt(intervalDaysInput.value) || 7;
+        
         for (let r = 0; r < rounds; r++) {
-            const response = await fetch(url, { method: 'POST', body: JSON.stringify({ action, formId, data: baseData, tableData, rowIndex: 0 }) });
+            // โลจิกคำนวณวันที่ใหม่ถ้าเป็นรอบที่ 2 เป็นต้นไป
+            const currentData = { ...baseData };
+            if (r > 0 && currentData.date && currentData.mouth && currentData.ac) {
+                const next = calcNextDate(currentData.date, currentData.mouth, currentData.ac, r * interval);
+                currentData.date = next.day;
+                currentData.mouth = next.month;
+                currentData.ac = next.year;
+            }
+
+            const response = await fetch(url, { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify({ action, formId, data: currentData, tableData, rowIndex: 0 }) 
+            });
             const result = await response.json();
             if (result.status === 'success') {
                 addResultLink(result.data.url, result.data.name);
                 if (rounds === 1) {
-                    localStorage.removeItem('base_data_draft'); localStorage.removeItem('table_data_draft');
+                    // ไม่ต้องทำความสะอาด Draft อีกต่อไป
                 }
             } else { throw new Error(result.message); }
         }
@@ -580,7 +782,6 @@ function renderInputGroup(container, h) {
     const low = h.toLowerCase();
     const label = document.createElement('label'); label.textContent = labelMap[low] || h;
     const input = document.createElement('input'); input.id = `input_${h}`; input.placeholder = label.textContent;
-    input.oninput = () => saveAllDrafts();
     container.appendChild(label); container.appendChild(input);
 }
 
@@ -588,7 +789,6 @@ function renderSingleCheckbox(container, name, labelText, value) {
     const wrapper = document.createElement('label'); wrapper.className = 'cb-wrapper';
     wrapper.style.display = 'flex'; wrapper.style.alignItems = 'center'; wrapper.style.gap = '10px';
     const cb = document.createElement('input'); cb.type = 'checkbox'; cb.name = name; cb.value = value;
-    cb.onchange = () => saveAllDrafts();
     wrapper.appendChild(cb); wrapper.appendChild(document.createTextNode(labelText));
     container.appendChild(wrapper);
 }
@@ -625,29 +825,15 @@ document.getElementById('docForm').onsubmit = (e) => {
 };
 document.getElementById('btnPreview').onclick = () => sendData('preview');
 
-function clearLocalStorage() {
-    showModal('🧹 กวาดล้างข้อมูลร่าง (Local)', 'คุณต้องการลบข้อมูลที่ร่างไว้ "ในเบราว์เซอร์นี้" ทั้งหมดและเริ่มใหม่ใช่หรือไม่? (ที่อยู่ Apps Script URL จะยังคงอยู่ครับ)', true, () => {
-        localStorage.removeItem('form_id_draft');
-        localStorage.removeItem('base_data_draft');
-        localStorage.removeItem('table_data_draft');
-        window.location.reload();
-    }, '🗑️');
-}
 function clearForm() {
-    showModal('📋 เคลียร์ฟอร์ม', 'คุณต้องการลบข้อมูลที่พิมพ์ไว้และเริ่มสร้างรายการใหม่ใช่หรือไม่? (ข้อมูลในความจำเครื่องจะยังคงอยู่)', true, () => {
+    showModal('📋 เคลียร์ฟอร์ม', 'คุณต้องการลบข้อมูลที่พิมพ์ไว้และเริ่มสร้างรายการใหม่ใช่หรือไม่?', true, () => {
         const tbody = document.getElementById('batchTableBody');
         if (tbody) tbody.innerHTML = '';
         const inputs = fieldsContainer.querySelectorAll('input');
         inputs.forEach(inp => inp.value = '');
-        addBatchRow(currentHeaders.filter(h => ['ep', 'format', 'teach', 'dur', 'dma', 'item', 'qty', 'ตอน', 'รูปแบบสื่อ', 'วิทยากร', 'ความยาว', 'ผลิตแล้วเสร็จ'].some(k => h.toLowerCase().includes(k))));
     }, '✨');
 }
 
-function autoReload() {
-    const saved = localStorage.getItem('form_id_draft');
-    if (saved && saved !== "-- เลือกแบบฟอร์ม --") {
-        formTypeSelect.value = saved;
-        setTimeout(() => { formTypeSelect.dispatchEvent(new Event('change')); }, 100);
-    }
-}
+// ไม่ใช้ AutoReload อีกต่อไป
+function autoReload() { }
 if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', autoReload); } else { autoReload(); }

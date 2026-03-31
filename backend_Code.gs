@@ -78,18 +78,35 @@ function createPDF(formConfig, rowData, isPreview, tableData) {
   const body = doc.getBody();
 
   if (body) {
-    // ลำดับสำคัญ: 1. เคลียร์และสร้างแถวในตารางก่อน
-    if (tableData && Array.isArray(tableData)) {
-      fillTableRowsSimple(body, tableData);
+    // --- SMART LOGIC แยกฟอร์ม 034 (Fixed 11-Row Grid) ---
+    if (cleanId === '034') {
+      if (tableData && tableData.length > 0) {
+        // จัดการเรื่อง " ชม." ท้ายช่องความยาวให้ชัวร์ 100%
+        const row11 = tableData[0];
+        for (let k in row11) {
+          if (k.toLowerCase().includes('dur') && row11[k]) {
+            if (!row11[k].toString().includes('ชม.')) row11[k] = row11[k] + ' ชม.';
+          }
+        }
+        replaceInElement(body, row11);
+        const header = doc.getHeader();
+        if (header) replaceInElement(header, row11);
+      }
+    } else {
+      // สำหรับฟอร์มอื่นๆ (031, 033, 035) ที่ต้องการเพิ่มแถวอัตโนมัติ
+      if (tableData && Array.isArray(tableData)) {
+        fillTableRowsSimple(body, tableData);
+      }
     }
-    // 2. เก็บรายละเอียดอื่นๆ ทั่วทั่งเอกสาร (หัวกระดาษ/ท้ายกระดาษ)
+
+    // เก็บรายละเอียดข้อมูลหลัก (Subject, Date, etc.)
     replaceInElement(body, rowData);
     const header = doc.getHeader();
     if (header) replaceInElement(header, rowData);
   }
 
   doc.saveAndClose();
-  Utilities.sleep(2500); // พักรอกระบวนการหลังบ้าน Google
+  Utilities.sleep(1500); 
 
   const pdfBlob = tempFile.getAs(MimeType.PDF);
   const pdfFile = parentFolder.createFile(pdfBlob).setName(tempName + ".pdf");
@@ -146,10 +163,23 @@ function fillTableRowsSimple(body, tableData) {
 
 function replaceInElement(element, data) {
   for (let [key, value] of Object.entries(data)) {
-    const val = Array.isArray(value) ? value.join(', ') : (value || "");
-    const k = key.toLowerCase();
-    element.replaceText("\\{\\{" + k + "\\}\\}", val);
-    element.replaceText("\\{\\{ " + k + " \\}\\}", val);
+    if (!key) continue;
+    const val = Array.isArray(value) ? value.join(', ') : (value !== null && value !== undefined ? value.toString() : "");
+    
+    // สร้าง Regex ที่รองรับ:
+    // 1. (?i) = ไม่สนตัวพิมพ์เล็กใหญ่
+    // 2. \\s* = รองรับเว้นวรรคกี่ช่องก็ได้ในปีกา
+    // 3. ป้องกันอักขระพิเศษใน Key ด้วยการแทนที่ .
+    const k = key.toString().toLowerCase().trim();
+    const pattern = "(?i)\\{\\{\\s*" + k + "\\s*\\}\\}";
+    
+    try {
+      element.replaceText(pattern, val);
+    } catch (e) {
+      // Fallback กรณี Regex ตัวบนมีอักขระที่ Apps Script ไม่ชอบ
+      element.replaceText("\\{\\{" + k + "\\}\\}", val);
+      element.replaceText("\\{\\{ " + k + " \\}\\}", val);
+    }
   }
 }
 
