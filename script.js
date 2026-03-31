@@ -126,7 +126,7 @@ formTypeSelect.addEventListener('change', async () => {
                           false, null, '🚧');
             }
             
-            renderFields(json.data.headers);
+            renderFields(json.data.headers, formId);
             dynamicSection.classList.add('active');
             // เมื่อโหลดเสร็จให้ซ่อน Loading
             hideLoading();
@@ -172,12 +172,18 @@ function calcNextDate(day, monthThai, yearBE, daysToAdd) {
 }
 
 // ฟังก์ชันสร้าง UI ฟิลด์กรอกข้อมูล
-function renderFields(headers) {
+function renderFields(headers, formId) {
     currentHeaders = headers;
     fieldsContainer.innerHTML = '';
 
-    const cbHeaders = headers.filter(h => h.toLowerCase().startsWith('cb') || checkboxConfig[h]);
-    const remainingHeaders = headers.filter(h => !cbHeaders.includes(h));
+    // แยกคอลัมน์ที่จะอยู่ในตาราง (Batch Table) สำหรับฟอร์ม 034 และ 035 (ถ้าจำเป็น)
+    const tableHeaders = ['ep', 'format', 'teach', 'dur', 'dma', 'item', 'qty', 'statusReady', 'statusNotReady'];
+    const currentTableHeaders = headers.filter(h => tableHeaders.includes(h.toLowerCase()));
+    const basicHeaders = headers.filter(h => !currentTableHeaders.includes(h));
+
+    // 1. เรนเดอร์ Checkboxes
+    const cbHeaders = basicHeaders.filter(h => h.toLowerCase().startsWith('cb') || checkboxConfig[h]);
+    const regularHeaders = basicHeaders.filter(h => !cbHeaders.includes(h));
 
     if (cbHeaders.length > 0) {
         const cbGroup = document.createElement('div');
@@ -214,12 +220,13 @@ function renderFields(headers) {
         fieldsContainer.appendChild(cbGroup);
     }
 
+    // 2. เรนเดอร์ Regular Fields
     let i = 0;
-    while (i < remainingHeaders.length) {
-        const header = remainingHeaders[i];
+    while (i < regularHeaders.length) {
+        const header = regularHeaders[i];
         const low = header.toLowerCase();
 
-        const isGroupStart = (low.startsWith('act') || low.startsWith('fin') || low.startsWith('suc') || low.startsWith('use')) &&
+        const isGroupStart = (low.startsWith('act') || low.startsWith('fin') || low.startsWith('suc') || low.startsWith('use') || (low === 'date' && regularHeaders[i+1]?.toLowerCase() === 'mouth')) &&
             (low.includes('date') || low.includes('mouth') || low.includes('ac') || low.includes('time'));
 
         if (isGroupStart) {
@@ -227,8 +234,8 @@ function renderFields(headers) {
             const groupContainer = document.createElement('div');
             groupContainer.className = 'date-row';
 
-            while (i < remainingHeaders.length && remainingHeaders[i].toLowerCase().startsWith(groupPrefix)) {
-                renderInputGroup(groupContainer, remainingHeaders[i]);
+            while (i < regularHeaders.length && (regularHeaders[i].toLowerCase().startsWith(groupPrefix) || (groupPrefix === 'dat' && ['date', 'mouth', 'ac'].includes(regularHeaders[i].toLowerCase())))) {
+                renderInputGroup(groupContainer, regularHeaders[i]);
                 i++;
             }
             fieldsContainer.appendChild(groupContainer);
@@ -243,6 +250,104 @@ function renderFields(headers) {
             i++;
         }
     }
+
+    // 3. เรนเดอร์ Dynamic Table Registry (ถ้ามี Header สำหรับตาราง)
+    if (currentTableHeaders.length > 0) {
+        renderTableRegistry(currentTableHeaders);
+    }
+}
+
+// --- DYNAMIC TABLE REGISTRY LOGIC ---
+let tableRowsData = [];
+
+function renderTableRegistry(headers) {
+    const container = document.createElement('div');
+    container.className = 'table-batch-container';
+    
+    container.innerHTML = `
+        <div class="batch-header">
+            <div class="batch-title">📜 รายการที่ต้องบันทึกลงทะเบียน/รายการอุปกรณ์</div>
+            <button type="button" class="btn-icon btn-add" id="btnAddRow" title="เพิ่มแถวรายการ">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                <span style="font-size: 0.8rem; margin-left: 5px;">เพิ่มแถว</span>
+            </button>
+        </div>
+        <div class="batch-table-wrapper">
+            <table class="batch-table">
+                <thead>
+                    <tr>
+                        ${headers.map(h => `<th>${labelMap[h.toLowerCase()] || h}</th>`).join('')}
+                        <th style="width: 50px;">ลบ</th>
+                    </tr>
+                </thead>
+                <tbody id="batchTableBody"></tbody>
+            </table>
+        </div>
+    `;
+
+    fieldsContainer.appendChild(container);
+    
+    const btnAdd = container.querySelector('#btnAddRow');
+    btnAdd.onclick = () => addBatchRow(headers);
+    
+    // เริ่มต้นให้มี 1 แถวเสมอ
+    addBatchRow(headers);
+}
+
+function addBatchRow(headers) {
+    const tbody = document.getElementById('batchTableBody');
+    const rowIndex = tbody.children.length;
+    
+    const tr = document.createElement('tr');
+    tr.className = 'batch-row';
+    tr.dataset.index = rowIndex;
+
+    headers.forEach(h => {
+        const td = document.createElement('td');
+        const low = h.toLowerCase();
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.dataset.key = h;
+        input.placeholder = labelMap[low] || h;
+
+        // Auto-increment EP logic
+        if (low === 'ep') {
+            input.classList.add('auto-increment');
+            input.value = `EP${rowIndex + 1}`;
+        }
+        
+        // Auto-fill logic: ดึงค่าจากแถวบนมาใส่ถ้าเป็น Format หรือ วิทยากร
+        if (rowIndex > 0) {
+            const prevRow = tbody.children[rowIndex - 1];
+            const prevInput = prevRow.querySelector(`input[data-key="${h}"]`);
+            if (prevInput && (low === 'format' || low === 'teach' || low === 'dma')) {
+                input.value = prevInput.value;
+                input.classList.add('auto-fill');
+            }
+        }
+
+        td.appendChild(input);
+        tr.appendChild(td);
+    });
+
+    const actionTd = document.createElement('td');
+    actionTd.innerHTML = `
+        <button type="button" class="btn-icon btn-remove" onclick="this.closest('tr').remove(); updateEPNumbers();">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+    `;
+    tr.appendChild(actionTd);
+    tbody.appendChild(tr);
+}
+
+function updateEPNumbers() {
+    const rows = document.querySelectorAll('.batch-row');
+    rows.forEach((row, idx) => {
+        const epInput = row.querySelector('input[data-key="ep"], input[data-key="EP"]');
+        if (epInput && epInput.value.startsWith('EP')) {
+            epInput.value = `EP${idx + 1}`;
+        }
+    });
 }
 
 function renderInputGroup(container, header) {
@@ -400,16 +505,20 @@ async function sendData(action) {
             }
         });
 
+        const tableData = collectTableData();
+
         for (let r = 0; r < rounds; r++) {
             const currentRoundData = { ...baseData };
-            
+            let roundTableData = tableData;
+
             if (r > 0) {
                 const daysToAdd = r * interval;
                 const dateFields = [
                     { d: 'actDate', m: 'actMouth', y: 'actAC' },
                     { d: 'finDate', m: 'finMouth', y: 'finAC' },
                     { d: 'sucDate', m: 'sucMouth', y: 'sucAC' },
-                    { d: 'useDate', m: 'useMouth', y: 'useAC' }
+                    { d: 'useDate', m: 'useMouth', y: 'useAC' },
+                    { d: 'Date', m: 'Mouth', y: 'AC' }
                 ];
 
                 dateFields.forEach(group => {
@@ -431,6 +540,7 @@ async function sendData(action) {
                     action: action,
                     formId: formId,
                     data: currentRoundData,
+                    tableData: roundTableData,
                     rowIndex: (rounds > 1) ? 0 : currentEditRowIndex // 0 = append, >1 = update
                 }),
                 headers: { 'Content-Type': 'text/plain;charset=utf-8' }
@@ -442,7 +552,7 @@ async function sendData(action) {
             } else {
                 throw new Error(`รอบที่ ${r + 1} ล้มเหลว: ` + result.message);
             }
-            
+
             // หน่วงเวลาเล็กน้อยเพื่อให้ Backend ไม่ทำงานหนักเกินไป
             if (rounds > 1) await new Promise(res => setTimeout(res, 500));
         }
@@ -461,6 +571,20 @@ async function sendData(action) {
         if (btnPreview) btnPreview.disabled = false;
         hideLoading();
     }
+}
+
+function collectTableData() {
+    const rows = document.querySelectorAll('.batch-row');
+    const data = [];
+    rows.forEach(tr => {
+        const rowObj = {};
+        const inputs = tr.querySelectorAll('input');
+        inputs.forEach(input => {
+            rowObj[input.dataset.key] = input.value;
+        });
+        data.push(rowObj);
+    });
+    return data.length > 0 ? data : null;
 }
 
 // เพิ่มลิงก์ลงในสถานะผลลัพธ์

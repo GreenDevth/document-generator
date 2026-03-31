@@ -126,7 +126,7 @@ function getRecentData(formId) {
  * [ CORE ] จัดการการสร้าง PDF จริง
  */
 function handlePDFRequest(request) {
-  const { action, formId, data, rowIndex } = request;
+  const { action, formId, data, rowIndex, tableData } = request;
   const isPreview = (action === 'preview');
   
   const { sheet, ss, cleanId } = getTargetSheet(formId);
@@ -135,7 +135,7 @@ function handlePDFRequest(request) {
   if (!formConfig) throw new Error('ไม่พบการตั้งค่า Template/Folder สำหรับ: ' + cleanId);
 
   // --- RESTORED CORE PDF LOGIC ---
-  const result = createPDF(formConfig, data, isPreview);
+  const result = createPDF(formConfig, data, isPreview, tableData);
 
   if (!isPreview) {
     saveToSheet(sheet, data, rowIndex);
@@ -147,7 +147,7 @@ function handlePDFRequest(request) {
 /**
  * สร้าง PDF จาก Template (รองรับ Google Docs และ Google Slides)
  */
-function createPDF(formConfig, rowData, isPreview) {
+function createPDF(formConfig, rowData, isPreview, tableData) {
   const templateFile = DriveApp.getFileById(formConfig.templateId);
   const parentFolder = DriveApp.getFolderById(formConfig.folderId);
   const mimeType = templateFile.getMimeType();
@@ -182,7 +182,12 @@ function createPDF(formConfig, rowData, isPreview) {
     const header = doc.getHeader();
     const footer = doc.getFooter();
 
-    if (body) replaceInTextDocs(body, rowData);
+    if (body) {
+      if (tableData && Array.isArray(tableData)) {
+        fillTableRows(body, tableData);
+      }
+      replaceInTextDocs(body, rowData);
+    }
     if (header) replaceInTextDocs(header, rowData);
     if (footer) replaceInTextDocs(footer, rowData);
     
@@ -250,6 +255,62 @@ function replaceInTextDocs(element, data) {
       element.replaceText(findText2, valStr);
     });
   }
+}
+
+/**
+ * [ DYNAMIC TABLE REPLICATION ]
+ * ค้นหาตารางที่มี Placeholder ในตัว และทำการ Duplicate แถวนั้นตามจำนวนข้อมูล
+ */
+function fillTableRows(element, tableData) {
+  const tables = element.getTables();
+  
+  tables.forEach(table => {
+    let templateRowIndex = -1;
+    let templateRow = null;
+    
+    // ค้นหาแถวที่มี Placeholder สำหรับ EP หรือ Format (เป็นตัวบ่งบอกเทมเพลต)
+    for (let r = 0; r < table.getNumRows(); r++) {
+      let rowText = table.getRow(r).getText();
+      if (rowText.includes('{{ep}}') || rowText.includes('{{format}}') || rowText.includes('{{item}}')) {
+        templateRowIndex = r;
+        templateRow = table.getRow(r);
+        break;
+      }
+    }
+    
+    if (templateRowIndex !== -1) {
+      // ลบแถววที่เหลืออยู่ (ที่เป็นจุดไข่ปลาหรือช่องว่าง) เพื่อให้ตารางสะอาด
+      // เราจะลบตั้งแต่แถวถัดจาก Template ลงมาจนเกือบสุด
+      let totalRows = table.getNumRows();
+      for (let r = totalRows - 1; r > templateRowIndex; r--) {
+        // ตรวจสอบว่าไม่ใช่แถว Footer ของตาราง (อย่างง่ายๆ คือมีข้อความอื่นที่ไม่ใช่แค่จุดหรือว่าง)
+        let text = table.getRow(r).getText().trim();
+        if (text.length === 0 || text === "...................." || /^[\s.]+$/.test(text)) {
+           table.removeRow(r);
+        }
+      }
+
+      // เริ่มสร้างแถวใหม่ตามข้อมูล
+      tableData.forEach((rowData, index) => {
+        let newRow = table.insertTableRow(templateRowIndex + index + 1, templateRow.copy());
+        
+        // แทนที่ข้อมูลในแถวใหม่นี้
+        for (let [key, value] of Object.entries(rowData)) {
+          let valStr = (value === null || value === undefined) ? "" : value.toString();
+          let kLow = key.toLowerCase();
+          
+          // วนลูปแทนที่ทุกเคส
+          [kLow, kLow.toUpperCase()].forEach(k => {
+            newRow.replaceText(`\\{\\{${k}\\}\\}` , valStr);
+            newRow.replaceText(`\\{\\{ ${k} \\}\\}` , valStr);
+          });
+        }
+      });
+      
+      // ลบแถวเทมเพลตต้นฉบับทิ้ง
+      table.removeRow(templateRowIndex);
+    }
+  });
 }
 
 /**

@@ -539,3 +539,118 @@ textarea:focus {
     margin: 0 auto;
     box-shadow: 0 0 30px rgba(79, 70, 229, 0.2);
 }
+
+/* --- DYNAMIC TABLE BATCH REGISTRY STYLES --- */
+.table-batch-container {
+    grid-column: span 2;
+    background: white;
+    border-radius: 20px;
+    padding: 25px;
+    margin-top: 20px;
+    border: 1px solid #e2e8f0;
+    box-shadow: var(--shadow-sm);
+    animation: slideUp 0.5s ease;
+}
+
+.batch-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid #f1f5f9;
+}
+
+.batch-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--primary-dark);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.batch-table-wrapper {
+    overflow-x: auto;
+}
+
+.batch-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0 8px;
+}
+
+.batch-table th {
+    text-align: left;
+    font-size: 0.75rem;
+    color: #64748b;
+    padding: 0 10px 10px 10px;
+}
+
+.batch-table td {
+    padding: 5px;
+}
+
+.batch-row input {
+    width: 100%;
+    padding: 10px 12px;
+    font-size: 0.9rem;
+    border: 1px solid #e2e8f0;
+    box-shadow: none;
+    border-radius: 10px;
+}
+
+.batch-row input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary-light);
+}
+
+.batch-row input.auto-increment {
+    background: #f8fafc;
+    font-weight: 700;
+    color: var(--primary);
+    width: 80px;
+}
+
+.batch-row input.auto-fill {
+    border-left: 4px solid var(--accent);
+}
+
+.btn-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s;
+}
+
+.btn-add {
+    background: var(--primary-light);
+    color: var(--primary);
+}
+
+.btn-add:hover {
+    background: var(--primary);
+    color: white;
+}
+
+.btn-remove {
+    background: #fee2e2;
+    color: #ef4444;
+}
+
+.btn-remove:hover {
+    background: #ef4444;
+    color: white;
+}
+
+.batch-footer {
+    margin-top: 15px;
+    display: flex;
+    justify-content: flex-end;
+}
+
