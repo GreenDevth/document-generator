@@ -1,5 +1,5 @@
 // ==========================================================================
-// SMART DOCUMENT GENERATOR FRONTEND V2.9-FINAL-GODMODE (COMPLETE & RESTORED)
+// SMART DOCUMENT GENERATOR FRONTEND V2.9.1-ULTIMATE-PERSISTENCE
 // ==========================================================================
 
 const scriptUrlInput = document.getElementById('scriptUrl');
@@ -22,7 +22,6 @@ let currentHeaders = [];
 let isProcessing = false;
 let currentEditRowIndex = 0;
 
-// 1. ตารางแปลชื่อ (Technical Name -> Thai Label) - คืนค่าทั้งหมด!
 const labelMap = {
     'subject': 'ชื่อรายการที่ผลิต', 'owner': 'ผู้รับผิดชอบการผลิต', 'extdocno': 'เอกสารเลขที่ (ภายนอก)',
     'extdocdate': 'ลงวันที่เอกสาร', 'activity': 'ชื่อกิจกรรม / รายการ', 'location': 'สถานที่จัดกิจกรรม',
@@ -30,7 +29,7 @@ const labelMap = {
     'acttime': 'เวลา (จัดงาน)', 'findate': 'วันที่กำหนดส่ง', 'finmouth': 'เดือน (กำหนดส่ง)',
     'finac': 'พ.ศ. (กำหนดส่ง)', 'producer': 'ผู้รับผิดชอบการผลิต', 'team': 'ทีมงานผลิต',
     'checkbox': 'หน่วยงานที่ได้รับมอบหมาย', 'cb1': 'หน่วยจัดและผลิตรายการวิทยุ',
-    'cb2': 'หน่วยจัดและผลิตรายการโทรทัสถ์', 'cb3': 'หน่วยผลิตและพัฒนาสื่อการศึกษา',
+    'cb2': 'หน่วยจัดและผลิตรายการโทรทัศน์', 'cb3': 'หน่วยผลิตและพัฒนาสื่อการศึกษา',
     'cb4': 'ต้นฉบับ ( ) CD', 'cb5': 'ต้นฉบับ ( ) DVD', 'cb6': 'ต้นฉบับ ( ) อื่นๆ',
     'ep': 'ตอน', 'format': 'รูปแบบสื่อ', 'duration': 'ความยาวรายการ (นาที)',
     'second': 'ความยาวรายการ (วินาที)', 'sucdate': 'ผลิตแล้วเสร็จวันที่',
@@ -45,15 +44,13 @@ const labelMap = {
 
 const checkboxConfig = { 'checkbox': ['หน่วยจัดและผลิตรายการวิทยุ', 'หน่วยจัดและผลิตรายการโทรทัศน์', 'หน่วยผลิตและพัฒนาสื่อการศึกษา'] };
 
-const defaultUrl = 'https://script.google.com/macros/s/AKfycbwtcuDQ6gzAg3tibBAKL0aVVn5l3C_adShptRkgZaQNUYCzacuQKZv_ywlLYUw24c_l/exec';
-const savedUrl = localStorage.getItem('gas_url');
-scriptUrlInput.value = savedUrl || defaultUrl;
+const defaultUrl = 'https://script.google.com/macros/s/AKfycbz9oaurUPmKICd.../exec';
+scriptUrlInput.value = localStorage.getItem('gas_url') || defaultUrl;
 
-// ฟังก์ชันแปลงเลขไทย
 function toThaiDigits(num) { return num.toString().replace(/[0-9]/g, digit => "๐๑๒๓๔๕๖๗๘๙"[digit]); }
 function toArabicDigits(str) { return str.toString().replace(/[๐-๙]/g, digit => "๐๑๒๓๔๕๖๗๘๙".indexOf(digit)); }
 
-// ระบบจดจำข้อมูล (Ultimate Persistence)
+// --- PERSISTENCE LOGIC ---
 function saveAllDrafts() {
     const baseData = {};
     currentHeaders.forEach(h => {
@@ -70,6 +67,7 @@ function saveAllDrafts() {
     const tableData = collectTableData();
     if (tableData) localStorage.setItem('table_data_draft', JSON.stringify(tableData));
     else localStorage.removeItem('table_data_draft');
+    console.log("💾 Global Data Saved Automatically");
 }
 
 function restoreBaseData() {
@@ -89,7 +87,6 @@ function restoreBaseData() {
     }
 }
 
-// ระบบคำนวณวันต่อเนื่อง
 function calcNextDate(day, monthThai, yearBE, daysToAdd) {
     const dayArabic = toArabicDigits(day.toString());
     const yearArabic = toArabicDigits(yearBE.toString());
@@ -112,8 +109,10 @@ formTypeSelect.addEventListener('change', async () => {
     const url = scriptUrlInput.value.trim();
     const formId = formTypeSelect.value;
     if (!url || !formId || formId === "-- เลือกแบบฟอร์ม --") return;
+    
     localStorage.setItem('gas_url', url);
     localStorage.setItem('form_id_draft', formId);
+    
     showLoading('กำลังดึงโครงสร้างข้อมูล...');
     try {
         const response = await fetch(url, {
@@ -138,7 +137,7 @@ function renderFields(headers, formId) {
     const currentTableHeaders = headers.filter(h => tableKeywords.some(k => h.toLowerCase().includes(k)));
     const basicHeaders = headers.filter(h => !currentTableHeaders.includes(h));
 
-    // 1. Checkboxes (Premium CB Logic)
+    // 1. Checkboxes
     const cbHeaders = basicHeaders.filter(h => h.toLowerCase().startsWith('cb') || checkboxConfig[h]);
     const regularHeaders = basicHeaders.filter(h => !cbHeaders.includes(h));
 
@@ -167,7 +166,7 @@ function renderFields(headers, formId) {
         fieldsContainer.appendChild(cbGroup);
     }
 
-    // 2. Regular Fields (Rich Grouping Logic)
+    // 2. Regular Fields
     let i = 0;
     while (i < regularHeaders.length) {
         const header = regularHeaders[i];
@@ -192,7 +191,6 @@ function renderFields(headers, formId) {
         }
     }
 
-    // 3. Dynamic Table
     if (currentTableHeaders.length > 0) renderTableRegistry(currentTableHeaders);
 }
 
@@ -260,7 +258,7 @@ function checkTableRescue(headers) {
         const rescueContainer = document.getElementById('rescueContainer');
         const btn = document.createElement('button');
         btn.type = 'button'; btn.className = 'btn-warning';
-        btn.innerHTML = `<span>⚡ เรียกคืนตารางเดิม (${data.length} รายการ)</span>`;
+        btn.innerHTML = `<span>⚡ เรียกคือข้อมูลล่าสุด (${data.length} รายการ)</span>`;
         btn.onclick = () => { restoreBatchData(data, headers); btn.remove(); };
         rescueContainer.appendChild(btn);
     } else { addBatchRow(headers); }
@@ -292,13 +290,11 @@ async function sendData(action) {
     if (isProcessing) return;
     const url = scriptUrlInput.value.trim();
     const formId = formTypeSelect.value;
-    const isRecurring = isRecurringCheck.checked && action === 'generate';
-    const rounds = isRecurring ? parseInt(roundsInput.value) || 1 : 1;
+    const rounds = isRecurringCheck.checked ? (parseInt(roundsInput.value) || 1) : 1;
     const interval = parseInt(intervalInput.value) || 7;
     
     isProcessing = true; resultBox.style.display = 'none'; linksContainer.innerHTML = '';
-    showLoading(action === 'preview' ? 'กำลังเตรียมพรีวิว...' : 'กำลังส่งข้อมูล...');
-
+    showLoading('กำลังส่งข้อมูล...');
     try {
         const baseData = {};
         currentHeaders.forEach(h => {
@@ -311,34 +307,26 @@ async function sendData(action) {
                 if (el) baseData[h] = el.value;
             }
         });
-
         const tableData = collectTableData();
-
         for (let r = 0; r < rounds; r++) {
             const currentRoundData = { ...baseData };
-            const roundTableData = tableData;
-
-            // ผสานข้อมูลแถวแรก
-            if (roundTableData && roundTableData.length > 0) {
-                const first = roundTableData[0];
+            if (tableData && tableData.length > 0) {
+                const first = tableData[0];
                 for (let key in first) { if (!currentRoundData[key]) currentRoundData[key] = first[key]; }
             }
-
             if (r > 0) {
-                const daysToAdd = r * interval;
                 const dFields = [{d:'actDate',m:'actMouth',y:'actAC'},{d:'finDate',m:'finMouth',y:'finAC'},{d:'sucDate',m:'sucMouth',y:'sucAC'},{d:'useDate',m:'useMouth',y:'useAC'},{d:'Date',m:'Mouth',y:'AC'}];
                 dFields.forEach(g => {
                     if (currentRoundData[g.d] && currentRoundData[g.m] && currentRoundData[g.y]) {
-                        const n = calcNextDate(currentRoundData[g.d], currentRoundData[g.m], currentRoundData[g.y], daysToAdd);
+                        const n = calcNextDate(currentRoundData[g.d], currentRoundData[g.m], currentRoundData[g.y], r * interval);
                         currentRoundData[g.d]=n.day; currentRoundData[g.m]=n.month; currentRoundData[g.y]=n.year;
                     }
                 });
             }
-
             showLoading(`กำลังสร้างไฟล์... (${r+1}/${rounds})`);
             const response = await fetch(url, {
                 method: 'POST',
-                body: JSON.stringify({ action, formId, data: currentRoundData, tableData: roundTableData, rowIndex: 0 })
+                body: JSON.stringify({ action, formId, data: currentRoundData, tableData, rowIndex: 0 })
             });
             const result = await response.json();
             if (result.status === 'success') {
@@ -350,12 +338,9 @@ async function sendData(action) {
             } else { throw new Error(result.message); }
             if (rounds > 1) await new Promise(res => setTimeout(res, 500));
         }
-
-        if (rounds > 1) document.getElementById('resultMsg').innerHTML = `<strong>สร้างไฟล์ทั้งหมด ${rounds} ชุดเรียบร้อยแล้ว</strong>`;
-        resultBox.style.display = 'block';
-        resultBox.scrollIntoView({ behavior: 'smooth' });
-
-    } catch (e) { showModal('❌ เกิดข้อผิดพลาด', e.message, false, null, '⚠️'); }
+        if (rounds > 1) document.getElementById('resultMsg').innerHTML = `<strong>สร้างไฟล์ทั้งหมด ${rounds} ชุดสำเร็จ</strong>`;
+        resultBox.style.display = 'block'; resultBox.scrollIntoView({ behavior: 'smooth' });
+    } catch (e) { showModal('❌ ข้อผิดพลาด', e.message, false, null, '⚠️'); }
     finally { isProcessing = false; hideLoading(); }
 }
 
@@ -371,7 +356,6 @@ function renderSingleCheckbox(container, name, labelText, value) {
     const wrapper = document.createElement('label');
     wrapper.style.display = 'flex'; wrapper.style.alignItems = 'center'; wrapper.style.gap = '10px';
     const cb = document.createElement('input'); cb.type = 'checkbox'; cb.name = name; cb.value = value;
-    cb.style.width = '20px'; cb.style.height = '20px';
     cb.onchange = () => saveAllDrafts();
     wrapper.appendChild(cb); wrapper.appendChild(document.createTextNode(labelText));
     container.appendChild(wrapper);
@@ -400,19 +384,29 @@ function showModal(title, message, isConfirm = false, onConfirm = null, icon = '
 function showLoading(m) { document.getElementById('loadingOverlay').classList.add('active'); document.getElementById('loadingText').textContent = m; }
 function hideLoading() { document.getElementById('loadingOverlay').classList.remove('active'); }
 
-// Event Listeners
 document.getElementById('docForm').onsubmit = (e) => {
     e.preventDefault();
-    const rounds = isRecurringCheck.checked ? parseInt(roundsInput.value) || 1 : 1;
-    showModal('💾 ยืนยันการทำงาน', `ระบบกำลังจะสร้างไฟล์ ${rounds} ชุด ต้องการดำเนินการต่อหรือไม่?`, true, () => sendData('generate'));
+    const rounds = isRecurringCheck.checked ? (parseInt(roundsInput.value) || 1) : 1;
+    showModal('💾 ยืนยันการทำงาน', `ต้องการสร้างไฟล์ ${rounds} ชุดหรือไม่?`, true, () => sendData('generate'));
 };
 document.getElementById('btnPreview').onclick = () => sendData('preview');
 
-// Auto Reload
-window.addEventListener('DOMContentLoaded', () => {
-    const saved = localStorage.getItem('form_id_draft');
-    if (saved && saved !== "-- เลือกแบบฟอร์ม --") {
-        formTypeSelect.value = saved;
-        formTypeSelect.dispatchEvent(new Event('change'));
+// --- AUTO RELOAD ENGINE (V2.9.1) ---
+function autoReload() {
+    const savedFormId = localStorage.getItem('form_id_draft');
+    if (savedFormId && savedFormId !== "-- เลือกแบบฟอร์ม --") {
+        console.log("🔄 Auto-Reloading Form:", savedFormId);
+        formTypeSelect.value = savedFormId;
+        // ใช้ setTimeout เล็กน้อยเพื่อให้แน่ใจว่าระบบ Listener พร้อมทำงาน
+        setTimeout(() => {
+            formTypeSelect.dispatchEvent(new Event('change'));
+        }, 100);
     }
-});
+}
+
+// เรียกใช้งานเมื่อ DOM พร้อม
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', autoReload);
+} else {
+    autoReload();
+}
