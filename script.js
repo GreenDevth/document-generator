@@ -194,7 +194,6 @@ function renderTableRegistry(headers) {
             <div class="batch-title">📜 รายการที่ต้องบันทึก (${headers.length} คอลัมน์)</div>
             <div style="display: flex; gap: 10px;">
                 <button type="button" class="btn-add" id="btnAddRow">เพิ่มรายการใหม่</button>
-                <button type="button" class="btn-history" id="btnHistory" title="เลือกข้อมูลจากประวัติ">📂</button>
             </div>
         </div>
         <div class="batch-table-wrapper"><table class="batch-table"><thead><tr>
@@ -204,7 +203,6 @@ function renderTableRegistry(headers) {
     `;
     fieldsContainer.appendChild(container);
     container.querySelector('#btnAddRow').onclick = () => addBatchRow(headers);
-    container.querySelector('#btnHistory').onclick = () => fetchRecentData();
     checkTableRescue(headers);
 }
 
@@ -318,11 +316,28 @@ function displayHistoryModal(records) {
         item.querySelector('.btn-select').onclick = () => {
             currentEditRowIndex = r._rowIndex;
             restoreBaseData(r);
-            if (r.ep || r['ตอน']) {
+            
+            // --- FIX FOR 034 & MULTI-ROW RESTORATION ---
+            const tableKeywords = ['ep', 'format', 'teach', 'dur', 'dma', 'item', 'qty', 'ตอน', 'รูปแบบสื่อ', 'วิทยากร', 'ความยาว', 'ผลิตแล้วเสร็จ'];
+            const tableHeaders = currentHeaders.filter(h => tableKeywords.some(k => h.toLowerCase().includes(k)));
+            
+            if (tableHeaders.length > 0) {
                 const tbody = document.getElementById('batchTableBody');
-                tbody.innerHTML = '';
-                addBatchRow(currentHeaders.filter(h => !currentHeaders.includes(h)), r); // Simplistic row add
+                if (tbody) {
+                    tbody.innerHTML = '';
+                    // หากมีข้อมูลชุด (Serialized Table Data) ให้กูคืนตามนั้น
+                    if (r.tableData || r.tableBody || r._tableData) {
+                        try {
+                            const rows = JSON.parse(r.tableData || r.tableBody || r._tableData);
+                            rows.forEach(rowData => addBatchRow(tableHeaders, rowData));
+                        } catch(e) { addBatchRow(tableHeaders, r); }
+                    } else if (r.ep || r['ตอน'] || r.item || r['รายการ']) {
+                        // หากไม่มีแบบชุด แต่มีข้อมูลฟิลด์ตารางตัวเดียว
+                        addBatchRow(tableHeaders, r);
+                    }
+                }
             }
+            
             document.getElementById('modalOverlay').classList.remove('active');
             showModal('✅ โหลดข้อมูลสำเร็จ', `ดึงข้อมูลจากแถวที่ ${currentEditRowIndex} มาแล้วครับ`, false, null, '✨');
         };
@@ -427,6 +442,23 @@ document.getElementById('docForm').onsubmit = (e) => {
     showModal('💾 ยืนยันการบันทึก', `ต้องการสร้างไฟล์หรือไม่?`, true, () => sendData('generate'));
 };
 document.getElementById('btnPreview').onclick = () => sendData('preview');
+
+function clearLocalStorage() {
+    showModal('🧹 กวาดล้างข้อมูลร่าง (Local)', 'คุณต้องการลบข้อมูลที่ร่างไว้ "ในเบราว์เซอร์นี้" ทั้งหมดและเริ่มใหม่ใช่หรือไม่? (ประวัติใน Google Sheet จะไม่ถูกลบครับ)', true, () => {
+        localStorage.clear();
+        window.location.reload();
+    }, '🗑️');
+}
+
+function clearForm() {
+    showModal('📋 เคลียร์ฟอร์ม', 'คุณต้องการลบข้อมูลที่พิมพ์ไว้และเริ่มสร้างรายการใหม่ใช่หรือไม่? (ข้อมูลในความจำเครื่องจะยังคงอยู่)', true, () => {
+        const tbody = document.getElementById('batchTableBody');
+        if (tbody) tbody.innerHTML = '';
+        const inputs = fieldsContainer.querySelectorAll('input');
+        inputs.forEach(inp => inp.value = '');
+        addBatchRow(currentHeaders.filter(h => ['ep', 'format', 'teach', 'dur', 'dma', 'item', 'qty', 'ตอน', 'รูปแบบสื่อ', 'วิทยากร', 'ความยาว', 'ผลิตแล้วเสร็จ'].some(k => h.toLowerCase().includes(k))));
+    }, '✨');
+}
 
 function autoReload() {
     const saved = localStorage.getItem('form_id_draft');
