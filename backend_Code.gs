@@ -138,10 +138,12 @@ function handlePDFRequest(request) {
   const result = createPDF(formConfig, data, isPreview, tableData);
 
   if (!isPreview) {
-    saveToSheet(sheet, data, rowIndex, tableData);
+    const rIndex = parseInt(rowIndex) || 0;
+    saveToSheet(sheet, data, rIndex, tableData);
   }
 
-  return createJsonResponse('success', result);
+  const rowTotal = (tableData && Array.isArray(tableData)) ? tableData.length : 1;
+  return createJsonResponse('success', result, `บันทึกข้อมูลเรียบร้อยแล้ว (ได้รับ ${rowTotal} รายการ)`);
 }
 
 /**
@@ -336,17 +338,24 @@ function saveToSheet(sheet, baseData, rowIndex, tableData) {
       });
     });
 
+    // บังคับแปลงเป็นตัวเลข และจัดการ rowIndex ให้ถูกต้อง
+    const startRow = parseInt(rowIndex) || 0;
+
     // ถ้าเป็นการบันทึกใหม่ (Append)
-    if (rowIndex <= 0) {
-      rowsToAppend.forEach(row => sheet.appendRow(row));
+    if (startRow <= 0) {
+      rowsToAppend.forEach(row => {
+        sheet.appendRow(row);
+        SpreadsheetApp.flush(); // บังคับเขียนข้อมูลลง Sheet ทันทีป้องกันการข้ามแถว
+      });
     } else {
-      // ถ้าเป็นการแก้ไข (Edit) - ในโหมด Batch จะแทนที่แถวเดิมด้วยแถวแรก และ Append ที่เหลือ (หรือจะลบแล้วแทรกใหม่ก็ได้)
-      // เพื่อความง่าย: แทนที่แถวที่เลือกด้วยข้อมูลชุดแรก และ Append รายการที่เหลือ
-      sheet.getRange(rowIndex, 1, 1, headers.length).setValues([rowsToAppend[0]]);
+      // ถ้าเป็นการแก้ไข (Edit) - แทนที่แถวเดิม และแทรกที่เหลือ
+      sheet.getRange(startRow, 1, 1, headers.length).setValues([rowsToAppend[0]]);
       if (rowsToAppend.length > 1) {
         const remainingRows = rowsToAppend.slice(1);
-        remainingRows.forEach(row => sheet.appendRow(row));
+        sheet.insertRowsAfter(startRow, remainingRows.length);
+        sheet.getRange(startRow + 1, 1, remainingRows.length, headers.length).setValues(remainingRows);
       }
+      SpreadsheetApp.flush();
     }
   } 
   // กรณีข้อมูลปกติ (ไม่มีตาราง)
