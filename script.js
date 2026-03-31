@@ -179,18 +179,20 @@ function renderFields(headers, formId) {
     // แยกคอลัมน์ที่จะอยู่ในตาราง (Batch Table) โดยรองรับทั้งชื่อตัวแปรและชื่อภาษาไทย
     const tableKeywords = [
         'ep', 'format', 'teach', 'dur', 'dma', 'item', 'qty', 'statusready', 'statusnotready',
-        'ตอน', 'รูปแบบสื่อ', 'วิทยากร', 'ความยาว', 'วันผลิตแล้วเสร็จ', 'รายการอุปกรณ์', 'จำนวน'
+        'ตอน', 'รูปแบบสื่อ', 'วิทยากร', 'ความยาว', 'ผลิตแล้วเสร็จ', 'รายการอุปกรณ์', 'จำนวน', 'เผยแพร่', 'หมายเหตุ'
     ];
     
+    // ใช้ Flexible Match (ถ้ามีคำสำคัญอยู่ในหัวตาราง ให้ถือว่าเข้าตาราง)
     const currentTableHeaders = headers.filter(h => {
         const low = h.toLowerCase().trim();
-        return tableKeywords.includes(low);
+        return tableKeywords.some(k => low.includes(k.toLowerCase()));
     });
     
     // กรองเอาเฉพาะ Header ที่ไม่ได้อยู่ในตารางมาทำเป็นฟิลด์ปกติ
     const basicHeaders = headers.filter(h => {
         const low = h.toLowerCase().trim();
-        return !currentTableHeaders.some(th => th.toLowerCase().trim() === low);
+        const isTable = currentTableHeaders.some(th => th.toLowerCase().trim() === low);
+        return !isTable;
     });
 
     // 1. เรนเดอร์ Checkboxes
@@ -272,6 +274,16 @@ function renderFields(headers, formId) {
 // --- DYNAMIC TABLE REGISTRY LOGIC ---
 let tableRowsData = [];
 
+function saveTableDraft() {
+    const data = collectTableData();
+    if (data) {
+        localStorage.setItem('table_draft', JSON.stringify(data));
+        console.log("💾 Draft Saved Automatically");
+    } else {
+        localStorage.removeItem('table_draft');
+    }
+}
+
 function renderTableRegistry(headers) {
     const container = document.createElement('div');
     container.className = 'table-batch-container';
@@ -308,17 +320,19 @@ function renderTableRegistry(headers) {
 }
 
 function checkRescueData(headers) {
-    const rescueData = localStorage.getItem('rescue_batch');
+    // เช็คทั้ง manual rescue และ auto draft
+    const rescueData = localStorage.getItem('rescue_batch') || localStorage.getItem('table_draft');
     if (rescueData) {
         const rescueContainer = document.getElementById('rescueContainer');
+        const count = JSON.parse(rescueData).length;
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'btn-warning';
-        btn.innerHTML = `<span>⚡ ตรวจพบข้อมูลเดิมที่เคยกู้ไว้ คุณต้องการเรียกคืนให้คุณไหม?</span>`;
+        btn.innerHTML = `<span>⚡ ตรวจพบข้อมูลร่างเดิม (${count} รายการ) คุณต้องการเรียกคืนไหม?</span>`;
         btn.onclick = () => {
             restoreBatchData(JSON.parse(rescueData), headers);
             btn.remove();
-            localStorage.removeItem('rescue_batch');
+            // เก็บไว้ก่อนจนกว่าจะเซฟสำเร็จ
         };
         rescueContainer.appendChild(btn);
     } else {
@@ -350,6 +364,9 @@ function addBatchRow(headers, existingData = null) {
         input.type = 'text';
         input.dataset.key = h;
         input.placeholder = labelMap[low] || h;
+        
+        // บันทึกร่างอัตโนมัติเมื่อมีการพิมพ์
+        input.oninput = () => saveTableDraft();
 
         // ถ้ามีข้อมูลเดิม (จากการกู้คืน)
         if (existingData && existingData[h]) {
@@ -608,6 +625,9 @@ async function sendData(action) {
                 // แสดงข้อความจาก Backend (เพื่อให้รู้ว่าได้รับกี่รายการ)
                 if (rounds === 1) {
                     document.getElementById('resultMsg').textContent = result.message || `สร้างเอกสารจำนวน ${rounds} ชุดเรียบร้อยแล้ว`;
+                    // เซฟสำเร็จแล้ว ล้างร่างทิ้งได้เลย
+                    localStorage.removeItem('table_draft');
+                    localStorage.removeItem('rescue_batch');
                 }
             } else {
                 throw new Error(`รอบที่ ${r + 1} ล้มเหลว: ` + result.message);
