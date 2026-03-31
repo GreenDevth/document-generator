@@ -176,10 +176,22 @@ function renderFields(headers, formId) {
     currentHeaders = headers;
     fieldsContainer.innerHTML = '';
 
-    // แยกคอลัมน์ที่จะอยู่ในตาราง (Batch Table) สำหรับฟอร์ม 034 และ 035 (ถ้าจำเป็น)
-    const tableHeaders = ['ep', 'format', 'teach', 'dur', 'dma', 'item', 'qty', 'statusReady', 'statusNotReady'];
-    const currentTableHeaders = headers.filter(h => tableHeaders.includes(h.toLowerCase()));
-    const basicHeaders = headers.filter(h => !currentTableHeaders.includes(h));
+    // แยกคอลัมน์ที่จะอยู่ในตาราง (Batch Table) โดยรองรับทั้งชื่อตัวแปรและชื่อภาษาไทย
+    const tableKeywords = [
+        'ep', 'format', 'teach', 'dur', 'dma', 'item', 'qty', 'statusready', 'statusnotready',
+        'ตอน', 'รูปแบบสื่อ', 'วิทยากร', 'ความยาว', 'วันผลิตแล้วเสร็จ', 'รายการอุปกรณ์', 'จำนวน'
+    ];
+    
+    const currentTableHeaders = headers.filter(h => {
+        const low = h.toLowerCase().trim();
+        return tableKeywords.includes(low);
+    });
+    
+    // กรองเอาเฉพาะ Header ที่ไม่ได้อยู่ในตารางมาทำเป็นฟิลด์ปกติ
+    const basicHeaders = headers.filter(h => {
+        const low = h.toLowerCase().trim();
+        return !currentTableHeaders.some(th => th.toLowerCase().trim() === low);
+    });
 
     // 1. เรนเดอร์ Checkboxes
     const cbHeaders = basicHeaders.filter(h => h.toLowerCase().startsWith('cb') || checkboxConfig[h]);
