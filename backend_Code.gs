@@ -27,6 +27,7 @@ function doPost(e) {
     if (action === 'getSchema') return getSchema(request.formId);
     if (action === 'generate' || action === 'preview') return handlePDFRequest(request);
     if (action === 'getRecentData') return getRecentData(request.formId);
+    if (action === 'updateRow') return updateRow(request);
     return createJsonResponse('error', null, 'Invalid action');
   } catch (err) { return createJsonResponse('error', null, err.toString()); }
 }
@@ -197,4 +198,22 @@ function getRecentData(formId) {
     return obj;
   }).reverse();
   return createJsonResponse('success', { records });
+}
+
+function updateRow(request) {
+  const { formId, rowIndex, data } = request;
+  const { sheet } = getTargetSheet(formId);
+  if (!sheet || !sheet.getRange) return createJsonResponse('error', null, 'ไม่พบ Sheet');
+  
+  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  const rowOutput = headers.map(h => {
+    const key = h.toString().trim();
+    // รองรับทั้ง Key เดิมและ Key แบบ Lowercase
+    let val = (data[key] !== undefined) ? data[key] : data[key.toLowerCase()];
+    if (val === undefined) val = "";
+    return Array.isArray(val) ? val.join(', ') : val.toString();
+  });
+  
+  sheet.getRange(rowIndex, 1, 1, headers.length).setValues([rowOutput]);
+  return createJsonResponse('success', null, `อัปเดตข้อมูลแถวที่ ${rowIndex} สำเร็จครับ`);
 }

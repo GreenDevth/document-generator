@@ -334,9 +334,19 @@ async function fetchRecentData() {
 function displayHistoryModal(records) {
     const modal = document.getElementById('dashboardModal');
     const headerRow = document.getElementById('dashHeaderRow');
-    const body = document.getElementById('dashBody');
     
-    headerRow.innerHTML = '<th>ลำดับ</th><th>ชื่อรายการ</th><th>ผู้รับผิดชอบ</th><th>วันที่บันทึก</th><th style="width: 250px;">การปฏิบัติการ</th>';
+    // ตั้งค่าหัวตารางแบบ Spreadsheet ครบถ้วน
+    headerRow.innerHTML = `
+        <th>ลำดับ</th>
+        <th>ชื่อรายการ (Subject)</th>
+        <th>ตอน (EP)</th>
+        <th>วิทยากร (Teacher)</th>
+        <th>ความยาว (Dur)</th>
+        <th>ผลิตเสร็จ (DMA)</th>
+        <th>ผู้รับผิดชอบ (Owner)</th>
+        <th>วันที่บันทึก</th>
+        <th style="width: 250px; position: sticky; right: 0; background: var(--primary-light);">การปฏิบัติการ</th>
+    `;
     renderDashTable(records);
     modal.classList.add('active');
 }
@@ -346,31 +356,81 @@ function renderDashTable(records) {
     body.innerHTML = '';
     
     if (records.length === 0) {
-        body.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:50px;">📭 ไม่พบประวัติการบันทึกข้อมูล</td></tr>';
+        body.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:50px;">📭 ไม่พบประวัติการบันทึกข้อมูล</td></tr>';
         return;
     }
 
     records.forEach((r, idx) => {
         const tr = document.createElement('tr');
-        const title = r.subject || r['ชื่อรายการที่ผลิต'] || r.activity || 'รายการไม่ระบุชื่อ';
-        const owner = r.owner || r['ผู้รับผิดชอบการผลิต'] || '-';
+        tr.dataset.rowIndex = r._rowIndex;
+        
+        // กวาดหาข้อมูลจากหลายๆ คีย์ที่อาจเกิดขึ้นได้ (Mapping)
+        const subject = r.subject || r['ชื่อรายการที่ผลิต'] || r.activity || '';
+        const ep = r.ep || r['ตอน'] || '';
+        const teach = r.teach || r['วิทยากร/ผู้บรรยาย'] || r['วิทยากร'] || '';
+        const dur = r.dur || r['ความยาว'] || r['ความยาวรายการ (นาที)'] || '';
+        const dma = r.dma || r['ผลิตแล้วเสร็จวันที่'] || r['วันผลิตแล้วเสร็จ'] || '';
+        const owner = r.owner || r['ผู้รับผิดชอบการผลิต'] || '';
         const date = r.timestamp || r.Date || '-';
         
         tr.innerHTML = `
             <td>${idx + 1}</td>
-            <td style="font-weight:600;">${title}</td>
-            <td>${owner}</td>
-            <td style="font-size:0.85rem; color:#64748b;">${date}</td>
-            <td>
+            <td><input type="text" class="dash-inline-input" data-field="subject" value="${subject}"></td>
+            <td><input type="text" class="dash-inline-input" data-field="ep" value="${ep}" style="width: 80px;"></td>
+            <td><input type="text" class="dash-inline-input" data-field="teach" value="${teach}"></td>
+            <td><input type="text" class="dash-inline-input" data-field="dur" value="${dur}" style="width: 100px;"></td>
+            <td><input type="text" class="dash-inline-input" data-field="dma" value="${dma}" style="width: 120px;"></td>
+            <td><input type="text" class="dash-inline-input" data-field="owner" value="${owner}"></td>
+            <td style="font-size:0.75rem; color:#64748b; white-space: nowrap;">${date}</td>
+            <td style="position: sticky; right: 0; background: #fff; box-shadow: -5px 0 10px rgba(0,0,0,0.05);">
                 <div class="action-btns">
-                    <button type="button" class="btn-action btn-edit" onclick="editRecord(${idx})">✍️ แก้ไข</button>
-                    <button type="button" class="btn-action btn-pdf" onclick="generateRecordPDF(${idx})">📄 PDF</button>
-                    <button type="button" class="btn-action btn-del" onclick="deleteRecord(${idx})">🗑️ ลบ</button>
+                    <button type="button" class="btn-action btn-save" onclick="saveRecordInline(${idx})" title="บันทึกลง Sheet">💾</button>
+                    <button type="button" class="btn-action btn-edit" onclick="editRecord(${idx})" title="ดึงข้อมูลลงฟอร์ม">✍️</button>
+                    <button type="button" class="btn-action btn-pdf" onclick="generateRecordPDF(${idx})" title="สร้าง PDF">📄</button>
+                    <button type="button" class="btn-action btn-del" onclick="deleteRecord(${idx})" title="ลบออกจาก Sheet">🗑️</button>
                 </div>
             </td>
         `;
         body.appendChild(tr);
     });
+}
+
+async function saveRecordInline(idx) {
+    const r = dashboardData[idx];
+    const tr = document.querySelector(`#dashBody tr:nth-child(${idx + 1})`);
+    const url = scriptUrlInput.value.trim();
+    
+    // รวบรวมข้อมูลที่แก้ไขจากช่อง Input
+    const inputs = tr.querySelectorAll('.dash-inline-input');
+    const updatedData = { ...r };
+    inputs.forEach(input => {
+        const field = input.dataset.field;
+        updatedData[field] = input.value;
+        // Mapping กลับสำหรับคีย์ภาษาไทย (ถ้ามี)
+        if (field === 'subject') updatedData['ชื่อรายการที่ผลิต'] = input.value;
+        if (field === 'ep') updatedData['ตอน'] = input.value;
+        if (field === 'teach') updatedData['วิทยากร/ผู้บรรยาย'] = input.value;
+        if (field === 'dma') updatedData['วันผลิตแล้วเสร็จ'] = input.value;
+    });
+
+    showLoading('กำลังบันทึกข้อมูลลง Sheet...');
+    try {
+        const response = await fetch(url, {
+            method: 'POST',
+            body: JSON.stringify({
+                action: 'updateRow',
+                formId: formTypeSelect.value,
+                rowIndex: r._rowIndex,
+                data: updatedData
+            })
+        });
+        const json = await response.json();
+        if (json.status === 'success') {
+            dashboardData[idx] = updatedData; // Update Local State
+            showModal('✅ บันทึกสำเร็จ', `อัปเดตข้อมูลแถวที่ ${idx + 1} เรียบร้อยแล้วครับ`, false, null, '✨');
+        } else { throw new Error(json.message); }
+    } catch (e) { showModal('❌ ผิดพลาด', e.message, false, null, '⚠️'); }
+    finally { hideLoading(); }
 }
 
 function closeDashboardModal() {
@@ -432,12 +492,47 @@ async function deleteRecord(idx) {
 async function generateRecordPDF(idx) {
     const r = dashboardData[idx];
     const url = scriptUrlInput.value.trim();
-    showLoading('กำลังสร้างไฟล์ PDF...');
+    const formId = formTypeSelect.value;
+    
+    let tableData = null;
+    let mainData = { ...r };
+
+    // --- SMART LOGIC: 034 รวบกลุ่ม / อื่นๆ แถวละหน้า ---
+    if (formId === '034') {
+        showLoading('กำลังรวบรวมข้อมูลโครงการ (034)...');
+        const subjectToMatch = (r.subject || r['ชื่อรายการที่ผลิต'] || "").toString().toLowerCase().trim();
+        
+        // กวาดหาทุกบรรทัดใน Dashboard ที่มี Subject เดียวกัน
+        tableData = dashboardData.filter(row => {
+            const rowSubject = (row.subject || row['ชื่อรายการที่ผลิต'] || "").toString().toLowerCase().trim();
+            return rowSubject === subjectToMatch && subjectToMatch !== "";
+        });
+
+        // เรียงลำดับตาม EP เพื่อความสวยงามใน PDF
+        tableData.sort((a, b) => {
+            const epA = parseInt((a.ep || a['ตอน'] || "0").toString().replace(/\D/g, '')) || 0;
+            const epB = parseInt((b.ep || b['ตอน'] || "0").toString().replace(/\D/g, '')) || 0;
+            return epA - epB;
+        });
+
+        if (tableData.length === 0) tableData = [r]; // Fallback
+    }
+
+    showLoading(`กำลังสร้างไฟล์ PDF (${formId === '034' ? 'แบบหน้าเดียวรวมกลุ่ม' : 'แบบรายบรรทัด'})...`);
     try {
-        const response = await fetch(url, { method: 'POST', body: JSON.stringify({ action: 'generate', formId: formTypeSelect.value, data: r, tableData: null, rowIndex: r._rowIndex }) });
+        const response = await fetch(url, { 
+            method: 'POST', 
+            body: JSON.stringify({ 
+                action: 'generate', 
+                formId: formId, 
+                data: mainData, 
+                tableData: tableData, 
+                rowIndex: r._rowIndex 
+            }) 
+        });
         const result = await response.json();
         if (result.status === 'success') {
-            showModal('📜 สร้างไฟล์สำเร็จ', 'คุณสามารถเปิดดูไฟล์ PDF ได้จากปุ่มด้านล่างครับ', false, () => {
+            showModal('📜 สร้างไฟล์สำเร็จ', `สร้าง PDF ฟอร์ม ${formId} เรียบร้อยแล้วครับ`, false, () => {
                 window.open(result.data.url, '_blank');
             }, '📄');
         } else { throw new Error(result.message); }
