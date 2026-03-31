@@ -21,6 +21,32 @@ const thaiMonths = [
 let currentHeaders = [];
 let isProcessing = false;
 let currentEditRowIndex = 0;
+let dashboardData = []; // สำหรับเก็บข้อมูลทั้งหมดที่ดึงมา
+
+// --- GLOBAL ACTIONS (ประกาศไว้ด้านบนเพื่อให้ปุ่มกดได้ทันที) ---
+function switchTab(view) {
+    document.querySelectorAll('.tab-view').forEach(v => v.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(view + 'View').classList.add('active');
+    document.querySelector(`.tab-btn[onclick*="${view}"]`).classList.add('active');
+    if (view === 'dashboard') fetchDashboardData();
+}
+
+function clearLocalStorage() {
+    showModal('🧹 กวาดล้างข้อมูลประวัติ (Local)', 'คุณต้องการลบข้อมูลที่ร่างไว้ "ในเบราว์เซอร์นี้" ทั้งหมดและเริ่มใหม่ใช่หรือไม่? ประวัติใน Google Sheet จะไม่ถูกลบครับ', true, () => {
+        localStorage.clear();
+        window.location.reload();
+    }, '🗑️');
+}
+
+function clearForm() {
+    showModal('📋 เคลียร์ฟอร์ม', 'คุณต้องการลบข้อมูลที่พิมพ์ไว้และเริ่มสร้างรายการใหม่ใช่หรือไม่? (ข้อมูลในความจำเครื่องจะยังคงอยู่)', true, () => {
+        const tbody = document.getElementById('batchTableBody');
+        if (tbody) tbody.innerHTML = '';
+        const inputs = fieldsContainer.querySelectorAll('input');
+        inputs.forEach(inp => inp.value = '');
+    }, '✨');
+}
 
 const labelMap = {
     'subject': 'ชื่อรายการที่ผลิต', 'owner': 'ผู้รับผิดชอบการผลิต', 'extdocno': 'เอกสารเลขที่ (ภายนอก)',
@@ -44,7 +70,7 @@ const labelMap = {
 
 const checkboxConfig = { 'checkbox': ['หน่วยจัดและผลิตรายการวิทยุ', 'หน่วยจัดและผลิตรายการโทรทัศน์', 'หน่วยผลิตและพัฒนาสื่อการศึกษา'] };
 
-const defaultUrl = 'https://script.google.com/macros/s/AKfycbz9oaurUPmKICd.../exec';
+const defaultUrl = 'https://script.google.com/macros/s/AKfycbwtcuDQ6gzAg3tibBAKL0aVVn5l3C_adShptRkgZaQNUYCzacuQKZv_ywlLYUw24c_l/exec';
 scriptUrlInput.value = localStorage.getItem('gas_url') || defaultUrl;
 
 function toThaiDigits(num) { return num.toString().replace(/[0-9]/g, digit => "๐๑๒๓๔๕๖๗๘๙"[digit]); }
@@ -358,6 +384,121 @@ function displayHistoryModal(records) {
     btnConfirm.onclick = () => { overlay.classList.remove('active'); };
 }
 
+// --- TOTAL POWER DASHBOARD LOGIC ---
+async function fetchDashboardData() {
+    const url = scriptUrlInput.value.trim();
+    const formId = formTypeSelect.value;
+    if (!url || !formId || formId === "-- เลือกแบบฟอร์ม --") {
+        showModal('⚠️ คำเตือน', 'กรุณาเลือกประเภทแบบฟอร์มก่อนเข้าหน้า Dashboard ครับ', false, null, '🚧');
+        switchTab('form');
+        return;
+    }
+    showLoading('กำลังดึงข้อมูลทั้งหมด...');
+    try {
+        const response = await fetch(url, { method: 'POST', body: JSON.stringify({ action: 'getRecentData', formId, limit: 100 }) });
+        const json = await response.json();
+        if (json.status === 'success') {
+            dashboardData = json.data.records;
+            renderDashboard(dashboardData);
+        } else { throw new Error(json.message); }
+    } catch (e) { showModal('❌ ข้อผิดพลาด', e.message, false, null, '⚠️'); }
+    finally { hideLoading(); }
+}
+
+function renderDashboard(records) {
+    const headerRow = document.getElementById('dashboardHeaderRow');
+    const body = document.getElementById('dashboardBody');
+    body.innerHTML = '';
+    
+    // ตั้งค่าหัวตารางหลัก
+    const relevantCols = ['subject', 'owner', 'timestamp'];
+    headerRow.innerHTML = '<th>ลำดับ</th><th>ชื่อรายการ</th><th>ผู้รับผิดชอบ</th><th>วันที่บันทึก</th><th style="width: 250px;">การปฏิบัติการ</th>';
+
+    if (records.length === 0) {
+        body.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:50px;">📭 ไม่พบประวัติการบันทึกข้อมูล</td></tr>';
+        return;
+    }
+
+    records.forEach((r, idx) => {
+        const tr = document.createElement('tr');
+        const title = r.subject || r['ชื่อรายการที่ผลิต'] || r.activity || 'รายการไม่ระบุชื่อ';
+        const owner = r.owner || r['ผู้รับผิดชอบการผลิต'] || '-';
+        const date = r.timestamp || r.Date || '-';
+        
+        tr.innerHTML = `
+            <td>${idx + 1}</td>
+            <td style="font-weight:600;">${title}</td>
+            <td>${owner}</td>
+            <td style="font-size:0.85rem; color:#64748b;">${date}</td>
+            <td>
+                <div class="action-btns">
+                    <button class="btn-action btn-edit" onclick="editRecord(${idx})">✍️ แก้ไข</button>
+                    <button class="btn-action btn-pdf" onclick="generateRecordPDF(${idx})">📄 PDF</button>
+                    <button class="btn-action btn-del" onclick="deleteRecord(${idx})">🗑️ ลบ</button>
+                </div>
+            </td>
+        `;
+        body.appendChild(tr);
+    });
+}
+
+function editRecord(idx) {
+    const r = dashboardData[idx];
+    currentEditRowIndex = r._rowIndex;
+    switchTab('form');
+    restoreBaseData(r);
+    
+    // กู้คืนตาราง
+    const tableKeywords = ['ep', 'format', 'teach', 'dur', 'dma', 'item', 'qty', 'ตอน', 'รูปแบบสื่อ', 'วิทยากร', 'ความยาว', 'ผลิตแล้วเสร็จ'];
+    const tableHeaders = currentHeaders.filter(h => tableKeywords.some(k => h.toLowerCase().includes(k)));
+    if (tableHeaders.length > 0) {
+        const tbody = document.getElementById('batchTableBody');
+        if (tbody) {
+            tbody.innerHTML = '';
+            if (r.tableData || r.tableBody || r._tableData) {
+                try {
+                    const rows = JSON.parse(r.tableData || r.tableBody || r._tableData);
+                    rows.forEach(rowData => addBatchRow(tableHeaders, rowData));
+                } catch(e) { addBatchRow(tableHeaders, r); }
+            } else { addBatchRow(tableHeaders, r); }
+        }
+    }
+    showModal('📝 แก้ไขข้อมูล', `ดึงข้อมูลลำดับที่ ${idx+1} มาวางบนฟอร์มเรียบร้อยแล้วครับ`, false, null, '✍️');
+}
+
+async function deleteRecord(idx) {
+    const r = dashboardData[idx];
+    const url = scriptUrlInput.value.trim();
+    showModal('🗑️ ยืนยันการลบ', 'คุณต้องการลบรายการนี้ออกจาก Google Sheet ใช่หรือไม่? (ไม่สามารถย้อนคืนได้)', true, async () => {
+        showLoading('กำลังลบข้อมูล...');
+        try {
+            const response = await fetch(url, { method: 'POST', body: JSON.stringify({ action: 'deleteData', rowIndex: r._rowIndex }) });
+            const json = await response.json();
+            if (json.status === 'success') {
+                showModal('✅ สำเร็จ', 'ลบข้อมูลเรียบร้อยแล้วครับ', false, null, '✨');
+                fetchDashboardData();
+            } else { throw new Error(json.message); }
+        } catch (e) { showModal('❌ ผิดพลาด', e.message, false, null, '⚠️'); }
+        finally { hideLoading(); }
+    }, '🧨');
+}
+
+async function generateRecordPDF(idx) {
+    const r = dashboardData[idx];
+    const url = scriptUrlInput.value.trim();
+    showLoading('กำลังสร้างไฟล์ PDF...');
+    try {
+        const response = await fetch(url, { method: 'POST', body: JSON.stringify({ action: 'generate', formId: formTypeSelect.value, data: r, tableData: null, rowIndex: r._rowIndex }) });
+        const result = await response.json();
+        if (result.status === 'success') {
+            showModal('📜 สร้างไฟล์สำเร็จ', 'คุณสามารถเปิดดูไฟล์ PDF ได้จากปุ่มด้านล่างครับ', false, () => {
+                window.open(result.data.url, '_blank');
+            }, '📄');
+        } else { throw new Error(result.message); }
+    } catch (e) { showModal('❌ ผิดพลาด', e.message, false, null, '⚠️'); }
+    finally { hideLoading(); }
+}
+
 async function sendData(action) {
     if (isProcessing) return;
     const url = scriptUrlInput.value.trim();
@@ -444,12 +585,13 @@ document.getElementById('docForm').onsubmit = (e) => {
 document.getElementById('btnPreview').onclick = () => sendData('preview');
 
 function clearLocalStorage() {
-    showModal('🧹 กวาดล้างข้อมูลร่าง (Local)', 'คุณต้องการลบข้อมูลที่ร่างไว้ "ในเบราว์เซอร์นี้" ทั้งหมดและเริ่มใหม่ใช่หรือไม่? (ประวัติใน Google Sheet จะไม่ถูกลบครับ)', true, () => {
-        localStorage.clear();
+    showModal('🧹 กวาดล้างข้อมูลร่าง (Local)', 'คุณต้องการลบข้อมูลที่ร่างไว้ "ในเบราว์เซอร์นี้" ทั้งหมดและเริ่มใหม่ใช่หรือไม่? (ที่อยู่ Apps Script URL จะยังคงอยู่ครับ)', true, () => {
+        localStorage.removeItem('form_id_draft');
+        localStorage.removeItem('base_data_draft');
+        localStorage.removeItem('table_data_draft');
         window.location.reload();
     }, '🗑️');
 }
-
 function clearForm() {
     showModal('📋 เคลียร์ฟอร์ม', 'คุณต้องการลบข้อมูลที่พิมพ์ไว้และเริ่มสร้างรายการใหม่ใช่หรือไม่? (ข้อมูลในความจำเครื่องจะยังคงอยู่)', true, () => {
         const tbody = document.getElementById('batchTableBody');
