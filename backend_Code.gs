@@ -1,5 +1,5 @@
 // ==========================================================================
-// GOOGLE APPS SCRIPT BACKEND V2.6-GodMode (Official Latest & PDF Restored)
+// GOOGLE APPS SCRIPT BACKEND V2.7-GodMode (Total Repair)
 // พัฒนาโดย: Antigravity AI
 // สำหรับ: ระบบสร้างเอกสาร PDF อัจฉริยะ (FM-สท.03-x)
 // ==========================================================================
@@ -8,28 +8,13 @@ const CONFIG = {
   SPREADSHEET_ID: '1xAOgwRIoCLmhYYziPQuDTf_YtvDv-VDuCH3WjeIQou4',
   DEBUG_MODE: true,
   FORMS: {
-    '031': {
-      templateId: '1zcM4L5gSnNRLF2vgzpiE5E5a7C3g-o8qHG_BDppAm-A',
-      folderId: '1i2szOSdvsEnfYrGbGM-0wALzQ1QPqkbc'
-    },
-    '033': {
-      templateId: '1B4o6jYsKBGRKg2dS5qdCDsRHbpJA42GANk55sG_HKlQ',
-      folderId: '1BYkDyzPahByYGadyLaLc5es9zmpjd_2y'
-    },
-    '034': {
-      templateId: '1CriGH1mgj1-MZcBvdNUfC5TYbMytf063U6Tau312ej0',
-      folderId: '1WhGML56hu4IKawJyb1CCr-xM1BMTE1Vv'
-    },
-    '035': {
-      templateId: '11HT5_VmKVB7msoJ6j8oVH2NnLm2VGeGKyCt03SQQj3Y',
-      folderId: '1mWf-fALH6UPl_COPLtk7AmMhsC-sLEHr'
-    }
+    '031': { templateId: '1zcM4L5gSnNRLF2vgzpiE5E5a7C3g-o8qHG_BDppAm-A', folderId: '1i2szOSdvsEnfYrGbGM-0wALzQ1QPqkbc' },
+    '033': { templateId: '1B4o6jYsKBGRKg2dS5qdCDsRHbpJA42GANk55sG_HKlQ', folderId: '1BYkDyzPahByYGadyLaLc5es9zmpjd_2y' },
+    '034': { templateId: '1CriGH1mgj1-MZcBvdNUfC5TYbMytf063U6Tau312ej0', folderId: '1WhGML56hu4IKawJyb1CCr-xM1BMTE1Vv' },
+    '035': { templateId: '11HT5_VmKVB7msoJ6j8oVH2NnLm2VGeGKyCt03SQQj3Y', folderId: '1mWf-fALH6UPl_COPLtk7AmMhsC-sLEHr' }
   }
 };
 
-/**
- * [ WEB SERVER ]
- */
 function doGet() {
   return HtmlService.createTemplateFromFile('index')
     .evaluate()
@@ -38,356 +23,195 @@ function doGet() {
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
-/**
- * [ ROUTER ]
- */
 function doPost(e) {
   try {
     const request = JSON.parse(e.postData.contents);
     const action = request.action;
-
-    if (action === 'getSchema') {
-      return getSchema(request.formId);
-    } else if (action === 'generate' || action === 'preview') {
-      return handlePDFRequest(request);
-    } else if (action === 'getRecentData') {
-      return getRecentData(request.formId);
-    }
-
+    if (action === 'getSchema') return getSchema(request.formId);
+    if (action === 'generate' || action === 'preview') return handlePDFRequest(request);
+    if (action === 'getRecentData') return getRecentData(request.formId);
     return createJsonResponse('error', null, 'Invalid action');
   } catch (err) {
     return createJsonResponse('error', null, err.toString());
   }
 }
 
-/**
- * [ DIAGNOSTIC HELPER ]
- */
 function getTargetSheet(formId) {
   const ss = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
   const cleanId = formId.replace('.json', '').replace('-', '');
-  
-  let sheet = ss.getSheetByName(cleanId);
-  if (!sheet) sheet = ss.getSheetByName(formId);
-  if (!sheet) sheet = ss.getSheetByName(formId.replace('.json', ''));
-  
+  let sheet = ss.getSheetByName(cleanId) || ss.getSheetByName(formId) || ss.getSheetByName(formId.replace('.json', ''));
   return { sheet: sheet, ss: ss, cleanId: cleanId };
 }
 
-/**
- * ดึงโครงสร้างหัวตาราง (Headers)
- */
 function getSchema(formId) {
-  const { sheet, ss, cleanId } = getTargetSheet(formId);
-
-  if (!sheet) {
-    const allSheetNames = ss.getSheets().map(s => s.getName()).join(', ');
-    return createJsonResponse('error', null, 
-      'ไม่พบ Sheet: ' + formId + '\n\n' +
-      '🔍 ตรวจพบคิวรีในไฟล์นี้คือ: [' + allSheetNames + ']\n' +
-      'กรุณาเปลี่ยนชื่อหน้าใน Google Sheets ให้ตรงกับชื่อใดชื่อหนึ่งด้านบนครับ'
-    );
-  }
-
+  const { sheet, ss } = getTargetSheet(formId);
+  if (!sheet) return createJsonResponse('error', null, 'ไม่พบ Sheet: ' + formId);
   const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-  
-  return createJsonResponse('success', {
-    version: "v2.6-GodMode",
-    headers: headers,
-    spreadsheetName: ss.getName()
-  });
+  return createJsonResponse('success', { version: "v2.7-GodMode", headers: headers });
 }
 
-/**
- * ดึงข้อมูลล่าสุด 20 รายการ
- */
 function getRecentData(formId) {
   const { sheet } = getTargetSheet(formId);
-  if (!sheet) return createJsonResponse('error', null, 'ไม่พบ Sheet สำหรับดึงข้อมูลล่าสุด');
-  
+  if (!sheet) return createJsonResponse('error', null, 'ไม่พบ Sheet');
   const lastRow = sheet.getLastRow();
   if (lastRow <= 1) return createJsonResponse('success', { records: [] });
-  
   const startRow = Math.max(2, lastRow - 19);
   const numRows = lastRow - startRow + 1;
   const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
   const data = sheet.getRange(startRow, 1, numRows, sheet.getLastColumn()).getValues();
-  
   const records = data.map((row, index) => {
     const obj = { _rowIndex: startRow + index };
     headers.forEach((h, i) => obj[h] = row[i]);
     return obj;
   }).reverse();
-  
   return createJsonResponse('success', { records: records });
 }
 
-/**
- * [ CORE ] จัดการการสร้าง PDF จริง
- */
 function handlePDFRequest(request) {
   const { action, formId, data, rowIndex, tableData } = request;
   const isPreview = (action === 'preview');
-  
   const { sheet, ss, cleanId } = getTargetSheet(formId);
   const formConfig = CONFIG.FORMS[cleanId];
   
-  if (!formConfig) throw new Error('ไม่พบการตั้งค่า Template/Folder สำหรับ: ' + cleanId);
+  if (!formConfig) throw new Error('ไม่พบข้อมูล Template สำหรับ: ' + cleanId);
 
-  // --- RESTORED CORE PDF LOGIC ---
+  // 1. สร้าง PDF
   const result = createPDF(formConfig, data, isPreview, tableData);
 
+  // 2. บันทึกข้อมูลลง Sheet
+  let rowsCount = 1;
   if (!isPreview) {
     const rIndex = parseInt(rowIndex) || 0;
     saveToSheet(sheet, data, rIndex, tableData);
+    rowsCount = (tableData && Array.isArray(tableData)) ? tableData.length : 1;
   }
 
-  const rowTotal = (tableData && Array.isArray(tableData)) ? tableData.length : 1;
-  return createJsonResponse('success', result, `บันทึกข้อมูลเรียบร้อยแล้ว (ได้รับ ${rowTotal} รายการ)`);
+  return createJsonResponse('success', result, `บันทึกข้อมูลเรียบร้อยแล้ว (ได้รับ ${rowsCount} รายการ)`);
 }
 
-/**
- * สร้าง PDF จาก Template (รองรับ Google Docs และ Google Slides)
- */
 function createPDF(formConfig, rowData, isPreview, tableData) {
   const templateFile = DriveApp.getFileById(formConfig.templateId);
   const parentFolder = DriveApp.getFolderById(formConfig.folderId);
-  const mimeType = templateFile.getMimeType();
-
   const timestamp = Utilities.formatDate(new Date(), "GMT+7", "yyyyMMdd_HHmmss");
-  const randomId = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
   const subject = rowData['subject'] || rowData['ชื่อเรื่อง / วิชา'] || 'DOC';
-  const tempName = (isPreview ? 'PREVIEW_' : '') + '[' + subject + ']_' + timestamp + '_' + randomId;
+  const tempName = (isPreview ? 'PREVIEW_' : '') + '[' + subject + ']_' + timestamp;
   
   const tempFile = templateFile.makeCopy(tempName, parentFolder);
-  
-  // รองรับทั้ง Google Docs และ Google Slides
-  if (mimeType === MimeType.GOOGLE_SLIDES) {
-    const presentation = SlidesApp.openById(tempFile.getId());
-    const slides = presentation.getSlides();
+  const mimeType = templateFile.getMimeType();
 
-    slides.forEach(slide => {
-      slide.getShapes().forEach(shape => replaceInTextSlides(shape.getText(), rowData));
-      slide.getTables().forEach(table => {
-        for (let r = 0; r < table.getNumRows(); r++) {
-          for (let c = 0; c < table.getRow(r).getNumCells(); c++) {
-            replaceInTextSlides(table.getCell(r, c).getText(), rowData);
-          }
-        }
-      });
-    });
-    presentation.saveAndClose();
-  } 
-  else if (mimeType === MimeType.GOOGLE_DOCS) {
+  if (mimeType === MimeType.GOOGLE_DOCS) {
     const doc = DocumentApp.openById(tempFile.getId());
     const body = doc.getBody();
-    const header = doc.getHeader();
-    const footer = doc.getFooter();
-
     if (body) {
-      if (tableData && Array.isArray(tableData)) {
-        fillTableRows(body, tableData);
-      }
-      replaceInTextDocs(body, rowData);
+      if (tableData && Array.isArray(tableData)) fillTableRows(body, tableData);
+      replaceInText(body, rowData);
     }
-    if (header) replaceInTextDocs(header, rowData);
-    if (footer) replaceInTextDocs(footer, rowData);
-    
+    const header = doc.getHeader();
+    if (header) replaceInText(header, rowData);
     doc.saveAndClose();
-  } 
-  else {
-    throw new Error('ประเภทไฟล์เทมเพลตไม่รองรับ ต้องเป็น Google Docs หรือ Google Slides เท่านั้น (พบ: ' + mimeType + ')');
+  } else if (mimeType === MimeType.GOOGLE_SLIDES) {
+    const pres = SlidesApp.openById(tempFile.getId());
+    pres.getSlides().forEach(slide => replaceInSlides(slide, rowData));
+    pres.saveAndClose();
   }
 
-  // พัก 3 วินาทีเพื่อให้เซิร์ฟเวอร์ Google อัพเดทข้อมูลที่เปลี่ยนแปลงลงไฟล์ ก่อนแปลงเป็น PDF
-  Utilities.sleep(3000);
-
+  Utilities.sleep(2000);
   const pdfBlob = tempFile.getAs(MimeType.PDF);
   const pdfFile = parentFolder.createFile(pdfBlob).setName(tempName + ".pdf");
   pdfFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-
   tempFile.setTrashed(true);
 
-  return {
-    fileId: pdfFile.getId(),
-    url: pdfFile.getUrl(), // ใช้ URL ปกติเพื่อให้เปิดหน้า Preview สำหรับพิมพ์
-    name: pdfFile.getName()
-  };
+  return { fileId: pdfFile.getId(), url: pdfFile.getUrl(), name: pdfFile.getName() };
 }
 
-/**
- * แทนที่ข้อความ (สำหรับ Google Slides)
- */
-function replaceInTextSlides(textRange, data) {
+function replaceInText(element, data) {
   for (let [key, value] of Object.entries(data)) {
-    let valStr = "";
-    if (Array.isArray(value)) {
-      valStr = value.join(', ');
-    } else {
-      valStr = (value === null || value === undefined) ? "" : value.toString();
-    }
-
-    let keysToTry = [key, key.toLowerCase(), key.toUpperCase(), key.replace('input_', '')];
-    
-    keysToTry.forEach(k => {
-      textRange.replaceAllText(`{{${k}}}`, valStr, false);
-      textRange.replaceAllText(`{{ ${k} }}`, valStr, false);
-    });
+    const val = Array.isArray(value) ? value.join(', ') : (value || "");
+    const k = key.toLowerCase();
+    // ใช้การแทนที่แบบแม่นยำ (Double backslash สำหรับ Apps Script Regex)
+    element.replaceText("\\{\\{" + k + "\\}\\}", val);
+    element.replaceText("\\{\\{ " + k + " \\}\\}", val);
   }
 }
 
-/**
- * แทนที่ข้อความ (สำหรับ Google Docs)
- */
-function replaceInTextDocs(element, data) {
+function replaceInSlides(slide, data) {
   for (let [key, value] of Object.entries(data)) {
-    let valStr = "";
-    if (Array.isArray(value)) {
-      valStr = value.join(', ');
-    } else {
-      valStr = (value === null || value === undefined) ? "" : value.toString();
-    }
-
-    let keysToTry = [key, key.toLowerCase(), key.toUpperCase(), key.replace('input_', '')];
-    
-    keysToTry.forEach(k => {
-      let findText1 = `\\{\\{${k}\\}\\}`;
-      let findText2 = `\\{\\{ ${k} \\}\\}`;
-      element.replaceText(findText1, valStr);
-      element.replaceText(findText2, valStr);
-    });
+    const val = Array.isArray(value) ? value.join(', ') : (value || "");
+    const k = key.toLowerCase();
+    slide.replaceAllText("{{"+k+"}}", val);
+    slide.replaceAllText("{{ "+k+" }}", val);
   }
 }
 
-/**
- * [ DYNAMIC TABLE REPLICATION ]
- * ค้นหาตารางที่มี Placeholder ในตัว และทำการ Duplicate แถวนั้นตามจำนวนข้อมูล
- */
-function fillTableRows(element, tableData) {
-  const tables = element.getTables();
-  
+function fillTableRows(body, tableData) {
+  const tables = body.getTables();
   tables.forEach(table => {
     let templateRowIndex = -1;
-    let templateRow = null;
-    
-    // ค้นหาแถวที่มี Placeholder สำหรับ EP หรือ Format (เป็นตัวบ่งบอกเทมเพลต)
     for (let r = 0; r < table.getNumRows(); r++) {
-      let rowText = table.getRow(r).getText().toLowerCase();
-      if (rowText.includes('{{ep}}') || rowText.includes('{{format}}') || rowText.includes('{{item}}') || rowText.includes('{{ตอน}}') || rowText.includes('{{รูปแบบสื่อ}}')) {
+      let text = table.getRow(r).getText().toLowerCase();
+      // ดิจิทัล - ค้นหาแถวที่มี Placeholder
+      if (text.includes('{{ep}}') || text.includes('{{format}}') || text.includes('{{item}}')) {
         templateRowIndex = r;
-        templateRow = table.getRow(r);
         break;
       }
     }
-    
-    if (templateRowIndex !== -1) {
-      // ลบแถววที่เหลืออยู่ (ที่เป็นจุดไข่ปลาหรือช่องว่าง) เพื่อให้ตารางสะอาด
-      // เราจะลบตั้งแต่แถวถัดจาก Template ลงมาจนเกือบสุด
-      let totalRows = table.getNumRows();
-      for (let r = totalRows - 1; r > templateRowIndex; r--) {
-        // ตรวจสอบว่าไม่ใช่แถว Footer ของตาราง (อย่างง่ายๆ คือมีข้อความอื่นที่ไม่ใช่แค่จุดหรือว่าง)
-        let text = table.getRow(r).getText().trim();
-        if (text.length === 0 || text === "...................." || /^[\s.]+$/.test(text)) {
-           table.removeRow(r);
-        }
-      }
 
-      // เริ่มสร้างแถวใหม่ตามข้อมูล
-      tableData.forEach((rowData, index) => {
-        let newRow = table.insertTableRow(templateRowIndex + index + 1, templateRow.copy());
-        
-        // แทนที่ข้อมูลในแถวใหม่นี้
+    if (templateRowIndex !== -1) {
+      const templateRow = table.getRow(templateRowIndex);
+      tableData.forEach((rowData, i) => {
+        const newRow = table.insertTableRow(templateRowIndex + i + 1, templateRow.copy());
         for (let [key, value] of Object.entries(rowData)) {
-          let valStr = (value === null || value === undefined) ? "" : value.toString();
-          // ใช้ Regex เพื่อหาและแทนที่แบบไม่สนตัวพิมพ์เล็ก-ใหญ่ และยืดหยุ่นเรื่องช่องว่าง
-          let escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); 
-          let regex = new RegExp(`\\\\{\\\\{\\\\s*${escapedKey}\\\\s*\\\\}\\\\}`, 'gi');
-          newRow.replaceText(regex.source, valStr);
+          const val = value || "";
+          const k = key.toLowerCase();
+          newRow.replaceText("\\{\\{" + k + "\\}\\}", val);
+          newRow.replaceText("\\{\\{ " + k + " \\}\\}", val);
         }
       });
-      
-      // ลบแถวเทมเพลตต้นฉบับทิ้ง
       table.removeRow(templateRowIndex);
     }
   });
 }
 
-/**
- * บันทึกข้อมูล (รองรับการบันทึกหลายแถวรวดเดียวจากตารางทะเบียน)
- */
 function saveToSheet(sheet, baseData, rowIndex, tableData) {
   const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
   
-  // กรณีมีข้อมูลตาราง (Batch) ให้บันทึกแยกแถวกัน
+  // กรณี Batch
   if (tableData && Array.isArray(tableData) && tableData.length > 0) {
-    const rowsToAppend = tableData.map(itemData => {
-      // รวมข้อมูลหลัก (subject, cb) เข้ากับข้อมูลรายบรรทัด (ep, dur)
-      const mergedData = { ...baseData, ...itemData };
+    const rowsToAppend = tableData.map(item => {
+      const merged = { ...baseData, ...item };
       return headers.map(h => {
-        let key = h.toString().trim();
-        let val = mergedData[key];
-        
-        // ค้นหาแบบไม่สนตัวพิมพ์ (Case-insensitive mapping)
+        let val = merged[h.toString().trim()] || merged[h.toString().trim().toLowerCase()];
         if (val === undefined) {
-          const matchedKey = Object.keys(mergedData).find(k => k.toLowerCase() === key.toLowerCase());
-          if (matchedKey) val = mergedData[matchedKey];
+           const match = Object.keys(merged).find(k => k.toLowerCase() === h.toString().toLowerCase().trim());
+           val = match ? merged[match] : "";
         }
-        
-        if (Array.isArray(val)) return val.join(', ');
-        return (val === undefined || val === null) ? "" : val;
+        return Array.isArray(val) ? val.join(', ') : (val || "");
       });
     });
 
-    // บังคับแปลงเป็นตัวเลข และจัดการ rowIndex ให้ถูกต้อง
-    const startRow = parseInt(rowIndex) || 0;
-
-    // ถ้าเป็นการบันทึกใหม่ (Append)
-    if (startRow <= 0) {
-      rowsToAppend.forEach(row => {
-        sheet.appendRow(row);
-        SpreadsheetApp.flush(); // บังคับเขียนข้อมูลลง Sheet ทันทีป้องกันการข้ามแถว
-      });
+    if (rowIndex <= 0) {
+      rowsToAppend.forEach(r => { sheet.appendRow(r); SpreadsheetApp.flush(); });
     } else {
-      // ถ้าเป็นการแก้ไข (Edit) - แทนที่แถวเดิม และแทรกที่เหลือ
-      sheet.getRange(startRow, 1, 1, headers.length).setValues([rowsToAppend[0]]);
+      sheet.getRange(rowIndex, 1, 1, headers.length).setValues([rowsToAppend[0]]);
       if (rowsToAppend.length > 1) {
-        const remainingRows = rowsToAppend.slice(1);
-        sheet.insertRowsAfter(startRow, remainingRows.length);
-        sheet.getRange(startRow + 1, 1, remainingRows.length, headers.length).setValues(remainingRows);
+        const extra = rowsToAppend.slice(1);
+        sheet.insertRowsAfter(rowIndex, extra.length);
+        sheet.getRange(rowIndex + 1, 1, extra.length, headers.length).setValues(extra);
       }
       SpreadsheetApp.flush();
     }
-  } 
-  // กรณีข้อมูลปกติ (ไม่มีตาราง)
-  else {
+  } else {
+    // กรณีปกติ
     const row = headers.map(h => {
-      let key = h.toString().trim();
-      let val = baseData[key];
-      
-      if (val === undefined) {
-        const matchedKey = Object.keys(baseData).find(k => k.toLowerCase() === key.toLowerCase());
-        if (matchedKey) val = baseData[matchedKey];
-      }
-      
-      if (Array.isArray(val)) return val.join(', ');
-      return (val === undefined || val === null) ? "" : val;
+      let val = baseData[h] || baseData[h.toString().toLowerCase().trim()];
+      return Array.isArray(val) ? val.join(', ') : (val || "");
     });
-
-    if (rowIndex > 0) {
-      sheet.getRange(rowIndex, 1, 1, row.length).setValues([row]);
-    } else {
-      sheet.appendRow(row);
-    }
+    if (rowIndex > 0) sheet.getRange(rowIndex, 1, 1, row.length).setValues([row]);
+    else sheet.appendRow(row);
   }
 }
 
-/**
- * ส่งคำตอบกลับเป็น JSON
- */
 function createJsonResponse(status, data, message = "") {
-  return ContentService.createTextOutput(JSON.stringify({
-    status: status,
-    data: data,
-    message: message || (status === 'error' ? 'เกิดข้อผิดพลาด' : '')
-  })).setMimeType(ContentService.MimeType.JSON);
+  return ContentService.createTextOutput(JSON.stringify({ status, data, message }))
+    .setMimeType(ContentService.MimeType.JSON);
 }
