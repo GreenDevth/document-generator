@@ -24,17 +24,11 @@ let currentEditRowIndex = 0;
 let dashboardData = []; // สำหรับเก็บข้อมูลทั้งหมดที่ดึงมา
 
 // --- GLOBAL ACTIONS (ประกาศไว้ด้านบนเพื่อให้ปุ่มกดได้ทันที) ---
-function switchTab(view) {
-    document.querySelectorAll('.tab-view').forEach(v => v.classList.remove('active'));
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    document.getElementById(view + 'View').classList.add('active');
-    document.querySelector(`.tab-btn[onclick*="${view}"]`).classList.add('active');
-    if (view === 'dashboard') fetchDashboardData();
-}
-
 function clearLocalStorage() {
-    showModal('🧹 กวาดล้างข้อมูลประวัติ (Local)', 'คุณต้องการลบข้อมูลที่ร่างไว้ "ในเบราว์เซอร์นี้" ทั้งหมดและเริ่มใหม่ใช่หรือไม่? ประวัติใน Google Sheet จะไม่ถูกลบครับ', true, () => {
-        localStorage.clear();
+    showModal('🧹 กวาดล้างข้อมูลร่าง (Local)', 'คุณต้องการลบข้อมูลที่ร่างไว้ "ในเบราว์เซอร์นี้" ทั้งหมดและเริ่มใหม่ใช่หรือไม่? (ที่อยู่ Apps Script URL จะยังคงอยู่ครับ)', true, () => {
+        localStorage.removeItem('form_id_draft');
+        localStorage.removeItem('base_data_draft');
+        localStorage.removeItem('table_data_draft');
         window.location.reload();
     }, '🗑️');
 }
@@ -318,102 +312,39 @@ function collectTableData() {
 async function fetchRecentData() {
     const url = scriptUrlInput.value.trim();
     const formId = formTypeSelect.value;
-    showLoading('กำลังดึงประวัติล่าสุด...');
+    if (!url || !formId || formId === "-- เลือกแบบฟอร์ม --") {
+        showModal('⚠️ คำเตือน', 'กรุณาเลือกประเภทแบบฟอร์มก่อนกวาดดูประวัติครับ', false, null, '🚧');
+        return;
+    }
+    showLoading('กำลังดึงข้อมูลทั้งหมด...');
     try {
-        const response = await fetch(url, { method: 'POST', body: JSON.stringify({ action: 'getRecentData', formId }) });
+        const response = await fetch(url, { 
+            method: 'POST', 
+            body: JSON.stringify({ action: 'getRecentData', formId, limit: 100 }) 
+        });
         const json = await response.json();
         if (json.status === 'success') {
-            displayHistoryModal(json.data.records);
+            dashboardData = json.data.records;
+            displayHistoryModal(dashboardData);
         } else { throw new Error(json.message); }
     } catch (e) { showModal('❌ ผิดพลาด', e.message, false, null, '⚠️'); }
     finally { hideLoading(); }
 }
 
 function displayHistoryModal(records) {
-    const content = document.createElement('div');
-    content.className = 'history-list';
-    if (records.length === 0) content.innerHTML = '<p style="text-align:center;padding:20px;">ยังไม่มีประวัติการบันทึก</p>';
-    records.forEach(r => {
-        const item = document.createElement('div');
-        item.className = 'history-item';
-        const title = r.subject || r['ชื่อรายการที่ผลิต'] || 'ไม่มีชื่อ';
-        const date = r.timestamp || r.Date || '';
-        item.innerHTML = `<div><strong>${title}</strong><br><small>${date}</small></div><button class="btn-select">เลือก</button>`;
-        item.querySelector('.btn-select').onclick = () => {
-            currentEditRowIndex = r._rowIndex;
-            restoreBaseData(r);
-            
-            // --- FIX FOR 034 & MULTI-ROW RESTORATION ---
-            const tableKeywords = ['ep', 'format', 'teach', 'dur', 'dma', 'item', 'qty', 'ตอน', 'รูปแบบสื่อ', 'วิทยากร', 'ความยาว', 'ผลิตแล้วเสร็จ'];
-            const tableHeaders = currentHeaders.filter(h => tableKeywords.some(k => h.toLowerCase().includes(k)));
-            
-            if (tableHeaders.length > 0) {
-                const tbody = document.getElementById('batchTableBody');
-                if (tbody) {
-                    tbody.innerHTML = '';
-                    // หากมีข้อมูลชุด (Serialized Table Data) ให้กูคืนตามนั้น
-                    if (r.tableData || r.tableBody || r._tableData) {
-                        try {
-                            const rows = JSON.parse(r.tableData || r.tableBody || r._tableData);
-                            rows.forEach(rowData => addBatchRow(tableHeaders, rowData));
-                        } catch(e) { addBatchRow(tableHeaders, r); }
-                    } else if (r.ep || r['ตอน'] || r.item || r['รายการ']) {
-                        // หากไม่มีแบบชุด แต่มีข้อมูลฟิลด์ตารางตัวเดียว
-                        addBatchRow(tableHeaders, r);
-                    }
-                }
-            }
-            
-            document.getElementById('modalOverlay').classList.remove('active');
-            showModal('✅ โหลดข้อมูลสำเร็จ', `ดึงข้อมูลจากแถวที่ ${currentEditRowIndex} มาแล้วครับ`, false, null, '✨');
-        };
-        content.appendChild(item);
-    });
+    const modal = document.getElementById('dashboardModal');
+    const headerRow = document.getElementById('dashHeaderRow');
+    const body = document.getElementById('dashBody');
     
-    // Use the existing showModal logic but with custom content
-    const overlay = document.getElementById('modalOverlay');
-    document.getElementById('modalIcon').textContent = '📂';
-    document.getElementById('modalTitle').textContent = 'เลือกจากประวัติล่าสุด';
-    const desc = document.getElementById('modalDesc');
-    desc.innerHTML = '';
-    desc.appendChild(content);
-    document.getElementById('modalCancel').style.display = 'none';
-    const btnConfirm = document.getElementById('modalConfirm');
-    btnConfirm.textContent = 'ปิด';
-    overlay.classList.add('active');
-    btnConfirm.onclick = () => { overlay.classList.remove('active'); };
+    headerRow.innerHTML = '<th>ลำดับ</th><th>ชื่อรายการ</th><th>ผู้รับผิดชอบ</th><th>วันที่บันทึก</th><th style="width: 250px;">การปฏิบัติการ</th>';
+    renderDashTable(records);
+    modal.classList.add('active');
 }
 
-// --- TOTAL POWER DASHBOARD LOGIC ---
-async function fetchDashboardData() {
-    const url = scriptUrlInput.value.trim();
-    const formId = formTypeSelect.value;
-    if (!url || !formId || formId === "-- เลือกแบบฟอร์ม --") {
-        showModal('⚠️ คำเตือน', 'กรุณาเลือกประเภทแบบฟอร์มก่อนเข้าหน้า Dashboard ครับ', false, null, '🚧');
-        switchTab('form');
-        return;
-    }
-    showLoading('กำลังดึงข้อมูลทั้งหมด...');
-    try {
-        const response = await fetch(url, { method: 'POST', body: JSON.stringify({ action: 'getRecentData', formId, limit: 100 }) });
-        const json = await response.json();
-        if (json.status === 'success') {
-            dashboardData = json.data.records;
-            renderDashboard(dashboardData);
-        } else { throw new Error(json.message); }
-    } catch (e) { showModal('❌ ข้อผิดพลาด', e.message, false, null, '⚠️'); }
-    finally { hideLoading(); }
-}
-
-function renderDashboard(records) {
-    const headerRow = document.getElementById('dashboardHeaderRow');
-    const body = document.getElementById('dashboardBody');
+function renderDashTable(records) {
+    const body = document.getElementById('dashBody');
     body.innerHTML = '';
     
-    // ตั้งค่าหัวตารางหลัก
-    const relevantCols = ['subject', 'owner', 'timestamp'];
-    headerRow.innerHTML = '<th>ลำดับ</th><th>ชื่อรายการ</th><th>ผู้รับผิดชอบ</th><th>วันที่บันทึก</th><th style="width: 250px;">การปฏิบัติการ</th>';
-
     if (records.length === 0) {
         body.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:50px;">📭 ไม่พบประวัติการบันทึกข้อมูล</td></tr>';
         return;
@@ -432,9 +363,9 @@ function renderDashboard(records) {
             <td style="font-size:0.85rem; color:#64748b;">${date}</td>
             <td>
                 <div class="action-btns">
-                    <button class="btn-action btn-edit" onclick="editRecord(${idx})">✍️ แก้ไข</button>
-                    <button class="btn-action btn-pdf" onclick="generateRecordPDF(${idx})">📄 PDF</button>
-                    <button class="btn-action btn-del" onclick="deleteRecord(${idx})">🗑️ ลบ</button>
+                    <button type="button" class="btn-action btn-edit" onclick="editRecord(${idx})">✍️ แก้ไข</button>
+                    <button type="button" class="btn-action btn-pdf" onclick="generateRecordPDF(${idx})">📄 PDF</button>
+                    <button type="button" class="btn-action btn-del" onclick="deleteRecord(${idx})">🗑️ ลบ</button>
                 </div>
             </td>
         `;
@@ -442,13 +373,26 @@ function renderDashboard(records) {
     });
 }
 
+function closeDashboardModal() {
+    document.getElementById('dashboardModal').classList.remove('active');
+}
+
+function filterDashboard() {
+    const query = document.getElementById('dashSearch').value.toLowerCase();
+    const filtered = dashboardData.filter(r => {
+        const title = (r.subject || r['ชื่อรายการที่ผลิต'] || r.activity || '').toLowerCase();
+        const owner = (r.owner || r['ผู้รับผิดชอบการผลิต'] || '').toLowerCase();
+        return title.includes(query) || owner.includes(query);
+    });
+    renderDashTable(filtered);
+}
+
 function editRecord(idx) {
     const r = dashboardData[idx];
     currentEditRowIndex = r._rowIndex;
-    switchTab('form');
     restoreBaseData(r);
     
-    // กู้คืนตาราง
+    // กู้คืนตารางโหนด
     const tableKeywords = ['ep', 'format', 'teach', 'dur', 'dma', 'item', 'qty', 'ตอน', 'รูปแบบสื่อ', 'วิทยากร', 'ความยาว', 'ผลิตแล้วเสร็จ'];
     const tableHeaders = currentHeaders.filter(h => tableKeywords.some(k => h.toLowerCase().includes(k)));
     if (tableHeaders.length > 0) {
@@ -463,20 +407,22 @@ function editRecord(idx) {
             } else { addBatchRow(tableHeaders, r); }
         }
     }
-    showModal('📝 แก้ไขข้อมูล', `ดึงข้อมูลลำดับที่ ${idx+1} มาวางบนฟอร์มเรียบร้อยแล้วครับ`, false, null, '✍️');
+    closeDashboardModal();
+    showModal('✅ โหลดข้อมูลสำเร็จ', `ดึงข้อมูลโครงการ "${r.subject || 'ไม่ระบุชื่อ'}" มาแก้ไขเรียบร้อยครับ`, false, null, '✨');
 }
 
 async function deleteRecord(idx) {
     const r = dashboardData[idx];
     const url = scriptUrlInput.value.trim();
-    showModal('🗑️ ยืนยันการลบ', 'คุณต้องการลบรายการนี้ออกจาก Google Sheet ใช่หรือไม่? (ไม่สามารถย้อนคืนได้)', true, async () => {
+    showModal('🗑️ ยืนยันการลบ', 'คุณต้องการลบรายการนี้ออกจาก Google Sheet ใช่หรือไม่?', true, async () => {
         showLoading('กำลังลบข้อมูล...');
         try {
             const response = await fetch(url, { method: 'POST', body: JSON.stringify({ action: 'deleteData', rowIndex: r._rowIndex }) });
             const json = await response.json();
             if (json.status === 'success') {
-                showModal('✅ สำเร็จ', 'ลบข้อมูลเรียบร้อยแล้วครับ', false, null, '✨');
-                fetchDashboardData();
+                showModal('✅ สำเร็จ', 'ลบข้อมูลเรียบร้อยแล้วครับ', false, () => {
+                    fetchRecentData(); // Refresh table inside modal
+                }, '✨');
             } else { throw new Error(json.message); }
         } catch (e) { showModal('❌ ผิดพลาด', e.message, false, null, '⚠️'); }
         finally { hideLoading(); }
