@@ -1,5 +1,5 @@
 // ==========================================================================
-// SMART DOCUMENT GENERATOR FRONTEND V2.9.3-TOTAL-POWER
+// SMART DOCUMENT GENERATOR FRONTEND V2.9.5-PREMIUM-HISTORY
 // ==========================================================================
 
 const scriptUrlInput = document.getElementById('scriptUrl');
@@ -44,12 +44,13 @@ const labelMap = {
 
 const checkboxConfig = { 'checkbox': ['หน่วยจัดและผลิตรายการวิทยุ', 'หน่วยจัดและผลิตรายการโทรทัศน์', 'หน่วยผลิตและพัฒนาสื่อการศึกษา'] };
 
-const defaultUrl = 'https://script.google.com/macros/s/AKfycbz9oaurUPmKICd.../exec';
+const defaultUrl = 'https://script.google.com/macros/s/AKfycbwtcuDQ6gzAg3tibBAKL0aVVn5l3C_adShptRkgZaQNUYCzacuQKZv_ywlLYUw24c_l/exec';
 scriptUrlInput.value = localStorage.getItem('gas_url') || defaultUrl;
 
 function toThaiDigits(num) { return num.toString().replace(/[0-9]/g, digit => "๐๑๒๓๔๕๖๗๘๙"[digit]); }
 function toArabicDigits(str) { return str.toString().replace(/[๐-๙]/g, digit => "๐๑๒๓๔๕๖๗๘๙".indexOf(digit)); }
 
+// --- PERSISTENCE LOGIC ---
 function saveAllDrafts() {
     const baseData = {};
     currentHeaders.forEach(h => {
@@ -74,13 +75,23 @@ function restoreBaseData(dataMap = null) {
     for (let [h, val] of Object.entries(data)) {
         const checkboxes = document.querySelectorAll(`input[name="${h}"]`);
         if (checkboxes.length > 0) {
-            const vals = Array.isArray(val) ? val : [val];
-            checkboxes.forEach(cb => cb.checked = vals.includes(cb.value));
+            const vals = Array.isArray(val) ? val.join(', ') : val;
+            const valsList = vals.toString().split(',').map(v => v.trim());
+            checkboxes.forEach(cb => cb.checked = valsList.includes(cb.value));
         } else {
             const el = document.getElementById(`input_${h}`);
             if (el) el.value = val;
         }
     }
+}
+
+function resetAll() {
+    showModal('🧹 ยืนยันการล้างข้อมูล', 'คุณต้องการลบข้อมูลทั้งหมดที่พิมพ์ไว้ และกลับไปหน้าแรกใช่หรือไม่?', true, () => {
+        localStorage.removeItem('form_id_draft');
+        localStorage.removeItem('base_data_draft');
+        localStorage.removeItem('table_data_draft');
+        window.location.reload();
+    }, '⚠️');
 }
 
 function calcNextDate(day, monthThai, yearBE, daysToAdd) {
@@ -101,7 +112,10 @@ function calcNextDate(day, monthThai, yearBE, daysToAdd) {
 formTypeSelect.addEventListener('change', async () => {
     const url = scriptUrlInput.value.trim();
     const formId = formTypeSelect.value;
-    if (!url || !formId || formId === "-- เลือกแบบฟอร์ม --") return;
+    if (!url || !formId || formId === "-- เลือกแบบฟอร์ม --") {
+        dynamicSection.classList.remove('active');
+        return;
+    }
     localStorage.setItem('gas_url', url);
     localStorage.setItem('form_id_draft', formId);
     showLoading('กำลังดึงโครงสร้างข้อมูล...');
@@ -128,7 +142,6 @@ function renderFields(headers, formId) {
     const currentTableHeaders = headers.filter(h => tableKeywords.some(k => h.toLowerCase().includes(k)));
     const basicHeaders = headers.filter(h => !currentTableHeaders.includes(h));
 
-    // Checkboxes
     const cbHeaders = basicHeaders.filter(h => h.toLowerCase().startsWith('cb') || checkboxConfig[h]);
     const regularHeaders = basicHeaders.filter(h => !cbHeaders.includes(h));
 
@@ -157,7 +170,6 @@ function renderFields(headers, formId) {
         fieldsContainer.appendChild(cbGroup);
     }
 
-    // Regular Fields
     let i = 0;
     while (i < regularHeaders.length) {
         const header = regularHeaders[i];
@@ -194,7 +206,6 @@ function renderTableRegistry(headers) {
             <div class="batch-title">📜 รายการที่ต้องบันทึก (${headers.length} คอลัมน์)</div>
             <div style="display: flex; gap: 10px;">
                 <button type="button" class="btn-add" id="btnAddRow">เพิ่มรายการใหม่</button>
-                <button type="button" class="btn-history" id="btnHistory" title="เลือกข้อมูลจากประวัติ">📂</button>
             </div>
         </div>
         <div class="batch-table-wrapper"><table class="batch-table"><thead><tr>
@@ -203,8 +214,16 @@ function renderTableRegistry(headers) {
         </tr></thead><tbody id="batchTableBody"></tbody></table></div>
     `;
     fieldsContainer.appendChild(container);
+
+    // เชื่อมต่อปุ่มเพิ่มแถว
     container.querySelector('#btnAddRow').onclick = () => addBatchRow(headers);
-    container.querySelector('#btnHistory').onclick = () => fetchRecentData();
+
+    // เชื่อมต่อปุ่มประวัติหลัก (ที่อยู่ด้านบนขวาของหน้าเว็บ)
+    const primaryHistoryBtn = document.querySelector('.btn-history');
+    if (primaryHistoryBtn) {
+        primaryHistoryBtn.onclick = () => fetchRecentData();
+    }
+
     checkTableRescue(headers);
 }
 
@@ -224,17 +243,18 @@ function addBatchRow(headers, existingData = null) {
             ['ชม.', 'น.'].forEach(u => { const o = document.createElement('option'); o.value = u; o.textContent = u; sel.appendChild(o); });
             grp.appendChild(input); grp.appendChild(sel);
             input.oninput = () => saveAllDrafts(); sel.onchange = () => saveAllDrafts();
-            if (existingData && existingData[h]) {
-                const m = existingData[h].toString().match(/^([\d.]+)\s*(.*)$/);
-                if (m) { input.value = m[1]; sel.value = m[2] || 'ชม.'; } else input.value = existingData[h];
+            if (existingData && (existingData[h] || existingData[h.trim()])) {
+                const valRaw = existingData[h] || existingData[h.trim()];
+                const m = valRaw.toString().match(/^([\d.]+)\s*(.*)$/);
+                if (m) { input.value = m[1]; sel.value = m[2] || 'ชม.'; } else input.value = valRaw;
             }
             td.appendChild(grp);
         } else {
             input = document.createElement('input'); input.type = 'text'; input.dataset.key = h;
             input.placeholder = labelMap[low] || h;
             input.oninput = () => saveAllDrafts();
-            if (existingData && existingData[h]) {
-                input.value = existingData[h];
+            if (existingData && (existingData[h] || existingData[h.trim()])) {
+                input.value = existingData[h] || existingData[h.trim()];
             } else if (low === 'ep' && !existingData) {
                 input.value = `EP${rowIndex + 1}`;
             } else if (!existingData && rowIndex > 0) {
@@ -263,7 +283,7 @@ function checkTableRescue(headers) {
         const rescueContainer = document.getElementById('rescueContainer');
         const btn = document.createElement('button');
         btn.type = 'button'; btn.className = 'btn-warning';
-        btn.innerHTML = `<span>⚡ เรียกคืนตารางเดิม (${data.length} รายการ)</span>`;
+        btn.innerHTML = `<span>⚡ เรียกคือตารางล่าสุดย (${data.length} รายการ)</span>`;
         btn.onclick = () => { restoreBatchData(data, headers); btn.remove(); };
         rescueContainer.appendChild(btn);
     } else { addBatchRow(headers); }
@@ -308,47 +328,72 @@ async function fetchRecentData() {
 function displayHistoryModal(records) {
     const content = document.createElement('div');
     content.className = 'history-list';
-    if (records.length === 0) content.innerHTML = '<p style="text-align:center;padding:20px;">ยังไม่มีประวัติการบันทึก</p>';
+    if (records.length === 0) content.innerHTML = '<p style="text-align:center;padding:20px;color:#64748b;">📭 ยังไม่มีประวัติการบันทึกข้อมูล</p>';
     records.forEach(r => {
         const item = document.createElement('div');
         item.className = 'history-item';
-        const title = r.subject || r['ชื่อรายการที่ผลิต'] || 'ไม่มีชื่อ';
-        const date = r.timestamp || r.Date || '';
-        item.innerHTML = `<div><strong>${title}</strong><br><small>${date}</small></div><button class="btn-select">เลือก</button>`;
-        item.querySelector('.btn-select').onclick = () => {
-            currentEditRowIndex = r._rowIndex;
-            restoreBaseData(r);
-            if (r.ep || r['ตอน']) {
-                const tbody = document.getElementById('batchTableBody');
-                tbody.innerHTML = '';
-                addBatchRow(currentHeaders.filter(h => !currentHeaders.includes(h)), r); // Simplistic row add
-            }
+        const subject = r.subject || r['ชื่อรายการที่ผลิต'] || r['activity'] || 'รายการไม่ระบุชื่อ';
+        const owner = r.owner || r['ผู้รับผิดชอบการผลิต'] || '-';
+        const date = r.timestamp || r.Date || r['actDate'] || 'ไม่ระบุวันที่';
+        item.innerHTML = `
+            <div class="history-content">
+                <div class="history-title">${subject}</div>
+                <div class="history-meta">
+                    <span>👤 ${owner}</span>
+                    <span>📅 ${date}</span>
+                </div>
+            </div>
+            <button class="btn-select-history">เลือกใช้งาน</button>
+        `;
+        item.querySelector('.btn-select-history').onclick = () => {
+            const tbody = document.getElementById('batchTableBody');
+            if (tbody) tbody.innerHTML = '';
+            restoreBaseDataFromSelected(r);
+            const tableKeywords = ['ep', 'format', 'teach', 'dur', 'dma', 'item', 'qty'];
+            const tableHeaders = currentHeaders.filter(h => tableKeywords.some(k => h.toLowerCase().includes(k)));
+            if (tableHeaders.length > 0) addBatchRow(tableHeaders, r);
             document.getElementById('modalOverlay').classList.remove('active');
-            showModal('✅ โหลดข้อมูลสำเร็จ', `ดึงข้อมูลจากแถวที่ ${currentEditRowIndex} มาแล้วครับ`, false, null, '✨');
+            showModal('✨ กู้คืนสำเร็จ', `ดึงข้อมูลมาวางให้แล้วครับ`, false, null, '✅');
         };
         content.appendChild(item);
     });
-    
-    // Use the existing showModal logic but with custom content
     const overlay = document.getElementById('modalOverlay');
     document.getElementById('modalIcon').textContent = '📂';
-    document.getElementById('modalTitle').textContent = 'เลือกจากประวัติล่าสุด';
+    document.getElementById('modalTitle').textContent = 'เลือกข้อมูลจากประวัติล่าสุด';
     const desc = document.getElementById('modalDesc');
-    desc.innerHTML = '';
-    desc.appendChild(content);
+    desc.innerHTML = ''; desc.appendChild(content);
     document.getElementById('modalCancel').style.display = 'none';
     const btnConfirm = document.getElementById('modalConfirm');
-    btnConfirm.textContent = 'ปิด';
+    btnConfirm.textContent = 'ปิดหน้าต่าง';
     overlay.classList.add('active');
     btnConfirm.onclick = () => { overlay.classList.remove('active'); };
+}
+
+function restoreBaseDataFromSelected(record) {
+    currentHeaders.forEach(h => {
+        const key = h.trim();
+        let val = record[key];
+        if (val === undefined) val = record[key.toLowerCase()];
+        if (val === undefined) {
+             const matchKey = Object.keys(record).find(k => k.toLowerCase() === key.toLowerCase());
+             val = matchKey ? record[matchKey] : "";
+        }
+        if (val === "" || val === undefined || val === null) return;
+        const checkboxes = document.querySelectorAll(`input[name="${h}"]`);
+        if (checkboxes.length > 0) {
+            const valsList = val.toString().split(',').map(v => v.trim());
+            checkboxes.forEach(cb => cb.checked = valsList.includes(cb.value));
+        } else {
+            const el = document.getElementById(`input_${h}`);
+            if (el) el.value = val;
+        }
+    });
 }
 
 async function sendData(action) {
     if (isProcessing) return;
     const url = scriptUrlInput.value.trim();
     const formId = formTypeSelect.value;
-    const isRecurring = isRecurringCheck.checked && action === 'generate';
-    const rounds = isRecurring ? (parseInt(roundsInput.value) || 1) : 1;
     isProcessing = true; resultBox.style.display = 'none'; linksContainer.innerHTML = '';
     showLoading('กำลังส่งข้อมูล...');
     try {
@@ -364,17 +409,13 @@ async function sendData(action) {
             }
         });
         const tableData = collectTableData();
-        for (let r = 0; r < rounds; r++) {
-            const response = await fetch(url, { method: 'POST', body: JSON.stringify({ action, formId, data: baseData, tableData, rowIndex: 0 }) });
-            const result = await response.json();
-            if (result.status === 'success') {
-                addResultLink(result.data.url, result.data.name);
-                if (rounds === 1) {
-                    localStorage.removeItem('base_data_draft'); localStorage.removeItem('table_data_draft');
-                }
-            } else { throw new Error(result.message); }
-        }
-        resultBox.style.display = 'block'; resultBox.scrollIntoView({ behavior: 'smooth' });
+        const response = await fetch(url, { method: 'POST', body: JSON.stringify({ action, formId, data: baseData, tableData, rowIndex: 0 }) });
+        const result = await response.json();
+        if (result.status === 'success') {
+            addResultLink(result.data.url, result.data.name);
+            localStorage.removeItem('base_data_draft'); localStorage.removeItem('table_data_draft');
+            resultBox.style.display = 'block'; resultBox.scrollIntoView({ behavior: 'smooth' });
+        } else { throw new Error(result.message); }
     } catch (e) { showModal('❌ ข้อผิดพลาด', e.message, false, null, '⚠️'); }
     finally { isProcessing = false; hideLoading(); }
 }
@@ -423,7 +464,6 @@ function hideLoading() { document.getElementById('loadingOverlay').classList.rem
 
 document.getElementById('docForm').onsubmit = (e) => {
     e.preventDefault();
-    const rounds = isRecurringCheck.checked ? (parseInt(roundsInput.value) || 1) : 1;
     showModal('💾 ยืนยันการบันทึก', `ต้องการสร้างไฟล์หรือไม่?`, true, () => sendData('generate'));
 };
 document.getElementById('btnPreview').onclick = () => sendData('preview');
