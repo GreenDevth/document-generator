@@ -15,6 +15,11 @@ const roundsInput = document.getElementById('recurringCount');
 const intervalDaysInput = document.getElementById('intervalDays');
 const resultBox = document.getElementById('resultBox');
 const linksContainer = document.getElementById('linksContainer');
+const btnLoadData = document.getElementById('btnLoadData');
+
+if (btnLoadData) {
+    btnLoadData.onclick = () => fetchRecentData();
+}
 
 const thaiMonths = [
     'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
@@ -25,6 +30,7 @@ let currentHeaders = [];
 let isProcessing = false;
 let currentEditRowIndex = 0;
 let dashboardData = [];
+let currentDashFormId = '031'; // ค่าเริ่มต้นของ Dashboard
 
 // --- GLOBAL ACTIONS ---
 function clearLocalStorage() {
@@ -389,14 +395,18 @@ function collectTableData() {
     return data.length > 0 ? data : null;
 }
 
-async function fetchRecentData() {
+async function fetchRecentData(targetFormId = null) {
     const url = scriptUrlInput.value.trim();
-    const formId = formTypeSelect.value;
+    const formId = targetFormId || currentDashFormId || formTypeSelect.value;
+    
     if (!url || !formId || formId === "-- เลือกแบบฟอร์ม --") {
-        showModal('⚠️ คำเตือน', 'กรุณาเลือกประเภทแบบฟอร์มก่อนกวาดดูประวัติครับ', false, null, '🚧');
+        showModal('⚠️ คำเตือน', 'กรุณาเลือกประเภทแบบฟอร์มก่อนครับ', false, null, '🚧');
         return;
     }
-    showLoading('กำลังดึงข้อมูลทั้งหมด...');
+    
+    currentDashFormId = formId; // จำไว้ว่าตอนนี้ดู Tab ไหนอยู่
+    showLoading(`กำลังดึงข้อมูล ${formId}...`);
+    
     try {
         const response = await fetch(url, { 
             method: 'POST', 
@@ -406,29 +416,41 @@ async function fetchRecentData() {
         const json = await response.json();
         if (json.status === 'success') {
             dashboardData = json.data.records;
-            displayHistoryModal(dashboardData);
+            displayHistoryModal(dashboardData, json.data.headers);
         } else { throw new Error(json.message); }
     } catch (e) { showModal('❌ ผิดพลาด', e.message, false, null, '⚠️'); }
     finally { hideLoading(); }
 }
 
-function displayHistoryModal(records) {
+function switchDashTab(formId) {
+    currentDashFormId = formId;
+    // อัปเดต UI ปุ่ม Tab
+    document.querySelectorAll('.dash-tab').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.innerText.includes(formId)) btn.classList.add('active');
+    });
+    fetchRecentData(formId);
+}
+
+function displayHistoryModal(records, headers = []) {
     const modal = document.getElementById('dashboardModal');
     const headerRow = document.getElementById('dashHeaderRow');
-    const fid = formTypeSelect.value.toString().trim(); // กำหนดค่า fid ให้ถูกต้อง
+    const fid = currentDashFormId || formTypeSelect.value.toString().trim();
     
-    // ตั้งค่าหัวตารางแบบ Spreadsheet ครบถ้วน
-    headerRow.innerHTML = `
-        <th>ลำดับ</th>
-        <th>ชื่อรายการ (Subject) ${fid === '034' ? '<small style="display:block;color:#94a3b8;font-weight:300;">(รวบพริ้นต์ตารางเดียว)</small>' : ''}</th>
-        <th>ตอน (EP)</th>
-        <th>วิทยากร (Teacher)</th>
-        <th>ความยาว (Dur)</th>
-        <th>ผลิตเสร็จ (DMA)</th>
-        <th>ผู้รับผิดชอบ (Owner)</th>
-        <th>วันที่บันทึก</th>
-        <th style="width: 250px; position: sticky; right: 0; background: var(--primary-light);">การปฏิบัติการ</th>
-    `;
+    // ระบบ Fallback: ถ้าหาหัวข้อไม่เจอ ให้เอา Key จากข้อมูลมาใช้แทน
+    let displayHeaders = (headers && headers.length > 0) ? headers : [];
+    if (displayHeaders.length === 0 && records.length > 0) {
+        displayHeaders = Object.keys(records[0]).filter(k => k !== '_rowIndex');
+    }
+    
+    // กรองเอาเฉพาะ 25 คอลัมน์แรก (เพื่อให้ครอบคลุมข้อมูลส่วนใหญ่) และตัดคอลัมน์ว่าง
+    displayHeaders = displayHeaders.filter(h => h && h.toString().trim() !== "").slice(0, 25);
+    
+    headerRow.innerHTML = `<th>ลำดับ</th>`;
+    displayHeaders.forEach(h => {
+        headerRow.innerHTML += `<th>${h}</th>`;
+    });
+    headerRow.innerHTML += `<th style="width: 200px; position: sticky; right: 0; background: var(--primary-light);">การปฏิบัติการ</th>`;
     
     // เพิ่มปุ่ม Refresh ใน UI Search
     const searchWrap = document.querySelector('.dash-search-container');
@@ -437,20 +459,20 @@ function displayHistoryModal(records) {
     const refBtn = document.createElement('button');
     refBtn.id = 'btnRefreshDash'; refBtn.type = 'button'; refBtn.className = 'btn-refresh';
     refBtn.innerHTML = '🔄 อัปเดตจาก Sheet';
-    refBtn.onclick = fetchRecentData;
+    refBtn.onclick = () => fetchRecentData(fid);
     searchWrap.appendChild(refBtn);
 
-    renderDashTable(records, fid); // ส่ง fid เข้าไปด้วยเพื่อความแม่นยำ
+    renderDashTable(records, displayHeaders, fid);
     modal.classList.add('active');
 }
 
-function renderDashTable(records, dashboardFormId = null) {
+function renderDashTable(records, headers, dashboardFormId = null) {
     const body = document.getElementById('dashBody');
     const formId = (dashboardFormId || formTypeSelect.value).toString().trim();
     body.innerHTML = '';
     
     if (records.length === 0) {
-        body.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:50px;">📭 ไม่พบประวัติการบันทึกข้อมูล</td></tr>';
+        body.innerHTML = `<tr><td colspan="${headers.length + 2}" style="text-align:center;padding:50px;">📭 ไม่พบประวัติการบันทึกข้อมูล</td></tr>`;
         return;
     }
 
@@ -458,33 +480,41 @@ function renderDashTable(records, dashboardFormId = null) {
         const tr = document.createElement('tr');
         tr.dataset.rowIndex = r._rowIndex;
         
-        // กวาดหาข้อมูลจากหลายๆ คีย์ที่อาจเกิดขึ้นได้ (Mapping)
-        const subject = r.subject || r['ชื่อรายการที่ผลิต'] || r.activity || '';
-        const ep = r.ep || r['ตอน'] || '';
-        const teach = r.teach || r['วิทยากร/ผู้บรรยาย'] || r['วิทยากร'] || '';
-        const dur = r.dur || r['ความยาว'] || r['ความยาวรายการ (นาที)'] || '';
-        const dma = r.dma || r['ผลิตแล้วเสร็จวันที่'] || r['วันผลิตแล้วเสร็จ'] || '';
-        const owner = r.owner || r['ผู้รับผิดชอบการผลิต'] || '';
-        const date = r.timestamp || r.Date || '-';
+        // แสดงเลขแถวที่แท้จริงจากใน Sheet
+        let rowHtml = `<td>${r._rowIndex}</td>`;
         
-        tr.innerHTML = `
-            <td>${idx + 1}</td>
-            <td><input type="text" class="dash-inline-input" data-field="subject" value="${subject}"></td>
-            <td><input type="text" class="dash-inline-input" data-field="ep" value="${ep}" style="width: 80px;"></td>
-            <td><input type="text" class="dash-inline-input" data-field="teach" value="${teach}"></td>
-            <td><input type="text" class="dash-inline-input" data-field="dur" value="${dur}" style="width: 100px;"></td>
-            <td><input type="text" class="dash-inline-input" data-field="dma" value="${dma}" style="width: 120px;"></td>
-            <td><input type="text" class="dash-inline-input" data-field="owner" value="${owner}"></td>
-            <td style="font-size:0.75rem; color:#64748b; white-space: nowrap;">${date}</td>
+        // สร้าง Input ตามหัวตารางที่มีจริง (ระบบ Smart Auto-Fit)
+        headers.forEach(h => {
+            const val = r[h] || '';
+            const headerStr = h.toString();
+            const valStr = val.toString();
+            
+            // คำนวณจำนวนตัวอักษรที่มากที่สุด (ระหว่างหัวข้อกับเนื้อหา)
+            const charCount = Math.max(headerStr.length, valStr.length);
+            
+            // คำนวณความกว้าง (ประมาณ 10px ต่อตัวอักษร + 30px สำหรับ Padding)
+            let widthNum = (charCount * 11) + 30;
+            
+            // จำกัดขอบเขต: ขั้นต่ำ 60px, ขั้นสูง 450px
+            widthNum = Math.min(Math.max(widthNum, 60), 450);
+            
+            const width = widthNum + 'px';
+            const textAlign = charCount <= 3 ? 'center' : 'left';
+
+            rowHtml += `<td><input type="text" class="dash-inline-input" data-field="${h}" value="${val}" style="width: ${width}; min-width: ${width}; text-align: ${textAlign};"></td>`;
+        });
+
+        rowHtml += `
             <td style="position: sticky; right: 0; background: #fff; box-shadow: -5px 0 10px rgba(0,0,0,0.05);">
                 <div class="action-btns">
-                    <button type="button" class="btn-action btn-save" onclick="saveRecordInline(${idx})" title="บันทึกลง Sheet">💾</button>
+                    <button type="button" class="btn-action btn-save" onclick="saveRecordInline(${idx}, ${JSON.stringify(headers).replace(/"/g, '&quot;')})" title="บันทึกลง Sheet">💾</button>
                     <button type="button" class="btn-action btn-edit" onclick="editRecord(${idx})" title="ดึงข้อมูลลงฟอร์ม">✍️</button>
-                    <button type="button" class="btn-action btn-pdf" onclick="generateRecordPDF(${idx})" title="สร้าง PDF ใหม่จากข้อมูลใน Row นี้">📄</button>
-                    <button type="button" class="btn-action btn-del" onclick="deleteRecord(${idx})" title="ลบออกจาก Sheet">🗑️</button>
+                    <button type="button" class="btn-action btn-pdf" onclick="generateRecordPDF(${idx})" title="สร้าง PDF">📄</button>
+                    <button type="button" class="btn-action btn-del" onclick="deleteRecord(${idx})" title="ลบ">🗑️</button>
                 </div>
             </td>
         `;
+        tr.innerHTML = rowHtml;
         body.appendChild(tr);
     });
 
@@ -602,8 +632,24 @@ function filterDashboard() {
 
 function editRecord(idx) {
     const r = dashboardData[idx];
-    const fid = formTypeSelect.value.toString().trim();
+    const fid = currentDashFormId || formTypeSelect.value.toString().trim();
+    
+    // ตั้งค่าประเภทฟอร์มหลักให้ตรงกับที่เลือกใน Dashboard
+    if (formTypeSelect.value !== fid) {
+        formTypeSelect.value = fid;
+        formTypeSelect.dispatchEvent(new Event('change'));
+    }
+
     currentEditRowIndex = r._rowIndex;
+    
+    // แสดง Banner แจ้งเตือนการแก้ไข
+    const banner = document.getElementById('editModeBanner');
+    const rowNumSpan = document.getElementById('editRowNumber');
+    if (banner && rowNumSpan) {
+        banner.style.display = 'flex';
+        rowNumSpan.textContent = r._rowIndex;
+    }
+
     restoreBaseData(r);
     
     if (fid === '034') {
@@ -751,25 +797,40 @@ async function sendData(action) {
         const interval = parseInt(intervalDaysInput.value) || 7;
         
         for (let r = 0; r < rounds; r++) {
-            // โลจิกคำนวณวันที่ใหม่ถ้าเป็นรอบที่ 2 เป็นต้นไป
             const currentData = { ...baseData };
-            if (r > 0 && currentData.date && currentData.mouth && currentData.ac) {
-                const next = calcNextDate(currentData.date, currentData.mouth, currentData.ac, r * interval);
-                currentData.date = next.day;
-                currentData.mouth = next.month;
-                currentData.ac = next.year;
+            // โลจิกคำนวณวันที่ใหม่ (Dynamic detection for all date groups: actdate, findate, sucdate, etc.)
+            if (r > 0) {
+                Object.keys(currentData).forEach(key => {
+                    const lowKey = key.toLowerCase();
+                    if (lowKey.endsWith('date')) {
+                        const prefix = lowKey.substring(0, lowKey.length - 4);
+                        // ค้นหาฟิลด์ mouth และ ac ที่มี prefix เดียวกัน
+                        const mKey = Object.keys(currentData).find(k => k.toLowerCase() === prefix + 'mouth');
+                        const yKey = Object.keys(currentData).find(k => k.toLowerCase() === prefix + 'ac');
+                        
+                        if (mKey && yKey && currentData[key] && currentData[mKey] && currentData[yKey]) {
+                            const next = calcNextDate(currentData[key], currentData[mKey], currentData[yKey], r * interval);
+                            currentData[key] = next.day;
+                            currentData[mKey] = next.month;
+                            currentData[yKey] = next.year;
+                        }
+                    }
+                });
             }
 
             const response = await fetch(url, { 
                 method: 'POST', 
                 headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                body: JSON.stringify({ action, formId, data: currentData, tableData, rowIndex: 0 }) 
+                body: JSON.stringify({ action, formId, data: currentData, tableData, rowIndex: currentEditRowIndex }) 
             });
             const result = await response.json();
             if (result.status === 'success') {
                 addResultLink(result.data.url, result.data.name);
+                // เมื่อบันทึกสำเร็จ และไม่ใช่การทำซ้ำ ให้ล้างโหมดแก้ไข
                 if (rounds === 1) {
-                    // ไม่ต้องทำความสะอาด Draft อีกต่อไป
+                    currentEditRowIndex = 0;
+                    const banner = document.getElementById('editModeBanner');
+                    if (banner) banner.style.display = 'none';
                 }
             } else { throw new Error(result.message); }
         }
@@ -799,39 +860,165 @@ function addResultLink(url, name) {
     linksContainer.appendChild(div);
 }
 
-function showModal(title, message, isConfirm = false, onConfirm = null, icon = '🔔') {
-    const overlay = document.getElementById('modalOverlay');
-    document.getElementById('modalIcon').textContent = icon;
-    document.getElementById('modalTitle').textContent = title;
-    const desc = document.getElementById('modalDesc');
-    if (typeof message === 'string') desc.textContent = message;
-    else { desc.innerHTML = ''; desc.appendChild(message); }
-    const btnCancel = document.getElementById('modalCancel');
-    const btnConfirm = document.getElementById('modalConfirm');
-    btnCancel.style.display = isConfirm ? 'block' : 'none';
-    btnConfirm.textContent = isConfirm ? 'ยืนยัน' : 'ตกลง';
-    overlay.classList.add('active');
-    btnConfirm.onclick = () => { overlay.classList.remove('active'); if (onConfirm) onConfirm(); };
-    btnCancel.onclick = () => { overlay.classList.remove('active'); };
+function showModal(title, message, isConfirm = false, icon = '🔔') {
+    return new Promise((resolve) => {
+        const overlay = document.getElementById('modalOverlay');
+        document.getElementById('modalIcon').textContent = icon;
+        document.getElementById('modalTitle').textContent = title;
+        const desc = document.getElementById('modalDesc');
+        if (typeof message === 'string') desc.textContent = message;
+        else { desc.innerHTML = ''; desc.appendChild(message); }
+        
+        const btnCancel = document.getElementById('modalCancel');
+        const btnConfirm = document.getElementById('modalConfirm');
+        
+        btnCancel.style.display = isConfirm ? 'block' : 'none';
+        btnConfirm.textContent = isConfirm ? 'ยืนยัน' : 'ตกลง';
+        overlay.classList.add('active');
+
+        btnConfirm.onclick = () => { 
+            overlay.classList.remove('active'); 
+            resolve(true); 
+        };
+        btnCancel.onclick = () => { 
+            overlay.classList.remove('active'); 
+            resolve(false); 
+        };
+    });
 }
 
 function showLoading(m) { document.getElementById('loadingOverlay').classList.add('active'); document.getElementById('loadingText').textContent = m; }
 function hideLoading() { document.getElementById('loadingOverlay').classList.remove('active'); }
 
-document.getElementById('docForm').onsubmit = (e) => {
+document.getElementById('docForm').onsubmit = async (e) => {
     e.preventDefault();
     const rounds = isRecurringCheck.checked ? (parseInt(roundsInput.value) || 1) : 1;
-    showModal('💾 ยืนยันการบันทึก', `ต้องการสร้างไฟล์หรือไม่?`, true, () => sendData('generate'));
+    if (await showModal('💾 ยืนยันการบันทึก', `ต้องการสร้างไฟล์หรือไม่?`, true)) {
+        sendData('generate');
+    }
 };
 document.getElementById('btnPreview').onclick = () => sendData('preview');
 
-function clearForm() {
-    showModal('📋 เคลียร์ฟอร์ม', 'คุณต้องการลบข้อมูลที่พิมพ์ไว้และเริ่มสร้างรายการใหม่ใช่หรือไม่?', true, () => {
+async function clearForm() {
+    const ok = await showModal('📋 เคลียร์ฟอร์ม', 'คุณต้องการลบข้อมูลที่พิมพ์ไว้และเริ่มสร้างรายการใหม่ใช่หรือไม่?', true, '✨');
+    if (ok) {
         const tbody = document.getElementById('batchTableBody');
         if (tbody) tbody.innerHTML = '';
         const inputs = fieldsContainer.querySelectorAll('input');
         inputs.forEach(inp => inp.value = '');
-    }, '✨');
+    }
+}
+
+// --- GENERATE ALL PDFS FROM DASHBOARD ---
+async function generateAllPDFs() {
+    if (!dashboardData || dashboardData.length === 0) {
+        showModal('⚠️ คำเตือน', 'ไม่มีข้อมูลให้สร้าง PDF ครับ', false, null, '🚧');
+        return;
+    }
+
+    const confirmed = await showModal('📄 ยืนยันการสร้างทั้งหมด', 
+        `คุณต้องการสร้าง PDF จากรายการทั้งหมด ${dashboardData.length} รายการในหน้านี้ใช่หรือไม่?\n(ระบบจะใช้เวลาครู่หนึ่งตามจำนวนรายการครับ)`, true, '🖨️');
+    if (!confirmed) return;
+
+    const url = scriptUrlInput.value.trim();
+    const formId = currentDashFormId || formTypeSelect.value;
+    const successList = [];
+    const errorList = [];
+
+    showLoading(`เริ่มกระบวนการสร้าง PDF ทั้งหมด (0/${dashboardData.length})...`);
+
+    for (let i = 0; i < dashboardData.length; i++) {
+        const r = dashboardData[i];
+        updateLoadingText(`กำลังสร้าง PDF รายการที่ ${i + 1}/${dashboardData.length}\n"${r.subject || r['ชื่อรายการที่ผลิต'] || 'ไม่ระบุชื่อ'}"`);
+        
+        try {
+            let tableData = [];
+            if (r.tableData || r.tableBody || r._tableData) {
+                try { tableData = JSON.parse(r.tableData || r.tableBody || r._tableData); } 
+                catch(e) { tableData = [r]; }
+            } else { tableData = [r]; }
+
+            const response = await fetch(url, { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify({ 
+                    action: 'generate', 
+                    formId: formId, 
+                    data: r, 
+                    tableData: tableData, 
+                    rowIndex: r._rowIndex 
+                }) 
+            });
+            const result = await response.json();
+            if (result.status === 'success') {
+                successList.push(result.data);
+                addResultLink(result.data.url, result.data.name);
+            } else {
+                errorList.push({ name: r.subject || `แถวที่ ${r._rowIndex}`, message: result.message });
+            }
+        } catch (err) {
+            errorList.push({ name: r.subject || `แถวที่ ${r._rowIndex}`, message: err.message });
+        }
+    }
+
+    hideLoading();
+    
+    let summaryHtml = `<div style="text-align:left;">`;
+    summaryHtml += `<p style="font-weight:700; color:var(--success);">✅ สร้างสำเร็จ: ${successList.length} รายการ</p>`;
+    
+    // เพิ่มปุ่มรวมไฟล์ถ้ามีมากกว่า 1 ไฟล์
+    if (successList.length > 1) {
+        summaryHtml += `<button type="button" class="btn-pdf-all" style="width:100%; margin-bottom:15px; background:var(--primary);" onclick='mergeAllGeneratedPDFs(${JSON.stringify(successList.map(s => s.url))})'>📄 รวมไฟล์ทั้งหมดเป็นไฟล์เดียว (.pdf)</button>`;
+    }
+
+    if (errorList.length > 0) summaryHtml += `<p style="font-weight:700; color:var(--error);">❌ ผิดพลาด: ${errorList.length} รายการ</p>`;
+    
+    summaryHtml += `<div style="max-height:200px; overflow-y:auto; margin-top:15px; border:1px solid #f1f5f9; padding:15px; border-radius:12px; background:#f8fafc; font-size:0.85rem;">`;
+    successList.forEach(s => {
+        summaryHtml += `<div style="margin-bottom:8px; border-bottom:1px solid #eee; padding-bottom:4px;">✔️ <a href="${s.url}" target="_blank" style="color:var(--primary); text-decoration:none;">${s.name}</a></div>`;
+    });
+    errorList.forEach(e => {
+        summaryHtml += `<div style="margin-bottom:8px; color:var(--error); border-bottom:1px solid #eee; padding-bottom:4px;">✖️ ${e.name}: ${e.message}</div>`;
+    });
+    summaryHtml += `</div></div>`;
+
+    showModal('🏁 กระบวนการเสร็จสิ้น', summaryHtml, false, '✨');
+}
+
+// --- PDF MERGE SYSTEM ---
+async function mergeAllGeneratedPDFs(pdfUrls) {
+    showLoading('กำลังดาวน์โหลดและรวมไฟล์ PDF... (กรุณารอสักครู่)');
+    try {
+        const { PDFDocument } = PDFLib;
+        const mergedPdf = await PDFDocument.create();
+        
+        for (let i = 0; i < pdfUrls.length; i++) {
+            updateLoadingText(`กำลังรวมไฟล์ที่ ${i + 1}/${pdfUrls.length}...`);
+            const bytes = await fetch(pdfUrls[i]).then(res => res.arrayBuffer());
+            const pdf = await PDFDocument.load(bytes);
+            const copiedPages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
+            copiedPages.forEach((page) => mergedPdf.addPage(page));
+        }
+        
+        const mergedPdfBytes = await mergedPdf.save();
+        const blob = new Blob([mergedPdfBytes], { type: 'application/pdf' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `Combined_Documents_${new Date().getTime()}.pdf`;
+        link.click();
+        
+        showModal('✨ รวมไฟล์สำเร็จ', 'ดาวน์โหลดไฟล์รวมขนาดใหญ่เรียบร้อยแล้วครับ', false, '✅');
+    } catch (e) {
+        console.error(e);
+        showModal('❌ ผิดพลาดในการรวมไฟล์', 'ไม่สามารถรวมไฟล์ได้: ' + e.message, false, '⚠️');
+    } finally {
+        hideLoading();
+    }
+}
+
+function updateLoadingText(text) {
+    const desc = document.getElementById('loadingText');
+    if (desc) desc.innerText = text;
 }
 
 // ไม่ใช้ AutoReload อีกต่อไป

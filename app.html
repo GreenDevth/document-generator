@@ -1,0 +1,1231 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart PDF Generator | Professional Dashboard</title>
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Sarabun:wght@300;400;500;600&display=swap" rel="stylesheet">
+    
+    <style>
+        /* --- PROFESSIONAL DASHBOARD CSS --- */
+        :root {
+            --primary: #4f46e5; --primary-dark: #4338ca; --primary-light: #e0e7ff;
+            --secondary: #64748b; --success: #10b981; --danger: #ef4444; --warning: #f59e0b;
+            --bg-body: #f1f5f9; --bg-card: #ffffff; --text-main: #1e293b; --text-muted: #64748b;
+            --sidebar-width: 260px; --header-height: 64px;
+            --radius: 12px; --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --border: #e2e8f0;
+        }
+
+        * { box-sizing: border-box; outline: none; }
+        body { margin: 0; font-family: 'Inter', 'Sarabun', sans-serif; background: var(--bg-body); color: var(--text-main); display: flex; height: 100vh; overflow: hidden; }
+        
+        /* Sidebar */
+        aside { width: var(--sidebar-width); background: var(--bg-card); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 20px; z-index: 10; flex-shrink: 0; }
+        .brand { font-size: 1.25rem; font-weight: 700; color: var(--primary); margin-bottom: 40px; display: flex; align-items: center; gap: 10px; }
+        .nav-item { padding: 12px 16px; margin-bottom: 8px; border-radius: var(--radius); cursor: pointer; color: var(--secondary); font-weight: 500; transition: all 0.2s; display: flex; align-items: center; gap: 12px; }
+        .nav-item:hover { background: var(--bg-body); color: var(--primary); }
+        .nav-item.active { background: var(--primary-light); color: var(--primary); }
+        
+        /* Main Content */
+        main { flex: 1; overflow-y: auto; position: relative; scroll-behavior: smooth; }
+        header { height: var(--header-height); background: var(--bg-card); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 30px; position: sticky; top: 0; z-index: 5; }
+        .page-title { font-size: 1.5rem; font-weight: 600; color: var(--text-main); }
+        
+        /* Views */
+        .view-section { display: none; padding: 30px; animation: fadeIn 0.3s ease; }
+        .view-section.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Dashboard Stats */
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .stat-card { background: var(--bg-card); padding: 24px; border-radius: var(--radius); box-shadow: var(--shadow); border-left: 4px solid var(--primary); }
+        .stat-card h3 { margin: 0; font-size: 0.875rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+        .stat-card .value { font-size: 2rem; font-weight: 700; color: var(--text-main); margin-top: 8px; }
+
+        /* Form Container */
+        .form-container { background: var(--bg-card); padding: 30px; border-radius: var(--radius); box-shadow: var(--shadow); max-width: 1200px; margin: 0 auto; }
+        .config-bar { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid var(--border); }
+        
+        /* Form Elements (Styled to match original logic) */
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 6px; font-weight: 500; color: var(--text-main); font-size: 0.9rem; }
+        .form-control { width: 100%; padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 8px; font-family: inherit; transition: border 0.2s; background: #fff; }
+        .form-control:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-light); }
+        
+        /* Buttons */
+        .btn { padding: 10px 20px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: transform 0.1s; display: inline-flex; align-items: center; gap: 8px; font-size: 0.9rem; }
+        .btn:active { transform: scale(0.98); }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-outline { background: white; border: 1px solid #cbd5e1; color: var(--text-main); }
+        .btn-success { background: var(--success); color: white; }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-warning { background: var(--warning); color: white; }
+
+        /* Grid Layout for Dynamic Fields */
+        .grid-layout { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
+        .full-width { grid-column: 1 / -1; }
+        
+        /* Checkbox Group Styling */
+        .cb-wrapper { display: flex; align-items: center; gap: 8px; padding: 8px; background: #f8fafc; border-radius: 6px; border: 1px solid #e2e8f0; cursor: pointer; }
+        .cb-wrapper:hover { background: #f1f5f9; }
+        
+        /* Batch Table Styling */
+        .table-batch-container { margin-top: 30px; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; background: white; }
+        .batch-header { padding: 15px 20px; background: #f8fafc; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+        .batch-table-wrapper { overflow-x: auto; }
+        .batch-table { width: 100%; border-collapse: collapse; min-width: 800px; }
+        .batch-table th { background: #f1f5f9; text-align: left; padding: 12px 15px; font-weight: 600; color: var(--text-muted); font-size: 0.85rem; border-bottom: 1px solid var(--border); }
+        .batch-table td { padding: 10px 15px; border-bottom: 1px solid var(--border); }
+        .batch-table input { width: 100%; border: 1px solid transparent; background: transparent; padding: 6px; border-radius: 4px; }
+        .batch-table input:focus { background: white; border-color: var(--primary); }
+        .btn-remove { padding: 4px 8px; font-size: 0.75rem; background: #fee2e2; color: var(--danger); border: none; border-radius: 4px; cursor: pointer; }
+
+        /* Modal & Overlay */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(2px); z-index: 1000; display: none; align-items: center; justify-content: center; }
+        .modal-overlay.active { display: flex; }
+        .modal-box { background: white; padding: 30px; border-radius: var(--radius); max-width: 400px; width: 90%; text-align: center; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); animation: popIn 0.2s; }
+        .modal-content { background: white; width: 95%; max-width: 1200px; height: 90vh; border-radius: var(--radius); display: flex; flex-direction: column; overflow: hidden; }
+        .modal-header { padding: 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: #f8fafc; }
+        .modal-body { flex: 1; overflow: auto; padding: 20px; }
+        .modal-footer { padding: 15px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 10px; }
+        
+        @keyframes popIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+        /* Loading */
+        #loadingOverlay { position: fixed; inset: 0; background: rgba(255,255,255,0.9); z-index: 2000; display: none; align-items: center; justify-content: center; flex-direction: column; }
+        .spinner { width: 40px; height: 40px; border: 4px solid #e2e8f0; border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 15px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Dashboard Table */
+        .dashboard-table-container { border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; background: white; }
+        .dashboard-table { width: 100%; border-collapse: collapse; }
+        .dashboard-table th { background: #f8fafc; padding: 12px; text-align: left; font-size: 0.85rem; color: var(--text-muted); border-bottom: 1px solid var(--border); }
+        .dashboard-table td { padding: 12px; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
+        .dash-inline-input { width: 100%; border: 1px solid transparent; padding: 4px; border-radius: 4px; }
+        .dash-inline-input:focus { border-color: var(--primary); background: #fff; }
+        .action-btns { display: flex; gap: 5px; }
+        .btn-action { width: 32px; height: 32px; border-radius: 6px; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1rem; transition: background 0.2s; }
+        .btn-action:hover { background: #f1f5f9; }
+        
+        /* Utility */
+        .hidden { display: none !important; }
+        .recurring-row { background: #f0f9ff; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #bae6fd; }
+        .recurring-controls { display: none; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 10px; }
+        .switch-label { display: flex; align-items: center; gap: 10px; cursor: pointer; font-weight: 600; color: var(--primary); }
+    </style>
+</head>
+<body>
+
+    <!-- Sidebar -->
+    <aside>
+        <div class="brand">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+            SmartDoc Pro
+        </div>
+        <nav>
+            <div class="nav-item active" onclick="navigate('dashboard')">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+                ภาพรวม (Dashboard)
+            </div>
+            <div class="nav-item" onclick="navigate('create')">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                สร้างเอกสารใหม่
+            </div>
+        </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main>
+        <header>
+            <h1 class="page-title" id="pageTitle">Dashboard</h1>
+            <div style="display: flex; align-items: center; gap: 10px; font-weight: 600; color: var(--primary);">
+                <span>Admin User</span>
+                <div style="width: 32px; height: 32px; background: var(--primary-light); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--primary);">A</div>
+            </div>
+        </header>
+
+        <!-- View: Dashboard -->
+        <section id="view-dashboard" class="view-section active">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>เอกสารที่สร้างทั้งหมด</h3>
+                    <div class="value" id="statTotal">-</div>
+                </div>
+                <div class="stat-card" style="border-color: var(--success);">
+                    <h3>ล่าสุด</h3>
+                    <div class="value" id="statRecent">-</div>
+                </div>
+                <div class="stat-card" style="border-color: var(--danger);">
+                    <h3>สถานะระบบ</h3>
+                    <div class="value" style="font-size: 1.2rem; margin-top: 15px;">Online 🟢</div>
+                </div>
+            </div>
+
+            <div class="dashboard-table-container">
+                <div style="padding: 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+                    <h3 style="margin:0;">ประวัติการใช้งานล่าสุด</h3>
+                    <button class="btn btn-outline" onclick="fetchRecentData()">🔄 รีเฟรชข้อมูล</button>
+                </div>
+                <div style="overflow-x: auto;">
+                    <table class="dashboard-table">
+                        <thead>
+                            <tr>
+                                <th>ลำดับ</th>
+                                <th>ชื่อรายการ (Subject)</th>
+                                <th>ตอน (EP)</th>
+                                <th>วิทยากร</th>
+                                <th>ความยาว</th>
+                                <th>ผลิตเสร็จ</th>
+                                <th>ผู้รับผิดชอบ</th>
+                                <th>วันที่บันทึก</th>
+                                <th style="width: 200px;">การกระทำ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dashBody">
+                            <!-- Data Loaded Here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- View: Create Form -->
+        <section id="view-create" class="view-section">
+            <div class="form-container">
+                <div class="config-bar">
+                    <div class="form-group">
+                        <label>Apps Script URL</label>
+                        <input type="url" id="scriptUrl" class="form-control" value="https://script.google.com/macros/s/AKfycbz9oaurUPmKICdUsGV34G_ahDBWhGLK6K5zirAHd2kbTP7Zx2XtniWI2189FszuKaIy/exec">
+                    </div>
+                    <div class="form-group">
+                        <label>เลือกแบบฟอร์ม</label>
+                        <select id="formType" class="form-control">
+                            <option value="" disabled selected>-- เลือกแบบฟอร์ม --</option>
+                            <option value="031">FM สท.03-1</option>
+                            <option value="033">FM สท.03-3</option>
+                            <option value="034">FM สท.03-4 (รวมกลุ่ม)</option>
+                            <option value="035">FM สท.03-5</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Dynamic Content Area (Matches Original Script IDs) -->
+                <div id="dynamicContent" class="hidden">
+                    
+                    <!-- Recurring Panel -->
+                    <div class="recurring-row" id="recurringPanel">
+                        <label class="switch-label">
+                            <input type="checkbox" id="isRecurring">
+                            <span class="switch-text">🔄 เปิดโหมดสร้างต่อเนื่อง (Recurring Mode)</span>
+                        </label>
+                        <div class="recurring-controls" id="recurringControls">
+                            <div class="form-group">
+                                <label for="recurringCount">จำนวนรอบ (ROUNDS)</label>
+                                <input type="number" id="recurringCount" class="form-control" value="1" min="1" max="100">
+                            </div>
+                            <div class="form-group">
+                                <label>ห่างกันกี่วัน (Interval Days)</label>
+                                <input type="number" id="intervalDays" class="form-control" value="7" min="1">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="modeSelector" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px; padding-bottom: 15px; border-bottom: 2px dashed rgba(0,0,0,0.04);">
+                        <div style="font-weight: 700; color: var(--text-main); font-size: 1.1rem; display: flex; align-items: center; gap: 10px;">
+                            <span style="font-size: 1.4rem;">🖋️</span> กำลังจัดทำเอกสาร
+                        </div>
+                        <div style="display: flex; gap: 15px;">
+                            <div class="btn btn-outline" onclick="fetchRecentData()" style="padding: 8px 15px; font-size: 0.85rem;">
+                                📂 ดึงข้อมูลเดิม
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Edit Mode Banner -->
+                    <div id="editModeBanner" style="display: none; background: #fef9c3; border: 1px solid #fde047; padding: 12px 18px; border-radius: 12px; margin-bottom: 20px; align-items: center; justify-content: space-between;">
+                        <div style="color: #854d0e; font-weight: 600; font-size: 0.9rem; display: flex; align-items: center; gap: 8px;">
+                            🔍 กำลังแก้ไขรายการลำดับที่ <span id="editRowNumber">0</span> (บรรทัดใน Sheet)
+                        </div>
+                        <button type="button" onclick="clearForm()" style="background: none; border: none; color: #a16207; font-size: 0.8rem; cursor: pointer; text-decoration: underline;">❌ ยกเลิกการแก้ไข</button>
+                    </div>
+
+                    <!-- Fields Container (Where JS renders inputs) -->
+                    <div class="grid-layout" id="fieldsContainer">
+                        <!-- ฟิลด์จะถูกสร้างที่นี่โดย renderFields() -->
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div style="margin-top: 30px; display: flex; gap: 15px; justify-content: flex-end; border-top: 1px solid var(--border); padding-top: 20px;">
+                        <button type="button" id="btnPreview" class="btn btn-outline">
+                            <span>👁️ Preview (ตัวอย่าง)</span>
+                        </button>
+                        <button type="submit" class="btn btn-success" id="btnSubmit" onclick="document.getElementById('docForm').dispatchEvent(new Event('submit'))">
+                            <span>✅ บันทึกข้อมูลและสร้าง PDF</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Hidden Form for Event Handling -->
+    <form id="docForm" style="display: none;"></form>
+
+    <!-- UI Components (Modals & Overlay) -->
+    
+    <!-- Premium Modal -->
+    <div id="modalOverlay" class="modal-overlay">
+        <div class="modal-box">
+            <span id="modalIcon" class="modal-icon" style="font-size: 3rem; display: block; margin-bottom: 10px;">🔔</span>
+            <div id="modalTitle" class="modal-title" style="font-size: 1.25rem; font-weight: 700; margin-bottom: 10px;">แจ้งเตือน</div>
+            <div id="modalDesc" class="modal-desc" style="color: var(--text-muted); margin-bottom: 20px;">ข้อความรายละเอียด</div>
+            <div id="modalBtns" class="modal-btns" style="display: flex; gap: 10px; justify-content: center;">
+                <button id="modalCancel" class="btn btn-outline">ยกเลิก</button>
+                <button id="modalConfirm" class="btn btn-primary">ตกลง</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="modal-overlay">
+        <div style="text-align: center;">
+            <div class="spinner"></div>
+            <p id="loadingText" style="margin-top: 25px; font-weight: 700; color: var(--primary); font-size: 1.2rem;">กำลังประมวลผล...</p>
+        </div>
+    </div>
+
+    <!-- Dashboard Modal (Full Screen) -->
+    <div id="dashboardModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 1.8rem;">📊</span>
+                    <h2 style="margin:0; font-size: 1.2rem;">รายการข้อมูลทั้งหมด (Dashboard)</h2>
+                </div>
+                <button type="button" class="btn btn-outline" onclick="closeDashboardModal()" style="padding: 5px 10px;">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="dash-search-container" style="display: flex; gap: 10px; margin-bottom: 20px;">
+                    <input type="text" id="dashSearch" class="form-control" placeholder="🔍 ค้นหาชื่อรายการหรือชื่อผู้ผลิต..." oninput="filterDashboard()" style="flex: 1;">
+                    <button type="button" class="btn btn-primary" onclick="fetchRecentData()">🔄 รีเฟรช</button>
+                </div>
+                <div class="dashboard-table-container">
+                    <table class="dashboard-table">
+                        <thead>
+                            <tr id="dashHeaderRow">
+                                <!-- Dynamic Headers -->
+                            </tr>
+                        </thead>
+                        <tbody id="dashBodyModal">
+                            <!-- Dynamic Content -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" onclick="closeDashboardModal()">ปิดหน้าต่าง</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Result Box (Hidden by default, shown after success) -->
+    <div id="resultBox" class="hidden" style="position: fixed; bottom: 20px; right: 20px; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); z-index: 900; width: 350px; border-left: 5px solid var(--success);">
+        <h3 id="resultTitle" style="color: var(--success); margin: 0 0 10px 0;">สำเร็จ! 🚀</h3>
+        <p id="resultMsg" style="margin: 0 0 15px 0; font-size: 0.9rem; color: var(--text-muted);">เอกสารของคุณถูกสร้างเรียบร้อยแล้ว</p>
+        <div id="linksContainer" style="display: flex; flex-direction: column; gap: 10px;"></div>
+        <button onclick="document.getElementById('resultBox').classList.add('hidden')" style="margin-top: 10px; background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 0.8rem; text-decoration: underline;">ปิด</button>
+    </div>
+
+    <!-- JAVASCRIPT LOGIC (ORIGINAL V2.9.3 + DASHBOARD INTEGRATION) -->
+    <script>
+        // --- DASHBOARD NAVIGATION LOGIC ---
+        function navigate(viewId) {
+            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            
+            document.getElementById(`view-${viewId}`).classList.add('active');
+            
+            const navIndex = ['dashboard', 'create'].indexOf(viewId);
+            if(navIndex >= 0) document.querySelectorAll('.nav-item')[navIndex].classList.add('active');
+
+            const titles = { 'dashboard': 'ภาพรวมระบบ', 'create': 'สร้างเอกสารใหม่' };
+            document.getElementById('pageTitle').textContent = titles[viewId];
+
+            if(viewId === 'dashboard') fetchRecentData();
+        }
+
+        // --- ORIGINAL SCRIPT LOGIC (V2.9.3) STARTS HERE ---
+        const scriptUrlInput = document.getElementById('scriptUrl');
+        if (scriptUrlInput) {
+            scriptUrlInput.value = 'https://script.google.com/macros/s/AKfycbz9oaurUPmKICdUsGV34G_ahDBWhGLK6K5zirAHd2kbTP7Zx2XtniWI2189FszuKaIy/exec';
+        }
+        const formTypeSelect = document.getElementById('formType');
+        const dynamicSection = document.getElementById('dynamicContent');
+        const fieldsContainer = document.getElementById('fieldsContainer');
+        const isRecurringCheck = document.getElementById('isRecurring');
+        const recurringControls = document.getElementById('recurringControls');
+        const roundsInput = document.getElementById('recurringCount');
+        const intervalDaysInput = document.getElementById('intervalDays');
+        const resultBox = document.getElementById('resultBox');
+        const linksContainer = document.getElementById('linksContainer');
+
+        const thaiMonths = [
+            'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
+            'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
+        ];
+
+        let currentHeaders = [];
+        let isProcessing = false;
+        let currentEditRowIndex = 0;
+        let dashboardData = [];
+
+        // --- GLOBAL ACTIONS ---
+        function clearLocalStorage() {
+            showModal('🧹 กวาดล้างข้อมูล', 'คุณต้องการล้างข้อมูลในฟอร์มใช่หรือไม่?', true, () => {
+                window.location.reload();
+            }, '🗑️');
+        }
+
+        function clearForm() {
+            showModal('📋 เคลียร์ฟอร์ม', 'คุณต้องการลบข้อมูลที่พิมพ์ไว้และเริ่มสร้างรายการใหม่ใช่หรือไม่?', true, () => {
+                const tbody = document.getElementById('batchTableBody');
+                if (tbody) tbody.innerHTML = '';
+                const inputs = fieldsContainer.querySelectorAll('input');
+                inputs.forEach(inp => inp.value = '');
+                dynamicSection.classList.add('hidden');
+                formTypeSelect.value = "";
+                navigate('dashboard');
+            }, '✨');
+        }
+
+        const labelMap = {
+            'subject': 'ชื่อรายการที่ผลิต', 'owner': 'ผู้รับผิดชอบการผลิต', 'extdocno': 'เอกสารเลขที่ (ภายนอก)',
+            'extdocdate': 'ลงวันที่เอกสาร', 'activity': 'ชื่อกิจกรรม / รายการ', 'location': 'สถานที่จัดกิจกรรม',
+            'actdate': 'วันที่จัดกิจกรรม', 'actmouth': 'เดือน (จัดงาน)', 'actac': 'พ.ศ. (จัดงาน)',
+            'acttime': 'เวลา (จัดงาน)', 'findate': 'วันที่กำหนดส่ง', 'finmouth': 'เดือน (กำหนดส่ง)',
+            'finac': 'พ.ศ. (กำหนดส่ง)', 'producer': 'ผู้รับผิดชอบการผลิต', 'team': 'ทีมงานผลิต',
+            'checkbox': 'หน่วยงานที่ได้รับมอบหมาย', 'cb1': 'หน่วยจัดและผลิตรายการวิทยุ',
+            'cb2': 'หน่วยจัดและผลิตรายการโทรทัศน์', 'cb3': 'หน่วยผลิตและพัฒนาสื่อการศึกษา',
+            'cb4': 'ต้นฉบับ ( ) CD', 'cb5': 'ต้นฉบับ ( ) DVD', 'cb6': 'ต้นฉบับ ( ) อื่นๆ',
+            'ep': 'ตอน', 'format': 'รูปแบบสื่อ', 'duration': 'ความยาวรายการ (นาที)',
+            'second': 'ความยาวรายการ (วินาที)', 'sucdate': 'ผลิตแล้วเสร็จวันที่',
+            'sucmouth': 'เดือน (ที่ผลิตเสร็จ)', 'sucac': 'พ.ศ. (ที่ผลิตเสร็จ)',
+            'usedate': 'กำหนดออกอากาศ/นำไปใช้วันที่', 'usemouth': 'เดือน (ที่ออกอากาศ)',
+            'useac': 'พ.ศ. (ที่ออกอากาศ)', 'more': 'หมายเหตุ / รายละเอียดเพิ่มเติม',
+            'extdocnoint': 'เอกสารเลขที่ (ภายใน)', 'extdocdateint': 'ลงวันที่ (ภายใน)',
+            'date': 'วันที่', 'mouth': 'เดือน', 'ac': 'พ.ศ.',
+            'item': 'รายการอุปกรณ์', 'teach': 'วิทยากร/ผู้บรรยาย', 'dur': 'ความยาว',
+            'dma': 'วันผลิตแล้วเสร็จ', 'qty': 'จำนวน', 'unit': 'หน่วย'
+        };
+        const checkboxConfig = { 'checkbox': ['หน่วยจัดและผลิตรายการวิทยุ', 'หน่วยจัดและผลิตรายการโทรทัศน์', 'หน่วยผลิตและพัฒนาสื่อการศึกษา'] };
+
+        if (isRecurringCheck) {
+            isRecurringCheck.onchange = () => {
+                if (recurringControls) recurringControls.style.display = isRecurringCheck.checked ? 'grid' : 'none';
+            };
+        }
+
+        function toThaiDigits(num) { return num.toString().replace(/[0-9]/g, digit => "๐๑๒๓๔๕๖๗๘๙"[digit]); }
+        function toArabicDigits(str) { return str.toString().replace(/[๐-๙]/g, digit => "๐๑๒๓๔๕๖๗๘๙".indexOf(digit)); }
+
+        function calcNextDate(day, monthThai, yearBE, daysToAdd) {
+            const dayArabic = toArabicDigits(day.toString());
+            const yearArabic = toArabicDigits(yearBE.toString());
+            const mIdx = thaiMonths.indexOf(monthThai.trim());
+            if (mIdx === -1) return { day, month: monthThai, year: yearBE };
+            const yearAD = parseInt(yearArabic) - 543;
+            const date = new Date(yearAD, mIdx, parseInt(dayArabic));
+            date.setDate(date.getDate() + daysToAdd);
+            return {
+                day: (/[๐-๙]/.test(day.toString()) || /[๐-๙]/.test(yearBE.toString())) ? toThaiDigits(date.getDate()) : date.getDate(),
+                month: thaiMonths[date.getMonth()],
+                year: (/[๐-๙]/.test(day.toString()) || /[๐-๙]/.test(yearBE.toString())) ? toThaiDigits(date.getFullYear() + 543) : date.getFullYear() + 543
+            };
+        }
+
+        formTypeSelect.addEventListener('change', async () => {
+            const url = scriptUrlInput.value.trim();
+            const formId = formTypeSelect.value;
+            if (!url || !formId || formId === "-- เลือกแบบฟอร์ม --") return;
+            showLoading('กำลังดึงโครงสร้างข้อมูล...');
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'getSchema', formId }),
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+                });
+                const json = await response.json();
+                if (json.status === 'success') {
+                    renderFields(json.data.headers, formId);
+                    dynamicSection.classList.remove('hidden');
+                    navigate('create'); // Switch to Create View
+                    hideLoading();
+                } else { throw new Error(json.message); }
+            } catch (err) { hideLoading(); showModal('❌ ผิดพลาด', err.message, false, null, '⚠️'); }
+        });
+
+        function renderFields(headers, formId) {
+            currentHeaders = headers;
+            fieldsContainer.innerHTML = '';
+            const fid = formId.toString().trim();
+            
+            if (fid === '034') {
+                renderGrid034(headers);
+                return;
+            }
+
+            const tableKeywords = ['ep', 'format', 'teach', 'dur', 'dma', 'item', 'qty', 'ตอน', 'รูปแบบสื่อ', 'วิทยากร', 'ความยาว', 'ผลิตแล้วเสร็จ'];
+            const currentTableHeaders = headers.filter(h => tableKeywords.some(k => h.toLowerCase().includes(k)));
+            const basicHeaders = headers.filter(h => !currentTableHeaders.includes(h));
+
+            const cbHeaders = basicHeaders.filter(h => h.toLowerCase().startsWith('cb') || checkboxConfig[h]);
+            const regularHeaders = basicHeaders.filter(h => !cbHeaders.includes(h));
+
+            if (cbHeaders.length > 0) {
+                const cbGroup = document.createElement('div');
+                cbGroup.className = 'form-group full-width';
+                cbGroup.style.background = 'rgba(79, 70, 229, 0.05)';
+                cbGroup.style.padding = '20px';
+                cbGroup.style.borderRadius = '15px';
+                cbGroup.style.border = '1px solid var(--primary-light)';
+                const label = document.createElement('label');
+                label.textContent = 'หน่วยงานที่ได้รับมอบหมาย / หัวข้อเลือก';
+                cbGroup.appendChild(label);
+                const optionsContainer = document.createElement('div');
+                optionsContainer.style.display = 'grid';
+                optionsContainer.style.gridTemplateColumns = 'repeat(auto-fit, minmax(280px, 1fr))';
+                optionsContainer.style.gap = '10px';
+                cbHeaders.forEach(header => {
+                    if (checkboxConfig[header]) {
+                        checkboxConfig[header].forEach(opt => renderSingleCheckbox(optionsContainer, header, opt, opt));
+                    } else {
+                        renderSingleCheckbox(optionsContainer, header, labelMap[header.toLowerCase()] || header, '✓');
+                    }
+                });
+                cbGroup.appendChild(optionsContainer);
+                fieldsContainer.appendChild(cbGroup);
+            }
+
+            let i = 0;
+            while (i < regularHeaders.length) {
+                const header = regularHeaders[i];
+                const low = header.toLowerCase();
+                const isGroupStart = (low.startsWith('act') || low.startsWith('fin') || low.startsWith('suc') || low.startsWith('use') || (low === 'date' && regularHeaders[i+1]?.toLowerCase() === 'mouth'));
+                if (isGroupStart) {
+                    const groupPrefix = low.substring(0, 3);
+                    const groupContainer = document.createElement('div');
+                    groupContainer.className = 'date-row';
+                    while (i < regularHeaders.length && (regularHeaders[i].toLowerCase().startsWith(groupPrefix) || (groupPrefix === 'dat' && ['date', 'mouth', 'ac'].includes(regularHeaders[i].toLowerCase())))) {
+                        renderInputGroup(groupContainer, regularHeaders[i]);
+                        i++;
+                    }
+                    fieldsContainer.appendChild(groupContainer);
+                } else {
+                    const group = document.createElement('div');
+                    group.className = 'form-group';
+                    if (low.includes('detail') || low.includes('remark') || low.includes('note') || low.includes('team')) group.classList.add('full-width');
+                    renderInputGroup(group, header);
+                    fieldsContainer.appendChild(group);
+                    i++;
+                }
+            }
+
+            if (currentTableHeaders.length > 0) renderTableRegistry(currentTableHeaders);
+        }
+
+        function renderGrid034(headers) {
+            const basicHeaders = headers.filter(h => !['ep', 'teach', 'dur', 'dma', 'format'].some(k => h.toLowerCase().includes(k)));
+            const cbHeaders = basicHeaders.filter(h => h.toLowerCase().startsWith('cb') || checkboxConfig[h]);
+            const regularHeaders = basicHeaders.filter(h => !cbHeaders.includes(h));
+
+            if (cbHeaders.length > 0) {
+                const cbGroup = document.createElement('div');
+                cbGroup.className = 'form-group full-width checkbox-group-area';
+                cbGroup.innerHTML = `<label style="font-weight:700; color:var(--primary); margin-bottom:15px; display:block;">🔹 หน่วยงานที่เกี่ยวข้อง / รูปแบบการจัดส่ง</label>`;
+                const optionsContainer = document.createElement('div');
+                optionsContainer.className = 'cb-grid-container';
+                cbHeaders.forEach(header => {
+                    const low = header.toLowerCase();
+                    if (checkboxConfig[header]) {
+                        checkboxConfig[header].forEach(opt => renderSingleCheckbox(optionsContainer, header, opt, opt));
+                    } else {
+                        const displayLabel = labelMap[low] || header;
+                        renderSingleCheckbox(optionsContainer, header, displayLabel, '✓');
+                    }
+                });
+                cbGroup.appendChild(optionsContainer);
+                fieldsContainer.appendChild(cbGroup);
+            }
+
+            regularHeaders.forEach(h => {
+                const group = document.createElement('div');
+                group.className = 'form-group';
+                if (h.toLowerCase().includes('subject')) group.classList.add('full-width');
+                renderInputGroup(group, h);
+                fieldsContainer.appendChild(group);
+            });
+
+            const gridContainer = document.createElement('div');
+            gridContainer.className = 'table-batch-container grid-034-container';
+            gridContainer.innerHTML = `
+                <div class="batch-header">
+                    <div class="batch-title">📝 รายการที่ผลิต (11 แถว)</div>
+                </div>
+                <div class="batch-table-wrapper">
+                    <table class="batch-table grid-034">
+                        <thead>
+                            <tr>
+                                <th>รูปแบบสื่อ</th>
+                                <th>ชื่อเรื่อง/ตอน</th>
+                                <th>วิทยากร/ผู้บรรยาย</th>
+                                <th>ความยาว</th>
+                                <th>วันผลิตแล้วเสร็จ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="grid034Body"></tbody>
+                    </table>
+                </div>
+            `;
+            fieldsContainer.appendChild(gridContainer);
+            const tbody = gridContainer.querySelector('#grid034Body');
+            
+            for (let r = 1; r <= 11; r++) {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><input type="text" id="input_format${r}" class="form-control"></td>
+                    <td><input type="text" id="input_ep${r}" class="form-control"></td>
+                    <td><input type="text" id="input_teach${r}" class="form-control"></td>
+                    <td><input type="text" id="input_dur${r}" class="form-control"></td>
+                    <td><input type="text" id="input_dma${r}" class="form-control"></td>
+                `;
+                tbody.appendChild(tr);
+            }
+        }
+
+        function renderTableRegistry(headers) {
+            const container = document.createElement('div');
+            container.className = 'table-batch-container';
+            container.innerHTML = `
+                <div class="batch-header">
+                    <div class="batch-title">📜 รายการที่ต้องบันทึก (${headers.length} คอลัมน์)</div>
+                    <div style="display: flex; gap: 10px;">
+                        <button type="button" class="btn btn-primary" id="btnAddRow" style="padding: 6px 12px; font-size: 0.8rem;">+ เพิ่มรายการใหม่</button>
+                    </div>
+                </div>
+                <div class="batch-table-wrapper"><table class="batch-table"><thead><tr>
+                    ${headers.map(h => `<th>${labelMap[h.toLowerCase()] || h}</th>`).join('')}
+                    <th>ลบ</th>
+                </tr></thead><tbody id="batchTableBody"></tbody></table></div>
+            `;
+            fieldsContainer.appendChild(container);
+            container.querySelector('#btnAddRow').onclick = () => addBatchRow(headers);
+            addBatchRow(headers);
+        }
+
+        function addBatchRow(headers, existingData = null) {
+            const tbody = document.getElementById('batchTableBody');
+            const rowIndex = tbody.children.length;
+            const tr = document.createElement('tr');
+            tr.className = 'batch-row';
+            headers.forEach(h => {
+                const td = document.createElement('td');
+                const low = h.toLowerCase();
+                let input;
+                if (low === 'dur' || low === 'ความยาว') {
+                    const grp = document.createElement('div'); grp.className = 'unit-input-group';
+                    input = document.createElement('input'); input.type = 'text'; input.dataset.key = h; input.placeholder = '0.00'; input.className = 'form-control';
+                    const sel = document.createElement('select'); sel.className = 'unit-select form-control'; sel.dataset.unitFor = h;
+                    ['ชม.', 'น.'].forEach(u => { const o = document.createElement('option'); o.value = u; o.textContent = u; sel.appendChild(o); });
+                    grp.appendChild(input); grp.appendChild(sel);
+                    if (existingData && existingData[h]) {
+                        const m = existingData[h].toString().match(/^([\d.]+)\s*(.*)$/);
+                        if (m) { input.value = m[1]; sel.value = m[2] || 'ชม.'; } else input.value = existingData[h];
+                    }
+                    td.appendChild(grp);
+                } else {
+                    input = document.createElement('input'); input.type = 'text'; input.dataset.key = h; input.className = 'form-control';
+                    input.placeholder = labelMap[low] || h;
+                    if (existingData && existingData[h]) {
+                        input.value = existingData[h];
+                    } else if (low === 'ep' && !existingData) {
+                        input.value = `EP${rowIndex + 1}`;
+                    } else if (!existingData && rowIndex > 0) {
+                        const prevRow = tbody.children[rowIndex - 1];
+                        const prevInput = prevRow.querySelector(`input[data-key="${h}"]`);
+                        if (prevInput && (low.includes('format') || low.includes('teach') || low.includes('dma') || low.includes('สื่อ') || low.includes('วิทยากร'))) {
+                            input.value = prevInput.value;
+                        }
+                    }
+                    td.appendChild(input);
+                }
+                tr.appendChild(td);
+            });
+            const delTd = document.createElement('td');
+            delTd.innerHTML = '<button type="button" class="btn-remove">ลบ</button>';
+            delTd.querySelector('button').onclick = () => { tr.remove(); saveAllDrafts(); };
+            tr.appendChild(delTd);
+            tbody.appendChild(tr);
+            saveAllDrafts();
+        }
+
+        function checkTableRescue(headers) {
+            const tableDraft = localStorage.getItem('table_data_draft');
+            if (tableDraft) {
+                const data = JSON.parse(tableDraft);
+                const rescueContainer = document.getElementById('rescueContainer');
+                const btn = document.createElement('button');
+                btn.type = 'button'; btn.className = 'btn-warning';
+                btn.innerHTML = `<span>⚡ เรียกคืนตารางเดิม (${data.length} รายการ)</span>`;
+                btn.onclick = () => { restoreBatchData(data, headers); btn.remove(); };
+                rescueContainer.appendChild(btn);
+            } else { addBatchRow(headers); }
+        }
+
+        function restoreBatchData(data, headers) {
+            const tbody = document.getElementById('batchTableBody');
+            tbody.innerHTML = '';
+            data.forEach(d => addBatchRow(headers, d));
+        }
+
+        function collectTableData() {
+            const fid = formTypeSelect.value.toString().trim();
+            if (fid === '034') {
+                const row = {};
+                // ดึงค่าแถวแรกไว้เป็นแม่แบบ (Template) สำหรับ Autofill
+                const tplFormat = document.getElementById(`input_format1`).value;
+                const tplTeach = document.getElementById(`input_teach1`).value;
+                let tplDur = document.getElementById(`input_dur1`).value;
+                if (tplDur && !tplDur.includes('ชม.')) tplDur = `${tplDur} ชม.`;
+                const tplDma = document.getElementById(`input_dma1`).value;
+
+                for (let r = 1; r <= 11; r++) {
+                    let f = document.getElementById(`input_format${r}`).value;
+                    let e = document.getElementById(`input_ep${r}`).value;
+                    let t = document.getElementById(`input_teach${r}`).value;
+                    let d = document.getElementById(`input_dur${r}`).value;
+                    let a = document.getElementById(`input_dma${r}`).value;
+
+                    // Smart Autofill: ถ้าแถว 2-11 ว่าง ให้ดึงค่าจากแถว 1 มาใช้
+                    if (r > 1) {
+                        if (!f) f = tplFormat;
+                        if (!t) t = tplTeach;
+                        if (!d) d = tplDur; else if (d && !d.includes('ชม.')) d = `${d} ชม.`;
+                        if (!a) a = tplDma;
+                    } else {
+                        if (d && !d.includes('ชม.')) d = `${d} ชม.`;
+                    }
+
+                    row[`format${r}`] = f;
+                    row[`ep${r}`] = e;
+                    row[`teach${r}`] = t;
+                    row[`dur${r}`] = d;
+                    row[`dma${r}`] = a;
+
+                    // เพิ่มเติม: สำหรับแถวที่ 1 ให้ส่งแบบไม่มีเลขกำกับด้วย เพื่อรองรับ Template ทุกรุ่น
+                    if (r === 1) {
+                        row['format'] = f;
+                        row['ep'] = e;
+                        row['teach'] = t;
+                        row['dur'] = d;
+                        row['dma'] = a;
+                    }
+                }
+                return [row];
+            }
+            
+            const rows = document.querySelectorAll('.batch-row');
+            const data = [];
+            rows.forEach(tr => {
+                const obj = {};
+                tr.querySelectorAll('input[data-key]').forEach(input => {
+                    let val = input.value;
+                    const sel = tr.querySelector(`select[data-unit-for="${input.dataset.key}"]`);
+                    if (sel && val) val = `${val} ${sel.value}`;
+                    obj[input.dataset.key] = val;
+                });
+                data.push(obj);
+            });
+            return data.length > 0 ? data : null;
+        }
+
+        async function fetchRecentData() {
+            const url = scriptUrlInput.value.trim();
+            const formId = formTypeSelect.value;
+            if (!url || !formId || formId === "-- เลือกแบบฟอร์ม --") {
+                // showModal('⚠️ คำเตือน', 'กรุณาเลือกประเภทแบบฟอร์มก่อนกวาดดูประวัติครับ', false, null, '🚧');
+                // For dashboard view, we might want to fetch a default or show message
+                if(document.getElementById('view-dashboard').classList.contains('active')) {
+                     document.getElementById('dashBody').innerHTML = '<tr><td colspan="8" style="text-align:center; padding: 20px;">กรุณาเลือกแบบฟอร์มเพื่อโหลดข้อมูล</td></tr>';
+                } else {
+                    showModal('⚠️ คำเตือน', 'กรุณาเลือกประเภทแบบฟอร์มก่อนกวาดดูประวัติครับ', false, null, '🚧');
+                }
+                return;
+            }
+            showLoading('กำลังดึงข้อมูลทั้งหมด...');
+            try {
+                const response = await fetch(url, { 
+                    method: 'POST', 
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({ action: 'getRecentData', formId, limit: 100 }) 
+                });
+                const json = await response.json();
+                if (json.status === 'success') {
+                    dashboardData = json.data.records;
+                    
+                    // Update Dashboard Stats
+                    document.getElementById('statTotal').textContent = dashboardData.length;
+                    document.getElementById('statRecent').textContent = dashboardData.length > 0 ? 'มีข้อมูล' : '-';
+
+                    // Render Table in Dashboard View
+                    const dashBody = document.getElementById('dashBody');
+                    dashBody.innerHTML = '';
+                    dashboardData.slice(0, 10).forEach((r, idx) => {
+                         const subject = r.subject || r['ชื่อรายการที่ผลิต'] || r.activity || '-';
+                         const ep = r.ep || r['ตอน'] || '-';
+                         const teach = r.teach || r['วิทยากร/ผู้บรรยาย'] || '-';
+                         const dur = r.dur || r['ความยาว'] || '-';
+                         const dma = r.dma || r['ผลิตแล้วเสร็จวันที่'] || '-';
+                         const owner = r.owner || r['ผู้รับผิดชอบการผลิต'] || '-';
+                         const date = r.timestamp || r.Date || '-';
+                         
+                         dashBody.innerHTML += `
+                            <tr>
+                                <td>${idx + 1}</td>
+                                <td>${subject}</td>
+                                <td>${ep}</td>
+                                <td>${teach}</td>
+                                <td>${dur}</td>
+                                <td>${dma}</td>
+                                <td>${owner}</td>
+                                <td>${date}</td>
+                                <td>
+                                    <button class="btn-action" onclick="editRecordFromDash(${idx})" title="แก้ไข">✏️</button>
+                                </td>
+                            </tr>
+                         `;
+                    });
+
+                    displayHistoryModal(dashboardData);
+                } else { throw new Error(json.message); }
+            } catch (e) { showModal('❌ ผิดพลาด', e.message, false, null, '⚠️'); }
+            finally { hideLoading(); }
+        }
+
+        function displayHistoryModal(records) {
+            const modal = document.getElementById('dashboardModal');
+            const headerRow = document.getElementById('dashHeaderRow');
+            const fid = formTypeSelect.value.toString().trim(); 
+            
+            headerRow.innerHTML = `
+                <th>ลำดับ</th>
+                <th>ชื่อรายการ (Subject) ${fid === '034' ? '<small style="display:block;color:#94a3b8;font-weight:300;">(รวบพริ้นต์ตารางเดียว)</small>' : ''}</th>
+                <th>ตอน (EP)</th>
+                <th>วิทยากร (Teacher)</th>
+                <th>ความยาว (Dur)</th>
+                <th>ผลิตเสร็จ (DMA)</th>
+                <th>ผู้รับผิดชอบ (Owner)</th>
+                <th>วันที่บันทึก</th>
+                <th style="width: 250px; position: sticky; right: 0; background: var(--primary-light);">การปฏิบัติการ</th>
+            `;
+            
+            const searchWrap = document.querySelector('.dash-search-container');
+            const existingRefBtn = document.getElementById('btnRefreshDash');
+            if (existingRefBtn) existingRefBtn.remove();
+            const refBtn = document.createElement('button');
+            refBtn.id = 'btnRefreshDash'; refBtn.type = 'button'; refBtn.className = 'btn btn-primary';
+            refBtn.innerHTML = '🔄 อัปเดตจาก Sheet';
+            refBtn.onclick = fetchRecentData;
+            searchWrap.appendChild(refBtn);
+
+            renderDashTable(records, fid); 
+            modal.classList.add('active');
+        }
+
+        function renderDashTable(records, dashboardFormId = null) {
+            // Use a separate body for the modal to avoid conflict with main dashboard view
+            const body = document.getElementById('dashBodyModal'); 
+            const formId = (dashboardFormId || formTypeSelect.value).toString().trim();
+            body.innerHTML = '';
+            
+            if (records.length === 0) {
+                body.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:50px;">📭 ไม่พบประวัติการบันทึกข้อมูล</td></tr>';
+                return;
+            }
+
+            records.forEach((r, idx) => {
+                const tr = document.createElement('tr');
+                tr.dataset.rowIndex = r._rowIndex;
+                
+                const subject = r.subject || r['ชื่อรายการที่ผลิต'] || r.activity || '';
+                const ep = r.ep || r['ตอน'] || '';
+                const teach = r.teach || r['วิทยากร/ผู้บรรยาย'] || r['วิทยากร'] || '';
+                const dur = r.dur || r['ความยาว'] || r['ความยาวรายการ (นาที)'] || '';
+                const dma = r.dma || r['ผลิตแล้วเสร็จวันที่'] || r['วันผลิตแล้วเสร็จ'] || '';
+                const owner = r.owner || r['ผู้รับผิดชอบการผลิต'] || '';
+                const date = r.timestamp || r.Date || '-';
+                
+                tr.innerHTML = `
+                    <td>${idx + 1}</td>
+                    <td><input type="text" class="dash-inline-input" data-field="subject" value="${subject}"></td>
+                    <td><input type="text" class="dash-inline-input" data-field="ep" value="${ep}" style="width: 80px;"></td>
+                    <td><input type="text" class="dash-inline-input" data-field="teach" value="${teach}"></td>
+                    <td><input type="text" class="dash-inline-input" data-field="dur" value="${dur}" style="width: 100px;"></td>
+                    <td><input type="text" class="dash-inline-input" data-field="dma" value="${dma}" style="width: 120px;"></td>
+                    <td><input type="text" class="dash-inline-input" data-field="owner" value="${owner}"></td>
+                    <td style="font-size:0.75rem; color:#64748b; white-space: nowrap;">${date}</td>
+                    <td style="position: sticky; right: 0; background: #fff; box-shadow: -5px 0 10px rgba(0,0,0,0.05);">
+                        <div class="action-btns">
+                            <button type="button" class="btn-action btn-save" onclick="saveRecordInline(${idx})" title="บันทึกลง Sheet">💾</button>
+                            <button type="button" class="btn-action btn-edit" onclick="editRecord(${idx})" title="ดึงข้อมูลลงฟอร์ม">✍️</button>
+                            <button type="button" class="btn-action btn-pdf" onclick="generateRecordPDF(${idx})" title="สร้าง PDF ใหม่จากข้อมูลใน Row นี้">📄</button>
+                            <button type="button" class="btn-action btn-del" onclick="deleteRecord(${idx})" title="ลบออกจาก Sheet">🗑️</button>
+                        </div>
+                    </td>
+                `;
+                body.appendChild(tr);
+            });
+
+            const searchContainer = document.querySelector('.dash-search-container');
+            const existingGlobalBtn = document.getElementById('btnGlobalPDF034');
+            if (existingGlobalBtn) existingGlobalBtn.remove();
+
+            if (formId === '034') {
+                const globalBtn = document.createElement('button');
+                globalBtn.type = 'button';
+                globalBtn.id = 'btnGlobalPDF034';
+                globalBtn.className = 'btn btn-success';
+                globalBtn.style.marginLeft = '10px';
+                globalBtn.innerHTML = `สร้างไฟล์ PDF รวบยอด (034)`;
+                globalBtn.onclick = generateBatchPDF034; 
+                searchContainer.appendChild(globalBtn);
+            }
+        }
+
+        async function generateBatchPDF034() {
+            alert('กำลังเตรียมสร้าง PDF รวบยอดจากตาราง Dashboard ครับ...');
+            try {
+                const url = scriptUrlInput.value.trim();
+                const formId = formTypeSelect.value.toString().trim();
+                const rows = document.querySelectorAll('#dashBodyModal tr');
+                const tableData = [];
+                
+                rows.forEach(tr => {
+                    const inputs = tr.querySelectorAll('.dash-inline-input');
+                    if (inputs.length === 0) return;
+                    const rowObj = {};
+                    inputs.forEach(inp => {
+                        let val = inp.value;
+                        if (inp.dataset.field === 'dur' && val && !val.includes('ชม.')) val = `${val} ชม.`;
+                        rowObj[inp.dataset.field] = val;
+                    });
+                    tableData.push(rowObj);
+                });
+
+                if (tableData.length === 0) {
+                    showModal('⚠️ คำเตือน', 'ไม่พบข้อมูลในตาราง Dashboard ครับ', false, null, '🚧');
+                    return;
+                }
+
+                showLoading(`กำลังสร้าง PDF สรุป 034 (${tableData.length} รายการ)...`);
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({ action: 'generate', formId, data: tableData[0], tableData, rowIndex: 0 })
+                });
+                const result = await response.json();
+                if (result.status === 'success') {
+                    showModal('📜 สร้างสรุปสำเร็จ', `เสร็จเรียบร้อยครับ`, false, () => {
+                        if (result.data.url) window.open(result.data.url, '_blank');
+                    }, '📄');
+                } else { throw new Error(result.message); }
+            } catch (e) { showModal('❌ ผิดพลาด', e.message, false, null, '⚠️'); }
+            finally { hideLoading(); }
+        }
+
+        async function saveRecordInline(idx) {
+            const r = dashboardData[idx];
+            const tr = document.querySelector(`#dashBodyModal tr:nth-child(${idx + 1})`);
+            const url = scriptUrlInput.value.trim();
+            
+            const inputs = tr.querySelectorAll('.dash-inline-input');
+            const updatedData = { ...r };
+            inputs.forEach(input => {
+                const field = input.dataset.field;
+                updatedData[field] = input.value;
+                if (field === 'subject') updatedData['ชื่อรายการที่ผลิต'] = input.value;
+                if (field === 'ep') updatedData['ตอน'] = input.value;
+                if (field === 'teach') updatedData['วิทยากร/ผู้บรรยาย'] = input.value;
+                if (field === 'dma') updatedData['วันผลิตแล้วเสร็จ'] = input.value;
+            });
+
+            showLoading('กำลังบันทึกข้อมูลลง Sheet...');
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        action: 'updateRow',
+                        formId: formTypeSelect.value,
+                        rowIndex: r._rowIndex,
+                        data: updatedData
+                    })
+                });
+                const json = await response.json();
+                if (json.status === 'success') {
+                    dashboardData[idx] = updatedData; 
+                    showModal('✅ บันทึกสำเร็จ', `อัปเดตข้อมูลแถวที่ ${idx + 1} เรียบร้อยแล้วครับ`, false, null, '✨');
+                } else { throw new Error(json.message); }
+            } catch (e) { showModal('❌ ผิดพลาด', e.message, false, null, '⚠️'); }
+            finally { hideLoading(); }
+        }
+
+        function closeDashboardModal() {
+            document.getElementById('dashboardModal').classList.remove('active');
+        }
+
+        function filterDashboard() {
+            const query = document.getElementById('dashSearch').value.toLowerCase();
+            const filtered = dashboardData.filter(r => {
+                const title = (r.subject || r['ชื่อรายการที่ผลิต'] || r.activity || '').toLowerCase();
+                const owner = (r.owner || r['ผู้รับผิดชอบการผลิต'] || '').toLowerCase();
+                return title.includes(query) || owner.includes(query);
+            });
+            renderDashTable(filtered);
+        }
+
+        function editRecord(idx) {
+            const r = dashboardData[idx];
+            const fid = formTypeSelect.value.toString().trim();
+            currentEditRowIndex = r._rowIndex;
+            restoreBaseData(r);
+            
+            if (fid === '034') {
+                const subject = (r.subject || r['ชื่อรายการที่ผลิต'] || "").toString().toLowerCase().trim();
+                const related = dashboardData.filter(row => {
+                    const rowSub = (row.subject || row['ชื่อรายการที่ผลิต'] || "").toString().toLowerCase().trim();
+                    return rowSub === subject && subject !== "";
+                }).sort((a,b) => {
+                     const epA = parseInt((a.ep || a['ตอน'] || "0").toString().replace(/\D/g, '')) || 0;
+                     const epB = parseInt((b.ep || b['ตอน'] || "0").toString().replace(/\D/g, '')) || 0;
+                     return epA - epB;
+                });
+
+                for (let r = 1; r <= 11; r++) {
+                    const data = related[r-1] || {};
+                    const f = document.getElementById(`input_format${r}`);
+                    const e = document.getElementById(`input_ep${r}`);
+                    const t = document.getElementById(`input_teach${r}`);
+                    const d = document.getElementById(`input_dur${r}`);
+                    const a = document.getElementById(`input_dma${r}`);
+                    if(f) f.value = data.format || data['รูปแบบสื่อ'] || '';
+                    if(e) e.value = data.ep || data['ตอน'] || '';
+                    if(t) t.value = data.teach || data['วิทยากร/ผู้บรรยาย'] || data['วิทยากร'] || '';
+                    if(d) d.value = (data.dur || data['ความยาว'] || data['ความยาวรายการ (นาที)'] || '').toString().replace(' ชม.', '');
+                    if(a) a.value = data.dma || data['ผลิตแล้วเสร็จวันที่'] || data['วันผลิตแล้วเสร็จ'] || '';
+                }
+            } else {
+                const tableKeywords = ['ep', 'format', 'teach', 'dur', 'dma', 'item', 'qty', 'ตอน', 'รูปแบบสื่อ', 'วิทยากร', 'ความยาว', 'ผลิตแล้วเสร็จ'];
+                const tableHeaders = currentHeaders.filter(h => tableKeywords.some(k => h.toLowerCase().includes(k)));
+                if (tableHeaders.length > 0) {
+                    const tbody = document.getElementById('batchTableBody');
+                    if (tbody) {
+                        tbody.innerHTML = '';
+                        if (r.tableData || r.tableBody || r._tableData) {
+                            try {
+                                const rows = JSON.parse(r.tableData || r.tableBody || r._tableData);
+                                rows.forEach(rowData => addBatchRow(tableHeaders, rowData));
+                            } catch(e) { addBatchRow(tableHeaders, r); }
+                        } else { addBatchRow(tableHeaders, r); }
+                    }
+                }
+            }
+            
+            closeDashboardModal();
+            showModal('✅ โหลดข้อมูลสำเร็จ', `ดึงข้อมูลโครงการ "${r.subject || 'ไม่ระบุชื่อ'}" มาเตรียมแก้ไขเรียบร้อยครับ`, false, null, '✨');
+            navigate('create');
+        }
+        
+        // Helper for Dashboard View Edit Button
+        function editRecordFromDash(idx) {
+            editRecord(idx);
+        }
+
+        async function deleteRecord(idx) {
+            const r = dashboardData[idx];
+            const url = scriptUrlInput.value.trim();
+            showModal('🗑️ ยืนยันการลบ', 'คุณต้องการลบรายการนี้ออกจาก Google Sheet ใช่หรือไม่?', true, async () => {
+                showLoading('กำลังลบข้อมูล...');
+                try {
+                    const response = await fetch(url, { 
+                        method: 'POST', 
+                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                        body: JSON.stringify({ action: 'deleteData', rowIndex: r._rowIndex }) 
+                    });
+                    const json = await response.json();
+                    if (json.status === 'success') {
+                        showModal('✅ สำเร็จ', 'ลบข้อมูลเรียบร้อยแล้วครับ', false, () => {
+                            fetchRecentData(); 
+                        }, '✨');
+                    } else { throw new Error(json.message); }
+                } catch (e) { showModal('❌ ผิดพลาด', e.message, false, null, '⚠️'); }
+                finally { hideLoading(); }
+            }, '🧨');
+        }
+
+        async function generateRecordPDF(idx) {
+            const r = dashboardData[idx];
+            const url = scriptUrlInput.value.trim();
+            const formId = formTypeSelect.value;
+            
+            let tableData = null;
+            let mainData = { ...r };
+
+            if (formId === '034') {
+                showLoading('กำลังรวบรวมข้อมูลโครงการ (034)...');
+                const subjectToMatch = (r.subject || r['ชื่อรายการที่ผลิต'] || "").toString().toLowerCase().trim();
+                tableData = dashboardData.filter(row => {
+                    const rowSubject = (row.subject || row['ชื่อรายการที่ผลิต'] || "").toString().toLowerCase().trim();
+                    return rowSubject === subjectToMatch && subjectToMatch !== "";
+                });
+                tableData.sort((a, b) => {
+                    const epA = parseInt((a.ep || a['ตอน'] || "0").toString().replace(/\D/g, '')) || 0;
+                    const epB = parseInt((b.ep || b['ตอน'] || "0").toString().replace(/\D/g, '')) || 0;
+                    return epA - epB;
+                });
+                if (tableData.length === 0) tableData = [r]; 
+            }
+
+            showLoading(`กำลังสร้างไฟล์ PDF (${formId === '034' ? 'แบบหน้าเดียวรวมกลุ่ม' : 'แบบรายบรรทัด'})...`);
+            try {
+                const response = await fetch(url, { 
+                    method: 'POST', 
+                    body: JSON.stringify({ 
+                        action: 'generate', 
+                        formId: formId, 
+                        data: mainData, 
+                        tableData: tableData, 
+                        rowIndex: r._rowIndex 
+                    }) 
+                });
+                const result = await response.json();
+                if (result.status === 'success') {
+                    showModal('📜 สร้างไฟล์สำเร็จ', `สร้าง PDF ฟอร์ม ${formId} เรียบร้อยแล้วครับ`, false, () => {
+                        window.open(result.data.url, '_blank');
+                    }, '📄');
+                } else { throw new Error(result.message); }
+            } catch (e) { showModal('❌ ผิดพลาด', e.message, false, null, '⚠️'); }
+            finally { hideLoading(); }
+        }
+
+        async function sendData(action) {
+            if (isProcessing) return;
+            const url = scriptUrlInput.value.trim();
+            const formId = formTypeSelect.value;
+            const isRecurring = isRecurringCheck.checked && action === 'generate';
+            const rounds = isRecurring ? (parseInt(roundsInput.value) || 1) : 1;
+            isProcessing = true; resultBox.style.display = 'none'; linksContainer.innerHTML = '';
+            showLoading('กำลังส่งข้อมูล...');
+            try {
+                const baseData = {};
+                currentHeaders.forEach(h => {
+                    const checkboxes = document.querySelectorAll(`input[name="${h}"]`);
+                    if (checkboxes.length > 0) {
+                        const selected = Array.from(checkboxes).filter(cb => cb.checked).map(cb => cb.value);
+                        baseData[h] = selected.length > 1 ? selected : (selected.length === 1 ? selected[0] : "");
+                    } else {
+                        const el = document.getElementById(`input_${h}`);
+                        if (el) baseData[h] = el.value;
+                    }
+                });
+                const tableData = collectTableData();
+                const interval = parseInt(intervalDaysInput.value) || 7;
+                
+                for (let r = 0; r < rounds; r++) {
+                    const currentData = { ...baseData };
+                    if (r > 0 && currentData.date && currentData.mouth && currentData.ac) {
+                        const next = calcNextDate(currentData.date, currentData.mouth, currentData.ac, r * interval);
+                        currentData.date = next.day;
+                        currentData.mouth = next.month;
+                        currentData.ac = next.year;
+                    }
+
+                    const response = await fetch(url, { 
+                        method: 'POST', 
+                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                        body: JSON.stringify({ action, formId, data: currentData, tableData, rowIndex: 0 }) 
+                    });
+                    const result = await response.json();
+                    if (result.status === 'success') {
+                        addResultLink(result.data.url, result.data.name);
+                    } else { throw new Error(result.message); }
+                }
+                resultBox.style.display = 'block'; resultBox.scrollIntoView({ behavior: 'smooth' });
+            } catch (e) { showModal('❌ ข้อผิดพลาด', e.message, false, null, '⚠️'); }
+            finally { isProcessing = false; hideLoading(); }
+        }
+
+        function renderInputGroup(container, h) {
+            const low = h.toLowerCase();
+            const label = document.createElement('label'); label.textContent = labelMap[low] || h;
+            const input = document.createElement('input'); input.id = `input_${h}`; input.className = 'form-control'; input.placeholder = label.textContent;
+            container.appendChild(label); container.appendChild(input);
+        }
+
+        function renderSingleCheckbox(container, name, labelText, value) {
+            const wrapper = document.createElement('label'); wrapper.className = 'cb-wrapper';
+            wrapper.style.display = 'flex'; wrapper.style.alignItems = 'center'; wrapper.style.gap = '10px';
+            const cb = document.createElement('input'); cb.type = 'checkbox'; cb.name = name; cb.value = value;
+            wrapper.appendChild(cb); wrapper.appendChild(document.createTextNode(labelText));
+            container.appendChild(wrapper);
+        }
+
+        function addResultLink(url, name) {
+            const div = document.createElement('div'); div.className = 'batch-link';
+            div.innerHTML = `<a href="${url}" target="_blank" style="text-decoration:none; color:var(--primary); font-weight:600;">📄 ${name}</a>`;
+            linksContainer.appendChild(div);
+        }
+
+        function showModal(title, message, isConfirm = false, onConfirm = null, icon = '🔔') {
+            const overlay = document.getElementById('modalOverlay');
+            document.getElementById('modalIcon').textContent = icon;
+            document.getElementById('modalTitle').textContent = title;
+            const desc = document.getElementById('modalDesc');
+            if (typeof message === 'string') desc.textContent = message;
+            else { desc.innerHTML = ''; desc.appendChild(message); }
+            const btnCancel = document.getElementById('modalCancel');
+            const btnConfirm = document.getElementById('modalConfirm');
+            btnCancel.style.display = isConfirm ? 'block' : 'none';
+            btnConfirm.textContent = isConfirm ? 'ยืนยัน' : 'ตกลง';
+            overlay.classList.add('active');
+            btnConfirm.onclick = () => { overlay.classList.remove('active'); if (onConfirm) onConfirm(); };
+            btnCancel.onclick = () => { overlay.classList.remove('active'); };
+        }
+
+        function showLoading(m) { document.getElementById('loadingOverlay').classList.add('active'); document.getElementById('loadingText').textContent = m; }
+        function hideLoading() { document.getElementById('loadingOverlay').classList.remove('active'); }
+
+        document.getElementById('docForm').onsubmit = (e) => {
+            e.preventDefault();
+            const rounds = isRecurringCheck.checked ? (parseInt(roundsInput.value) || 1) : 1;
+            showModal('💾 ยืนยันการบันทึก', `ต้องการสร้างไฟล์หรือไม่?`, true, () => sendData('generate'));
+        };
+        document.getElementById('btnPreview').onclick = () => sendData('preview');
+
+        function clearForm() {
+            showModal('📋 เคลียร์ฟอร์ม', 'คุณต้องการลบข้อมูลที่พิมพ์ไว้และเริ่มสร้างรายการใหม่ใช่หรือไม่?', true, () => {
+                const tbody = document.getElementById('batchTableBody');
+                if (tbody) tbody.innerHTML = '';
+                const inputs = fieldsContainer.querySelectorAll('input');
+                inputs.forEach(inp => inp.value = '');
+                dynamicSection.classList.add('hidden');
+                formTypeSelect.value = "";
+                navigate('dashboard');
+            }, '✨');
+        }
+
+        function autoReload() { }
+        if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', autoReload); } else { autoReload(); }
+    </script>
+</body>
+</html>

@@ -19,11 +19,11 @@ def bundle():
 
         # 1. แทนที่ <link rel="stylesheet" href="style.css"> ด้วย <style>...</style>
         css_bundle = f'<style>\n{css}\n</style>'
-        html = re.sub(r'<link rel="stylesheet" href="style.css">', css_bundle, html)
+        html = html.replace('<link rel="stylesheet" href="style.css">', css_bundle)
 
         # 2. แทนที่ <script src="script.js" defer></script> ด้วย <script>...</script>
         js_bundle = f'<script>\n{js}\n</script>'
-        html = re.sub(r'<script src="script.js" defer></script>', js_bundle, html)
+        html = html.replace('<script src="script.js" defer></script>', js_bundle)
 
         # บันทึกไฟล์ผลลัพธ์ไปที่ dist/index.html
         with open('dist/index.html', 'w', encoding='utf-8') as f:

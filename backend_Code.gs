@@ -103,15 +103,7 @@ function createPDF(formConfig, rowData, isPreview, tableData, cleanId) {
       }
     }
 
-    // แทนที่ Tag สแกนทั้งเอกสาร (Universal Scan)
-    replaceInElement(body, finalData);
-    
-    // สำหรับฟอร์มอื่นๆ (031, 033, 035)
-    if (cleanId !== '034' && tableData && Array.isArray(tableData)) {
-      fillTableRowsSimple(body, tableData);
-    }
-    
-    // จัดการ Checkbox
+    // จัดการ Checkbox (เลื่อนมาไว้ก่อน replaceInElement เพื่อป้องกัน Tag ถูกแทนที่ด้วย "true" ไปก่อน)
     const checkboxKeys = ['cb1', 'cb2', 'cb3', 'cb4', 'cb5', 'cb6'];
     checkboxKeys.forEach(k => {
       const val = finalData[k];
@@ -120,6 +112,14 @@ function createPDF(formConfig, rowData, isPreview, tableData, cleanId) {
       body.replaceText("\\{\\{" + k + "\\}\\}", symbol);
       body.replaceText("\\{\\{ " + k + " \\}\\}", symbol);
     });
+
+    // แทนที่ Tag สแกนทั้งเอกสาร (Universal Scan)
+    replaceInElement(body, finalData);
+    
+    // สำหรับฟอร์มอื่นๆ (031, 033, 035)
+    if (cleanId !== '034' && tableData && Array.isArray(tableData)) {
+      fillTableRowsSimple(body, tableData);
+    }
 
     const header = doc.getHeader();
     if (header) replaceInElement(header, finalData);
@@ -229,14 +229,15 @@ function getRecentData(formId) {
   if (lastRow <= 1) return createJsonResponse('success', { records: [] });
   const startRow = Math.max(2, lastRow - 499);
   const numRows = lastRow - startRow + 1;
-  const hs = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  const allHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
   const d = sheet.getRange(startRow, 1, numRows, sheet.getLastColumn()).getValues();
   const records = d.map((r, idx) => {
     const obj = { _rowIndex: startRow + idx };
-    hs.forEach((h, i) => obj[h] = r[i]);
+    allHeaders.forEach((h, i) => { if(h) obj[h] = r[i]; });
     return obj;
-  }).reverse();
-  return createJsonResponse('success', { records });
+  });
+  const cleanHeaders = allHeaders.filter(h => h && h.toString().trim() !== "");
+  return createJsonResponse('success', { records, headers: cleanHeaders });
 }
 
 function updateRow(request) {

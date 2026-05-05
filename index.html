@@ -15,6 +15,7 @@
 
     <!-- นำเข้าสไตล์ชีตแยกส่วน (Standard CSS for Local & GitHub Pages) -->
     <link rel="stylesheet" href="style.css">
+    <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
 </head>
 
 <body>
@@ -48,10 +49,18 @@
                         <option value="034">FM สท.03-4</option>
                         <option value="035">FM สท.03-5</option>
                     </select>
-                    <button type="button" id="btnLoadData" class="btn btn-outline" style="padding: 0 20px; width: auto; flex: 0 0 auto; white-space: nowrap; display: none; align-items: center; justify-content: center; height: 52px; margin-top: 0;">
-                        <span>📂 ดึงข้อมูลเดิม</span>
+                    <button type="button" id="btnLoadData" class="btn btn-outline" style="padding: 0 20px; width: auto; flex: 0 0 auto; white-space: nowrap; align-items: center; justify-content: center; height: 52px; margin-top: 0;">
+                        <span>📊 เปิดศูนย์จัดการข้อมูล</span>
                     </button>
                 </div>
+            </div>
+        </div>
+
+        <!-- Floating Action Button สำหรับ Dashboard -->
+        <div class="fab-container" onclick="fetchRecentData()">
+            <div class="fab-btn">
+                <span>📊</span>
+                <small>จัดการข้อมูล</small>
             </div>
         </div>
 
@@ -156,9 +165,20 @@
                 <button type="button" class="btn-close-dash" onclick="closeDashboardModal()">×</button>
             </div>
             <div class="modal-body">
+                <!-- Tab Selector ภายใน Dashboard -->
+                <div class="dash-tabs-container">
+                    <button type="button" class="dash-tab active" onclick="switchDashTab('031')">FM สท.03-1</button>
+                    <button type="button" class="dash-tab" onclick="switchDashTab('033')">FM สท.03-3</button>
+                    <button type="button" class="dash-tab" onclick="switchDashTab('034')">FM สท.03-4</button>
+                    <button type="button" class="dash-tab" onclick="switchDashTab('035')">FM สท.03-5</button>
+                </div>
+
                 <div class="dash-search-container">
-                    <input type="text" id="dashSearch" placeholder="🔍 ค้นหาชื่อรายการหรือชื่อผู้ผลิต..." oninput="filterDashboard()">
-                    <button type="button" class="btn-refresh" onclick="fetchRecentData()">🔄 รีเฟรช</button>
+                    <input type="text" id="dashSearch" placeholder="🔍 ค้นหาชื่อรายการ ชื่อผู้ผลิต หรือข้อมูลอื่นๆ..." oninput="filterDashboard()">
+                    <div class="dash-tool-btns">
+                        <button type="button" class="btn-refresh" onclick="fetchRecentData()">🔄 รีเฟรช</button>
+                        <button type="button" class="btn-pdf-all" onclick="generateAllPDFs()">📄 สร้าง PDF ทั้งหมด</button>
+                    </div>
                 </div>
                 <div class="dashboard-table-container">
                     <table class="dashboard-table">
