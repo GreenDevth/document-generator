@@ -33,19 +33,20 @@ let dashboardData = [];
 let currentDashFormId = '031'; // ค่าเริ่มต้นของ Dashboard
 
 // --- GLOBAL ACTIONS ---
-function clearLocalStorage() {
-    showModal('🧹 กวาดล้างข้อมูล', 'คุณต้องการล้างข้อมูลในฟอร์มใช่หรือไม่?', true, () => {
+async function clearLocalStorage() {
+    if (await showModal('🧹 กวาดล้างข้อมูล', 'คุณต้องการล้างข้อมูลในฟอร์มใช่หรือไม่?', true, '🗑️')) {
         window.location.reload();
-    }, '🗑️');
+    }
 }
 
-function clearForm() {
-    showModal('📋 เคลียร์ฟอร์ม', 'คุณต้องการลบข้อมูลที่พิมพ์ไว้และเริ่มสร้างรายการใหม่ใช่หรือไม่?', true, () => {
+async function clearForm() {
+    if (await showModal('📋 เคลียร์ฟอร์ม', 'คุณต้องการลบข้อมูลที่พิมพ์ไว้และเริ่มสร้างรายการใหม่ใช่หรือไม่?', true, '✨')) {
         const tbody = document.getElementById('batchTableBody');
         if (tbody) tbody.innerHTML = '';
         const inputs = fieldsContainer.querySelectorAll('input');
         inputs.forEach(inp => inp.value = '');
-    }, '✨');
+        saveAllDrafts();
+    }
 }
 
 const labelMap = {
@@ -313,6 +314,24 @@ function addBatchRow(headers, existingData = null) {
     tr.appendChild(delTd);
     tbody.appendChild(tr);
     saveAllDrafts();
+}
+
+// ฟังก์ชันช่วยบันทึกข้อมูลร่างไว้ในเครื่อง (Autosave)
+function saveAllDrafts() {
+    try {
+        const tbody = document.getElementById('batchTableBody');
+        if (!tbody) return;
+        const rows = Array.from(tbody.rows);
+        const data = rows.map(row => {
+            const inputs = Array.from(row.querySelectorAll('input'));
+            const rowData = {};
+            inputs.forEach(inp => {
+                if (inp.dataset.key) rowData[inp.dataset.key] = inp.value;
+            });
+            return rowData;
+        });
+        localStorage.setItem('table_data_draft', JSON.stringify(data));
+    } catch (e) { console.warn('Autosave failed:', e); }
 }
 
 function checkTableRescue(headers) {
@@ -610,7 +629,7 @@ async function saveRecordInline(idx) {
         const json = await response.json();
         if (json.status === 'success') {
             dashboardData[idx] = updatedData; // Update Local State
-            showModal('✅ บันทึกสำเร็จ', `อัปเดตข้อมูลแถวที่ ${idx + 1} เรียบร้อยแล้วครับ`, false, null, '✨');
+            showModal('✅ บันทึกสำเร็จ', `อัปเดตข้อมูลแถวที่ ${idx + 1} เรียบร้อยแล้วครับ`, false, '✨');
         } else { throw new Error(json.message); }
     } catch (e) { showModal('❌ ผิดพลาด', e.message, false, null, '⚠️'); }
     finally { hideLoading(); }
@@ -703,7 +722,7 @@ function editRecord(idx) {
 async function deleteRecord(idx) {
     const r = dashboardData[idx];
     const url = scriptUrlInput.value.trim();
-    showModal('🗑️ ยืนยันการลบ', 'คุณต้องการลบรายการนี้ออกจาก Google Sheet ใช่หรือไม่?', true, async () => {
+    if (await showModal('🗑️ ยืนยันการลบ', 'คุณต้องการลบรายการนี้ออกจาก Google Sheet ใช่หรือไม่?', true, '🧨')) {
         showLoading('กำลังลบข้อมูล...');
         try {
             const response = await fetch(url, { 
@@ -713,13 +732,12 @@ async function deleteRecord(idx) {
             });
             const json = await response.json();
             if (json.status === 'success') {
-                showModal('✅ สำเร็จ', 'ลบข้อมูลเรียบร้อยแล้วครับ', false, () => {
-                    fetchRecentData(); // Refresh table inside modal
-                }, '✨');
+                await showModal('✅ สำเร็จ', 'ลบข้อมูลเรียบร้อยแล้วครับ', false, '✨');
+                fetchRecentData(); // Refresh table
             } else { throw new Error(json.message); }
-        } catch (e) { showModal('❌ ผิดพลาด', e.message, false, null, '⚠️'); }
+        } catch (e) { showModal('❌ ผิดพลาด', e.message, false, '⚠️'); }
         finally { hideLoading(); }
-    }, '🧨');
+    }
 }
 
 async function generateRecordPDF(idx) {
@@ -765,11 +783,12 @@ async function generateRecordPDF(idx) {
         });
         const result = await response.json();
         if (result.status === 'success') {
-            showModal('📜 สร้างไฟล์สำเร็จ', `สร้าง PDF ฟอร์ม ${formId} เรียบร้อยแล้วครับ`, false, () => {
-                window.open(result.data.url, '_blank');
-            }, '📄');
+            showModal('📜 สร้างไฟล์สำเร็จ', 
+                `สร้าง PDF ฟอร์ม ${formId} เรียบร้อยแล้วครับ<br><br>` +
+                `<a href="${result.data.url}" target="_blank" style="display:inline-block; padding:10px 20px; background:#4f46e5; color:white; border-radius:8px; text-decoration:none; font-weight:bold;">🌐 เปิดดูไฟล์ PDF</a>`, 
+                false, '📄');
         } else { throw new Error(result.message); }
-    } catch (e) { showModal('❌ ผิดพลาด', e.message, false, null, '⚠️'); }
+    } catch (e) { showModal('❌ ผิดพลาด', e.message, false, '⚠️'); }
     finally { hideLoading(); }
 }
 
@@ -835,7 +854,7 @@ async function sendData(action) {
             } else { throw new Error(result.message); }
         }
         resultBox.style.display = 'block'; resultBox.scrollIntoView({ behavior: 'smooth' });
-    } catch (e) { showModal('❌ ข้อผิดพลาด', e.message, false, null, '⚠️'); }
+    } catch (e) { showModal('❌ ข้อผิดพลาด', e.message, false, '⚠️'); }
     finally { isProcessing = false; hideLoading(); }
 }
 
@@ -866,7 +885,7 @@ function showModal(title, message, isConfirm = false, icon = '🔔') {
         document.getElementById('modalIcon').textContent = icon;
         document.getElementById('modalTitle').textContent = title;
         const desc = document.getElementById('modalDesc');
-        if (typeof message === 'string') desc.textContent = message;
+        if (typeof message === 'string') desc.innerHTML = message;
         else { desc.innerHTML = ''; desc.appendChild(message); }
         
         const btnCancel = document.getElementById('modalCancel');
@@ -994,7 +1013,14 @@ async function mergeAllGeneratedPDFs(pdfUrls) {
         
         for (let i = 0; i < pdfUrls.length; i++) {
             updateLoadingText(`กำลังรวมไฟล์ที่ ${i + 1}/${pdfUrls.length}...`);
-            const bytes = await fetch(pdfUrls[i]).then(res => res.arrayBuffer());
+            let bytes;
+            if (pdfUrls[i].startsWith('http')) {
+                bytes = await fetch(pdfUrls[i]).then(res => res.arrayBuffer());
+            } else {
+                // กรณีเป็น Drive File ID
+                const base64 = await callBackend('getFileBytes', { fileId: pdfUrls[i] });
+                bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0)).buffer;
+            }
             const pdf = await PDFDocument.load(bytes);
             const copiedPages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
             copiedPages.forEach((page) => mergedPdf.addPage(page));
@@ -1019,6 +1045,75 @@ async function mergeAllGeneratedPDFs(pdfUrls) {
 function updateLoadingText(text) {
     const desc = document.getElementById('loadingText');
     if (desc) desc.innerText = text;
+}
+
+// --- DRIVE FILE PICKER ---
+async function openDriveFilePicker() {
+    const formId = currentDashFormId || formTypeSelect.value;
+    showLoading('กำลังโหลดรายชื่อไฟล์จาก Drive...');
+    try {
+        const response = await fetch(scriptUrlInput.value.trim(), {
+            method: 'POST',
+            body: JSON.stringify({ action: 'getDriveFiles', formId: formId })
+        });
+        const json = await response.json();
+        hideLoading();
+        
+        if (json.status === 'success' && json.data.length > 0) {
+            let html = '<div class="drive-list-container">';
+            // เพิ่มส่วนหัว Select All
+            html += `
+                <div class="select-all-header">
+                    <input type="checkbox" id="driveSelectAll" onchange="toggleDriveSelectAll(this)">
+                    <label for="driveSelectAll" style="cursor:pointer;">เลือกไฟล์ทั้งหมด (${json.data.length} ไฟล์)</label>
+                </div>
+            `;
+            
+            json.data.forEach(f => {
+                html += `
+                <label class="drive-file-item">
+                    <input type="checkbox" class="drive-file-cb" value="${f.id}" data-name="${f.name}"> 
+                    <div>
+                        <div style="font-weight:600; color:#1e293b;">${f.name}</div>
+                        <div style="font-size:0.75rem; color:#64748b;">สร้างเมื่อ: ${f.date}</div>
+                    </div>
+                </label>`;
+            });
+            html += '</div>';
+            
+            const confirmed = await showModal('🗂️ เลือกไฟล์จาก Drive', html, true, '📁');
+            if (confirmed) {
+                const selected = Array.from(document.querySelectorAll('.drive-file-cb:checked')).map(cb => ({
+                    url: cb.value, 
+                    name: cb.dataset.name
+                }));
+                if (selected.length > 0) {
+                    mergeAllGeneratedPDFs(selected.map(s => s.url));
+                }
+            }
+        } else {
+            // แสดงข้อความจริงจาก Backend (รวมถึงข้อมูล Debug ที่เราใส่ไว้)
+            showModal('📁 แจ้งเตือน', json.message || 'ไม่พบไฟล์ PDF ในโฟลเดอร์นี้ครับ', false, 'ℹ️');
+        }
+    } catch (e) {
+        hideLoading();
+        showModal('❌ ผิดพลาด', e.message, false, '⚠️');
+    }
+}
+
+async function callBackend(action, params) {
+    const response = await fetch(scriptUrlInput.value.trim(), {
+        method: 'POST',
+        body: JSON.stringify({ action, ...params })
+    });
+    const json = await response.json();
+    if (json.status === 'success') return json.data;
+    throw new Error(json.message);
+}
+
+function toggleDriveSelectAll(masterCb) {
+    const cbs = document.querySelectorAll('.drive-file-cb');
+    cbs.forEach(cb => cb.checked = masterCb.checked);
 }
 
 // ไม่ใช้ AutoReload อีกต่อไป
