@@ -537,12 +537,18 @@ function renderDashTable(records, headers, dashboardFormId = null) {
         
         // สร้าง Input ตามหัวตารางที่มีจริง (ระบบ Smart Auto-Fit)
         headers.forEach(h => {
-            const val = displayData[h] || '';
+            let val = displayData[h] || '';
             const headerStr = h.toString();
             const valStr = val.toString();
             
+            // ปรับแต่งการแสดงผลเวลา (Duration) ให้สวยงาม
+            const lowerH = headerStr.toLowerCase();
+            if ((lowerH.includes('dur') || lowerH.includes('ความยาว')) && valStr.startsWith('0:')) {
+                val = valStr.substring(2);
+            }
+
             // คำนวณจำนวนตัวอักษรที่มากที่สุด (ระหว่างหัวข้อกับเนื้อหา)
-            const charCount = Math.max(headerStr.length, valStr.length);
+            const charCount = Math.max(headerStr.length, val.toString().length);
             
             // คำนวณความกว้าง (ประมาณ 10px ต่อตัวอักษร + 30px สำหรับ Padding)
             let widthNum = (charCount * 11) + 30;
