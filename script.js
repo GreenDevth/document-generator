@@ -520,17 +520,19 @@ function renderDashTable(records, headers, dashboardFormId = null) {
         const tr = document.createElement('tr');
         tr.dataset.rowIndex = r._rowIndex;
         
-        // เตรียมข้อมูลสำหรับการแสดงผล (Merge ข้อมูลหลักกับแถวแรกของตาราง)
-        let displayData = { ...r };
+        // เตรียมข้อมูลสำหรับการแสดงผล (ลำดับความสำคัญ: ข้อมูลใน Sheet หลัก ทับข้อมูลในตารางย่อย)
+        let displayData = {};
         const rawTable = r.tableData || r.tableBody || r._tableData;
         if (rawTable) {
             try {
                 const parsed = typeof rawTable === 'string' ? JSON.parse(rawTable) : rawTable;
                 if (Array.isArray(parsed) && parsed.length > 0) {
-                    displayData = { ...displayData, ...parsed[0] };
+                    displayData = { ...parsed[0] }; // เอาข้อมูลในตารางเป็นฐาน
                 }
             } catch(e) {}
         }
+        // นำข้อมูลจริงจากคอลัมน์ใน Sheet มาทับ (เพื่อให้ค่าที่แก้ใน Sheet แสดงผลถูกต้อง)
+        displayData = { ...displayData, ...r };
 
         // แสดงเลขแถวที่แท้จริงจากใน Sheet
         let rowHtml = `<td>${r._rowIndex}</td>`;
@@ -541,11 +543,40 @@ function renderDashTable(records, headers, dashboardFormId = null) {
             const headerStr = h.toString();
             const valStr = val.toString();
             
-            // ปรับแต่งการแสดงผลเวลา (Duration) ให้สวยงาม
+            // ฟังก์ชันช่วยจัดการกับค่าวันที่/เวลาที่เพี้ยนเป็น ISO String
+            const formatValue = (v) => {
+                if (typeof v === 'string' && v.includes('T') && v.includes('Z')) {
+                    try {
+                        const d = new Date(v);
+                        if (!isNaN(d.getTime())) {
+                            if (d.getFullYear() < 1905) {
+                                // เป็น Duration/เวลา
+                                const hh = d.getUTCHours();
+                                const mm = d.getUTCMinutes();
+                                const ss = d.getUTCSeconds();
+                                let timeStr = "";
+                                if (hh > 0) timeStr += hh + ":";
+                                timeStr += (mm < 10 && hh > 0 ? "0" + mm : mm) + ":";
+                                timeStr += (ss < 10 ? "0" + ss : ss);
+                                return timeStr;
+                            } else {
+                                // เป็นวันที่ปกติ
+                                return d.toLocaleDateString('th-TH');
+                            }
+                        }
+                    } catch(e) {}
+                }
+                return v;
+            };
+
+            val = formatValue(val);
+
+            // ปรับแต่งการแสดงผลเวลา (Duration) ให้สวยงามเพิ่มเติม
             const lowerH = headerStr.toLowerCase();
-            if ((lowerH.includes('dur') || lowerH.includes('ความยาว')) && valStr.startsWith('0:')) {
-                val = valStr.substring(2);
+            if ((lowerH.includes('dur') || lowerH.includes('ความยาว')) && val.toString().startsWith('0:')) {
+                val = val.toString().substring(2);
             }
+            if (val === "0:00" || val === "00:00") val = "-";
 
             // คำนวณจำนวนตัวอักษรที่มากที่สุด (ระหว่างหัวข้อกับเนื้อหา)
             const charCount = Math.max(headerStr.length, val.toString().length);

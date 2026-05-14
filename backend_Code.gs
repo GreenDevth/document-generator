@@ -254,21 +254,44 @@ function getRecentData(formId) {
   const numRows = lastRow - startRow + 1;
   const allHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
 
-  // ใช้ getDisplayValues() อย่างเดียว — ได้ค่าตรงตามที่แสดงใน Sheet ไม่ต้องแปลงใดๆ
-  const dispVals = sheet.getRange(startRow, 1, numRows, sheet.getLastColumn()).getDisplayValues();
-
-  const records = dispVals.map((r, idx) => {
+  // ดึงทั้งค่าจริง (Values) และค่าที่แสดงผล (DisplayValues)
+  const v = sheet.getRange(startRow, 1, numRows, sheet.getLastColumn()).getValues();
+  const d = sheet.getRange(startRow, 1, numRows, sheet.getLastColumn()).getDisplayValues();
+  
+  const records = d.map((r, idx) => {
     const obj = { _rowIndex: startRow + idx };
     allHeaders.forEach((h, i) => {
       if (!h) return;
-      obj[h] = r[i]; // ส่งค่าออกตรงๆ เหมือนที่เห็นใน Sheet เลย
+      let val = r[i]; // เริ่มต้นด้วยค่าที่เห็นในหน้า Sheet
+      let raw = v[idx][i];
+
+      // กรณีพิเศษ: ถ้าค่าดิบเป็น Date Object (Google มักจะแปลง Duration เป็น Date)
+      if (raw instanceof Date && raw.getFullYear() < 1905) {
+        // คำนวณเวลาใหม่เองเพื่อป้องกัน Timezone เพี้ยน
+        const hh = raw.getHours();
+        const mm = raw.getMinutes();
+        const ss = raw.getSeconds();
+        if (hh > 0) {
+          // ถ้ามีชั่วโมง: โชว์ hh:mm (และ :ss ถ้ามีวินาทีที่ไม่ใช่ 0)
+          val = hh + ":" + (mm < 10 ? "0" + mm : mm);
+          if (ss > 0) val += ":" + (ss < 10 ? "0" + ss : ss);
+        } else {
+          // ถ้าไม่มีชั่วโมง: โชว์ m:ss
+          val = mm + ":" + (ss < 10 ? "0" + ss : ss);
+        }
+      }
+      
+      // ถ้าเป็น 0:00 ให้โชว์เป็นขีด
+      if (val === "0:00" || val === "00:00" || val === "0:00:00") val = "-";
+      
+      obj[h] = val;
     });
     return obj;
   });
-
   const cleanHeaders = allHeaders.filter(h => h && h.toString().trim() !== "");
   return createJsonResponse('success', { records, headers: cleanHeaders });
 }
+
 
 function updateRow(request) {
   const { formId, rowIndex, data } = request;
