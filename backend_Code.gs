@@ -246,48 +246,22 @@ function createJsonResponse(status, data, message = "") {
 }
 
 function getRecentData(formId) {
-  const { sheet } = getTargetSheet(formId); // ss ไม่จำเป็นต้องใช้แล้ว
+  const { sheet } = getTargetSheet(formId);
   if (!sheet) return createJsonResponse('error', null, 'ไม่พบ Sheet');
   const lastRow = sheet.getLastRow();
-  if (lastRow <= 1) return createJsonResponse('success', { records: [] });
+  if (lastRow <= 1) return createJsonResponse('success', { records: [], headers: [] });
   const startRow = Math.max(2, lastRow - 499);
   const numRows = lastRow - startRow + 1;
   const allHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
 
-  // ใช้ getValues() เพื่อได้ Date Object, และ getDisplayValues() เพื่อได้ String
-  const rawVals = sheet.getRange(startRow, 1, numRows, sheet.getLastColumn()).getValues();
+  // ใช้ getDisplayValues() อย่างเดียว — ได้ค่าตรงตามที่แสดงใน Sheet ไม่ต้องแปลงใดๆ
   const dispVals = sheet.getRange(startRow, 1, numRows, sheet.getLastColumn()).getDisplayValues();
 
-  const records = rawVals.map((r, idx) => {
+  const records = dispVals.map((r, idx) => {
     const obj = { _rowIndex: startRow + idx };
     allHeaders.forEach((h, i) => {
       if (!h) return;
-      const raw = r[i];
-      const disp = dispVals[idx][i];
-
-      // ถ้าค่าดิบเป็น Date Object
-      if (raw instanceof Date) {
-        if (raw.getFullYear() < 1905) {
-          // เป็น Duration/เวลา: คำนวณตรงจากมิลลิวินาทีเพื่อหลีกเลี่ยง Timezone ทั้งหมด
-          const ms = raw.getTime(); // milliseconds since epoch (1899-12-30)
-          const totalSec = Math.round(Math.abs(ms) / 1000);
-          const hh = Math.floor(totalSec / 3600);
-          const mm = Math.floor((totalSec % 3600) / 60);
-          const ss = totalSec % 60;
-          if (hh > 0) {
-            obj[h] = hh + ":" + (mm < 10 ? "0" + mm : mm) + ":" + (ss < 10 ? "0" + ss : ss);
-          } else {
-            obj[h] = mm + ":" + (ss < 10 ? "0" + ss : ss);
-          }
-          if (obj[h] === "0:00") obj[h] = "-";
-        } else {
-          // เป็นวันที่ปกติ: ใช้ค่าที่แสดงใน Sheet โดยตรง
-          obj[h] = disp;
-        }
-      } else {
-        // ค่าที่เป็น String, Number, Boolean ใช้ค่าที่แสดงใน Sheet โดยตรง
-        obj[h] = disp;
-      }
+      obj[h] = r[i]; // ส่งค่าออกตรงๆ เหมือนที่เห็นใน Sheet เลย
     });
     return obj;
   });
