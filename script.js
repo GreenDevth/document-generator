@@ -457,19 +457,40 @@ function displayHistoryModal(records, headers = []) {
     const fid = currentDashFormId || formTypeSelect.value.toString().trim();
     
     // ระบบ Fallback: ถ้าหาหัวข้อไม่เจอ ให้เอา Key จากข้อมูลมาใช้แทน
-    let displayHeaders = (headers && headers.length > 0) ? headers : [];
+    let displayHeaders = (headers && headers.length > 0) ? [...headers] : [];
+    
+    // พิเศษ: สำหรับฟอร์มที่มี tableData ให้ดึงหัวข้อจากในตารางมาโชว์เพิ่มด้วย
+    if (records.length > 0) {
+        records.forEach(r => {
+            const rawTable = r.tableData || r.tableBody || r._tableData;
+            if (rawTable) {
+                try {
+                    const parsed = typeof rawTable === 'string' ? JSON.parse(rawTable) : rawTable;
+                    if (Array.isArray(parsed) && parsed.length > 0) {
+                        Object.keys(parsed[0]).forEach(k => {
+                            if (!displayHeaders.includes(k) && k.toLowerCase() !== 'id') {
+                                displayHeaders.push(k);
+                            }
+                        });
+                    }
+                } catch(e) {}
+            }
+        });
+    }
+
     if (displayHeaders.length === 0 && records.length > 0) {
         displayHeaders = Object.keys(records[0]).filter(k => k !== '_rowIndex');
     }
     
-    // กรองเอาเฉพาะ 25 คอลัมน์แรก (เพื่อให้ครอบคลุมข้อมูลส่วนใหญ่) และตัดคอลัมน์ว่าง
-    displayHeaders = displayHeaders.filter(h => h && h.toString().trim() !== "").slice(0, 25);
+    // กรองคอลัมน์ที่ไม่ต้องการโชว์ และจำกัดจำนวนคอลัมน์เพื่อความสวยงาม
+    const exclude = ['tabledata', 'tablebody', '_tabledata', 'id', 'createdat'];
+    displayHeaders = displayHeaders.filter(h => h && h.toString().trim() !== "" && !exclude.includes(h.toLowerCase())).slice(0, 30);
     
     headerRow.innerHTML = `<th>ลำดับ</th>`;
     displayHeaders.forEach(h => {
         headerRow.innerHTML += `<th>${h}</th>`;
     });
-    headerRow.innerHTML += `<th style="width: 200px; position: sticky; right: 0; background: var(--primary-light);">การปฏิบัติการ</th>`;
+    headerRow.innerHTML += `<th style="width: 200px; position: sticky; right: 0; background: var(--primary-light); z-index: 10;">การปฏิบัติการ</th>`;
     
     // เพิ่มปุ่ม Refresh ใน UI Search
     const searchWrap = document.querySelector('.dash-search-container');
@@ -499,12 +520,24 @@ function renderDashTable(records, headers, dashboardFormId = null) {
         const tr = document.createElement('tr');
         tr.dataset.rowIndex = r._rowIndex;
         
+        // เตรียมข้อมูลสำหรับการแสดงผล (Merge ข้อมูลหลักกับแถวแรกของตาราง)
+        let displayData = { ...r };
+        const rawTable = r.tableData || r.tableBody || r._tableData;
+        if (rawTable) {
+            try {
+                const parsed = typeof rawTable === 'string' ? JSON.parse(rawTable) : rawTable;
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                    displayData = { ...displayData, ...parsed[0] };
+                }
+            } catch(e) {}
+        }
+
         // แสดงเลขแถวที่แท้จริงจากใน Sheet
         let rowHtml = `<td>${r._rowIndex}</td>`;
         
         // สร้าง Input ตามหัวตารางที่มีจริง (ระบบ Smart Auto-Fit)
         headers.forEach(h => {
-            const val = r[h] || '';
+            const val = displayData[h] || '';
             const headerStr = h.toString();
             const valStr = val.toString();
             
