@@ -82,11 +82,25 @@ function createPDF(formConfig, rowData, isPreview, tableData, cleanId) {
   if (presentation) {
     const finalData = { ...rowData };
     
-    // --- SMART MAPPING ---
+    // --- SMART MAPPING & TABLE MERGE ---
     const smartMap = {
-      'ตอน': 'ep', 'ความยาว': 'duration', 'ความยาวรายการ': 'duration',
-      'ความยาวรายการ (นาที)': 'duration', 'ชื่อรายการ': 'subject', 'ชื่อเรื่อง': 'subject'
+      'ตอน': 'ep', 'ep': 'ตอน',
+      'ความยาว': 'duration', 'dur': 'duration', 'duration': 'dur',
+      'ความยาวรายการ': 'duration', 'ความยาวรายการ (นาที)': 'duration',
+      'ชื่อรายการ': 'subject', 'subject': 'ชื่อรายการ', 'ชื่อเรื่อง': 'subject'
     };
+
+    // 1. ดึงข้อมูลจากแถวแรกของตาราง (ถ้ามี) มาใส่ในข้อมูลหลัก เพื่อให้ Tag ในเนื้อหาหลักทำงานได้
+    if (tableData && Array.isArray(tableData) && tableData.length > 0) {
+      const firstRow = tableData[0];
+      for (let [tk, tv] of Object.entries(firstRow)) {
+        if (finalData[tk] === undefined || finalData[tk] === "") {
+          finalData[tk] = tv;
+        }
+      }
+    }
+
+    // 2. ทำการ Mapping ชื่อฟิลด์ตาม smartMap
     for (let [thai, eng] of Object.entries(smartMap)) {
       if (finalData[thai] !== undefined && finalData[eng] === undefined) {
         finalData[eng] = finalData[thai];
@@ -113,6 +127,7 @@ function createPDF(formConfig, rowData, isPreview, tableData, cleanId) {
       const symbol = isChecked ? "✓" : ""; // ใช้เครื่องหมายถูกธรรมดา หรือว่างไว้
       presentation.replaceAllText("{{" + k + "}}", symbol);
       presentation.replaceAllText("{{ " + k + " }}", symbol);
+      presentation.replaceAllText("{{" + k.toUpperCase() + "}}", symbol); // เพิ่มตัวพิมพ์ใหญ่ด้วย
     });
 
     // แทนที่ Tag ทั่วไปแบบ Case-Insensitive (พร้อมระบบล้างข้อมูลวันที่/เวลา)
@@ -136,6 +151,9 @@ function createPDF(formConfig, rowData, isPreview, tableData, cleanId) {
         presentation.replaceAllText("{{" + k + "}}", valStr);
         presentation.replaceAllText("{{ " + k + " }}", valStr);
         presentation.replaceAllText("{{" + k.toLowerCase() + "}}", valStr);
+        presentation.replaceAllText("{{ " + k.toLowerCase() + " }}", valStr);
+        presentation.replaceAllText("{{" + k.toUpperCase() + "}}", valStr);
+        presentation.replaceAllText("{{ " + k.toUpperCase() + " }}", valStr);
       }
     }
     
@@ -235,21 +253,52 @@ function getRecentData(formId) {
   const startRow = Math.max(2, lastRow - 499);
   const numRows = lastRow - startRow + 1;
   const allHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-  const d = sheet.getRange(startRow, 1, numRows, sheet.getLastColumn()).getDisplayValues();
+  // ใช้ getValues() แทน getDisplayValues() เพื่อให้ได้ Object วันที่/เวลาที่ถูกต้อง
+  const d = sheet.getRange(startRow, 1, numRows, sheet.getLastColumn()).getValues();
+  
   const records = d.map((r, idx) => {
     const obj = { _rowIndex: startRow + idx };
     allHeaders.forEach((h, i) => { 
       if(h) {
         let val = r[i];
-        // --- ระบบล็อคฟอร์แมตหน้า Dashboard ---
+        
+        // --- ระบบจัดการฟอร์แมตวันที่และเวลาสำหรับ Dashboard ---
         if (val instanceof Date) {
-          val = (val.getFullYear() < 1905) ? Utilities.formatDate(val, "GMT+7", "H:mm") : Utilities.formatDate(val, "GMT+7", "dd/MM/yyyy");
+          // ตรวจสอบว่าเป็นเวลา (Duration) หรือวันที่ปกติ
+          if (val.getFullYear() < 1905) {
+            // ใช้ "GMT" แทน "GMT+7" เพื่อไม่ให้เวลาโดนบวกเพิ่มตาม Timezone
+            let rawTime = Utilities.formatDate(val, "GMT", "H:mm:ss");
+            let parts = rawTime.split(":");
+            let h = parseInt(parts[0]);
+            let m = parseInt(parts[1]);
+            let s = parseInt(parts[2]);
+
+            if (h > 0) {
+              val = h + ":" + (m < 10 ? "0" + m : m) + ":" + (s < 10 ? "0" + s : s);
+            } else {
+              val = m + ":" + (s < 10 ? "0" + s : s);
+            }
+            
+            if (val === "0:00") val = "-";
+          } else {
+            val = Utilities.formatDate(val, "GMT+7", "dd/MM/yyyy");
+          }
         } else if (typeof val === 'string' && val.includes('T') && val.includes('Z') && val.length > 15) {
           try {
             const dObj = new Date(val);
-            val = (dObj.getFullYear() < 1905) ? Utilities.formatDate(dObj, "GMT+7", "H:mm") : Utilities.formatDate(dObj, "GMT+7", "dd/MM/yyyy");
+            if (dObj.getFullYear() < 1905) {
+              let rawTime = Utilities.formatDate(dObj, "GMT", "H:mm:ss");
+              let parts = rawTime.split(":");
+              let h = parseInt(parts[0]);
+              let m = parseInt(parts[1]);
+              let s = parseInt(parts[2]);
+              val = (h > 0 ? h + ":" : "") + (h > 0 && m < 10 ? "0" + m : m) + ":" + (s < 10 ? "0" + s : s);
+            } else {
+              val = Utilities.formatDate(dObj, "GMT+7", "dd/MM/yyyy");
+            }
           } catch(e) {}
         }
+        
         obj[h] = val; 
       }
     });
