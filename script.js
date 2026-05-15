@@ -739,10 +739,28 @@ function editRecord(idx) {
         rowNumSpan.textContent = r._rowIndex;
     }
 
-    restoreBaseData(r);
+    // ฟังก์ชันช่วยจัดรูปแบบข้อมูลก่อนลง Input
+    const fmt = (v) => {
+        if (!v) return '';
+        if (typeof v === 'string' && v.includes('T') && v.includes('Z') && v.length > 15) {
+            try {
+                const d = new Date(v);
+                if (!isNaN(d.getTime())) {
+                    if (d.getFullYear() < 1905) {
+                        const hh = d.getUTCHours();
+                        const mm = d.getUTCMinutes();
+                        return (hh > 0 ? hh + ":" : "") + (mm < 10 && hh > 0 ? "0" + mm : mm);
+                    }
+                    return d.toLocaleDateString('th-TH');
+                }
+            } catch(e) {}
+        }
+        return v;
+    };
+
+    restoreBaseData(r, fmt);
     
     if (fid === '034') {
-        // --- 034 Special: ดึงทุกบรรทัดในประวัติที่มีชื่อเรื่องเดียวกันลง Grid ---
         const subject = (r.subject || r['ชื่อรายการที่ผลิต'] || "").toString().toLowerCase().trim();
         const related = dashboardData.filter(row => {
             const rowSub = (row.subject || row['ชื่อรายการที่ผลิต'] || "").toString().toLowerCase().trim();
@@ -753,7 +771,6 @@ function editRecord(idx) {
              return epA - epB;
         });
 
-        // เคลียร์และเติมข้อมูลลง Grid 11 ช่อง
         for (let r = 1; r <= 11; r++) {
             const data = related[r-1] || {};
             const f = document.getElementById(`input_format${r}`);
@@ -761,11 +778,12 @@ function editRecord(idx) {
             const t = document.getElementById(`input_teach${r}`);
             const d = document.getElementById(`input_dur${r}`);
             const a = document.getElementById(`input_dma${r}`);
-            if(f) f.value = data.format || data['รูปแบบสื่อ'] || '';
-            if(e) e.value = data.ep || data['ตอน'] || '';
-            if(t) t.value = data.teach || data['วิทยากร/ผู้บรรยาย'] || data['วิทยากร'] || '';
-            if(d) d.value = (data.dur || data['ความยาว'] || data['ความยาวรายการ (นาที)'] || '').toString().replace(' ชม.', '');
-            if(a) a.value = data.dma || data['ผลิตแล้วเสร็จวันที่'] || data['วันผลิตแล้วเสร็จ'] || '';
+            
+            if(f) f.value = fmt(data.format || data['รูปแบบสื่อ'] || r[`format${r}`] || r[`รูปแบบสื่อ${r}`]);
+            if(e) e.value = fmt(data.ep || data['ตอน'] || r[`ep${r}`] || r[`ตอน${r}`]);
+            if(t) t.value = fmt(data.teach || data['วิทยากร/ผู้บรรยาย'] || data['วิทยากร'] || r[`teach${r}`] || r[`วิทยากร${r}`]);
+            if(d) d.value = fmt(data.dur || data['ความยาว'] || data['ความยาวรายการ (นาที)'] || r[`dur${r}`] || r[`ความยาว${r}`]).toString().replace(' ชม.', '');
+            if(a) a.value = fmt(data.dma || data['ผลิตแล้วเสร็จวันที่'] || data['วันผลิตแล้วเสร็จ'] || r[`dma${r}`] || r[`วันผลิตแล้วเสร็จ${r}`]);
         }
     } else {
         // กู้คืนตารางโหนด (ฟอร์มอื่น)
@@ -786,7 +804,24 @@ function editRecord(idx) {
     }
     
     closeDashboardModal();
-    showModal('✅ โหลดข้อมูลสำเร็จ', `ดึงข้อมูลโครงการ "${r.subject || 'ไม่ระบุชื่อ'}" มาเตรียมแก้ไขเรียบร้อยครับ`, false, null, '✨');
+    showModal('✅ โหลดข้อมูลสำเร็จ', `ดึงข้อมูลโครงการ "${r.subject || 'ไม่ระบุชื่อ'}" มาเตรียมแก้ไขเรียบร้อยครับ`, false, '✨');
+}
+
+function restoreBaseData(r, formatFn = null) {
+    currentHeaders.forEach(h => {
+        let val = r[h] || '';
+        if (formatFn) val = formatFn(val);
+        
+        const checkboxes = document.querySelectorAll(`input[name="${h}"]`);
+        if (checkboxes.length > 0) {
+            checkboxes.forEach(cb => {
+                cb.checked = Array.isArray(val) ? val.includes(cb.value) : (val === cb.value || val === '✓');
+            });
+        } else {
+            const el = document.getElementById(`input_${h}`);
+            if (el) el.value = val;
+        }
+    });
 }
 
 async function deleteRecord(idx) {

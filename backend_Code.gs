@@ -111,11 +111,12 @@ function createPDF(formConfig, rowData, isPreview, tableData, cleanId) {
     if (cleanId === '034' && tableData && tableData.length > 0) {
       tableData.forEach((row, i) => {
         const idx = i + 1;
-        finalData['format' + idx] = row.format || row['รูปแบบสื่อ'] || "";
-        finalData['ep' + idx] = row.ep || row['ตอน'] || "";
-        finalData['teach' + idx] = row.teach || row['วิทยากร'] || "";
-        finalData['dur' + idx] = row.dur || row['ความยาว'] || "";
-        finalData['dma' + idx] = row.dma || row['ผลิตแล้วเสร็จวันที่'] || "";
+        // ปรับปรุง: เฉพาะกรณีที่มีค่าส่งมาจริงๆ เท่านั้นถึงจะทับ (ป้องกันการเอาค่าว่างไปทับรายการที่ 1 ที่มีอยู่ใน rowData อยู่แล้ว)
+        if (row.format || row['รูปแบบสื่อ']) finalData['format' + idx] = row.format || row['รูปแบบสื่อ'];
+        if (row.ep || row['ตอน']) finalData['ep' + idx] = row.ep || row['ตอน'];
+        if (row.teach || row['วิทยากร']) finalData['teach' + idx] = row.teach || row['วิทยากร'];
+        if (row.dur || row['ความยาว']) finalData['dur' + idx] = row.dur || row['ความยาว'];
+        if (row.dma || row['ผลิตแล้วเสร็จวันที่']) finalData['dma' + idx] = row.dma || row['ผลิตแล้วเสร็จวันที่'];
       });
     }
 
@@ -130,16 +131,18 @@ function createPDF(formConfig, rowData, isPreview, tableData, cleanId) {
       presentation.replaceAllText("{{" + k.toUpperCase() + "}}", symbol); // เพิ่มตัวพิมพ์ใหญ่ด้วย
     });
 
-    // แทนที่ Tag ทั่วไปแบบ Case-Insensitive (พร้อมระบบล้างข้อมูลวันที่/เวลา)
-    for (let [k, v] of Object.entries(finalData)) {
+    // แทนที่ Tag ทั่วไปแบบ Case-Insensitive 
+    // --- ปรับปรุง V3.6: เรียงลำดับ Key ตามความยาวเพื่อป้องกันการทับซ้อน (เช่น {{ep1}} ทับ {{ep10}}) ---
+    const sortedKeys = Object.keys(finalData).sort((a, b) => b.length - a.length);
+    
+    for (let k of sortedKeys) {
+      const v = finalData[k];
       if (k && v !== undefined) {
         let valStr = "";
         
         if (v instanceof Date) {
-          // ถ้าเป็นเวลา (ปี 1899) ให้โชว์แค่ H:mm
           valStr = (v.getFullYear() < 1905) ? Utilities.formatDate(v, "GMT+7", "H:mm") : Utilities.formatDate(v, "GMT+7", "dd/MM/yyyy");
         } else if (typeof v === 'string' && v.includes('T') && v.includes('Z') && v.length > 15) {
-          // ถ้าเป็น ISO String (1899-12-29T...) ให้พยายามแปลงเป็นเวลา
           try {
             const d = new Date(v);
             valStr = (d.getFullYear() < 1905) ? Utilities.formatDate(d, "GMT+7", "H:mm") : Utilities.formatDate(d, "GMT+7", "dd/MM/yyyy");
@@ -229,6 +232,18 @@ function saveToSheet(sheet, baseData, rowIndex, tableData) {
           const match = Object.keys(merged).find(k => k.toLowerCase() === key.toLowerCase());
           val = match ? merged[match] : "";
         }
+        
+        // --- ปรับปรุง: ตรวจสอบและแปลง ISO Date String กลับเป็นวันที่ปกติก่อนลง Sheet ---
+        if (typeof val === 'string' && val.includes('T') && val.includes('Z') && val.length > 15) {
+          try {
+            const d = new Date(val);
+            if (!isNaN(d.getTime())) {
+              // ถ้าปี < 1905 มักจะเป็น Duration หรือเวลาเฉยๆ ให้คงไว้ หรือถ้าเป็นวันที่ให้แปลงเป็น dd/MM/yyyy
+              val = (d.getFullYear() < 1905) ? Utilities.formatDate(d, "GMT+7", "H:mm") : Utilities.formatDate(d, "GMT+7", "dd/MM/yyyy");
+            }
+          } catch(e) {}
+        }
+
         return Array.isArray(val) ? val.join(', ') : (val || "");
       });
     });
@@ -301,6 +316,17 @@ function updateRow(request) {
   const rowOutput = headers.map(h => {
     const key = h.toString().trim();
     let val = (data[key] !== undefined) ? data[key] : data[key.toLowerCase()];
+    
+    // --- ปรับปรุง: ตรวจสอบและแปลง ISO Date String สำหรับการ Update แถวด้วย ---
+    if (typeof val === 'string' && val.includes('T') && val.includes('Z') && val.length > 15) {
+      try {
+        const d = new Date(val);
+        if (!isNaN(d.getTime())) {
+          val = (d.getFullYear() < 1905) ? Utilities.formatDate(d, "GMT+7", "H:mm") : Utilities.formatDate(d, "GMT+7", "dd/MM/yyyy");
+        }
+      } catch(e) {}
+    }
+
     return Array.isArray(val) ? val.join(', ') : (val || "").toString();
   });
   sheet.getRange(rowIndex, 1, 1, headers.length).setValues([rowOutput]);
