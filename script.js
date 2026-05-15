@@ -372,15 +372,8 @@ function collectTableData() {
             let d = document.getElementById(`input_dur${r}`).value;
             let a = document.getElementById(`input_dma${r}`).value;
 
-            // Smart Autofill: ถ้าแถว 2-11 ว่าง ให้ดึงค่าจากแถว 1 มาใช้
-            if (r > 1) {
-                if (!f) f = tplFormat;
-                if (!t) t = tplTeach;
-                if (!d) d = tplDur; else if (d && !d.includes('ชม.')) d = `${d} ชม.`;
-                if (!a) a = tplDma;
-            } else {
-                if (d && !d.includes('ชม.')) d = `${d} ชม.`;
-            }
+            // ปรับปรุง: ไม่ใช้ Autofill อัตโนมัติ เพื่อให้แถวที่ว่างเว้นว่างไว้ตามความต้องการของผู้ใช้
+            if (d && !d.includes('ชม.')) d = `${d} ชม.`;
 
             row[`format${r}`] = f;
             row[`ep${r}`] = e;
@@ -388,7 +381,7 @@ function collectTableData() {
             row[`dur${r}`] = d;
             row[`dma${r}`] = a;
 
-            // เพิ่มเติม: สำหรับแถวที่ 1 ให้ส่งแบบไม่มีเลขกำกับด้วย เพื่อรองรับ Template ทุกรุ่น
+            // สำหรับแถวที่ 1 ให้ส่งแบบไม่มีเลขกำกับด้วย เพื่อรองรับ Template ทุกรุ่น
             if (r === 1) {
                 row['format'] = f;
                 row['ep'] = e;
@@ -521,71 +514,35 @@ function renderDashTable(records, headers, dashboardFormId = null) {
         const tr = document.createElement('tr');
         tr.dataset.rowIndex = r._rowIndex;
         
-        // เตรียมข้อมูลสำหรับการแสดงผล (ลำดับความสำคัญ: ข้อมูลใน Sheet หลัก ทับข้อมูลในตารางย่อย)
-        let displayData = {};
-        const rawTable = r.tableData || r.tableBody || r._tableData;
-        if (rawTable) {
-            try {
-                const parsed = typeof rawTable === 'string' ? JSON.parse(rawTable) : rawTable;
-                if (Array.isArray(parsed) && parsed.length > 0) {
-                    displayData = { ...parsed[0] }; // เอาข้อมูลในตารางเป็นฐาน
-                }
-            } catch(e) {}
-        }
-        // นำข้อมูลจริงจากคอลัมน์ใน Sheet มาทับ (เพื่อให้ค่าที่แก้ใน Sheet แสดงผลถูกต้อง)
-        displayData = { ...displayData, ...r };
-
-        // แสดงเลขแถวที่แท้จริงจากใน Sheet
-        let rowHtml = `<td>${r._rowIndex}</td>`;
-        
-        // สร้าง Input ตามหัวตารางที่มีจริง (ระบบ Smart Auto-Fit)
+        let rowHtml = `<td>${idx + 1}</td>`;
         headers.forEach(h => {
-            let val = displayData[h] || '';
             const headerStr = h.toString();
-            const valStr = val.toString();
+            let val = r[headerStr] || "";
             
-            // ฟังก์ชันช่วยจัดการกับค่าวันที่/เวลาที่เพี้ยนเป็น ISO String
-            const formatValue = (v) => {
-                if (typeof v === 'string' && v.includes('T') && v.includes('Z')) {
-                    try {
-                        const d = new Date(v);
-                        if (!isNaN(d.getTime())) {
-                            if (d.getFullYear() < 1905) {
-                                // เป็น Duration/เวลา
-                                const hh = d.getUTCHours();
-                                const mm = d.getUTCMinutes();
-                                const ss = d.getUTCSeconds();
-                                let timeStr = "";
-                                if (hh > 0) timeStr += hh + ":";
-                                timeStr += (mm < 10 && hh > 0 ? "0" + mm : mm) + ":";
-                                timeStr += (ss < 10 ? "0" + ss : ss);
-                                return timeStr;
-                            } else {
-                                // เป็นวันที่ปกติ
-                                return d.toLocaleDateString('th-TH');
-                            }
-                        }
-                    } catch(e) {}
-                }
-                return v;
-            };
+            // --- LOGIC: แปลงค่าวันที่ ISO ให้เป็นรูปแบบไทย ---
+            if (typeof val === 'string' && val.includes('T') && val.endsWith('Z')) {
+                try {
+                    const d = new Date(val);
+                    if (!isNaN(d.getTime())) {
+                        const day = d.getUTCDate().toString().padStart(2, '0');
+                        const month = (d.getUTCMonth() + 1).toString().padStart(2, '0');
+                        const year = d.getUTCFullYear();
+                        // หมายเหตุ: ปีใน Spreadsheet เป็น พ.ศ. อยู่แล้ว หรืออาจต้อง +543 ถ้าเป็น ค.ศ.
+                        // แต่ปกติ GAS จะส่งปี พ.ศ. มาเป็นตัวเลขที่ถูกต้องแล้ว
+                        val = `${day}/${month}/${year}`;
+                    }
+                } catch(e) {}
+            }
 
-            val = formatValue(val);
-
-            // ปรับแต่งการแสดงผลเวลา (Duration) ให้สวยงามเพิ่มเติม
+            // ปรับแต่งการแสดงผลเวลา (Duration)
             const lowerH = headerStr.toLowerCase();
             if ((lowerH.includes('dur') || lowerH.includes('ความยาว')) && val.toString().startsWith('0:')) {
                 val = val.toString().substring(2);
             }
             if (val === "0:00" || val === "00:00") val = "-";
 
-            // คำนวณจำนวนตัวอักษรที่มากที่สุด (ระหว่างหัวข้อกับเนื้อหา)
             const charCount = Math.max(headerStr.length, val.toString().length);
-            
-            // คำนวณความกว้าง (ประมาณ 10px ต่อตัวอักษร + 30px สำหรับ Padding)
             let widthNum = (charCount * 11) + 30;
-            
-            // จำกัดขอบเขต: ขั้นต่ำ 60px, ขั้นสูง 450px
             widthNum = Math.min(Math.max(widthNum, 60), 450);
             
             const width = widthNum + 'px';
@@ -597,7 +554,7 @@ function renderDashTable(records, headers, dashboardFormId = null) {
         rowHtml += `
             <td style="position: sticky; right: 0; background: #fff; box-shadow: -5px 0 10px rgba(0,0,0,0.05);">
                 <div class="action-btns">
-                    <button type="button" class="btn-action btn-save" onclick="saveRecordInline(${idx}, ${JSON.stringify(headers).replace(/"/g, '&quot;')})" title="บันทึกลง Sheet">💾</button>
+                    <button type="button" class="btn-action btn-save" onclick="saveRecordInline(${idx})" title="บันทึกลง Sheet">💾</button>
                     <button type="button" class="btn-action btn-edit" onclick="editRecord(${idx})" title="ดึงข้อมูลลงฟอร์ม">✍️</button>
                     <button type="button" class="btn-action btn-pdf" onclick="generateRecordPDF(${idx})" title="สร้าง PDF">📄</button>
                     <button type="button" class="btn-action btn-del" onclick="deleteRecord(${idx})" title="ลบ">🗑️</button>
@@ -608,36 +565,37 @@ function renderDashTable(records, headers, dashboardFormId = null) {
         body.appendChild(tr);
     });
 
-    // เพิ่มปุ่มพริ้นต์รวบยอด (Global PDF) สำหรับ 034
+    // --- ส่วนจัดการปุ่มคำสั่ง (Tool Buttons) ใน Search Container ---
     const searchContainer = document.querySelector('.dash-search-container');
-    const existingGlobalBtn = document.getElementById('btnGlobalPDF034');
-    if (existingGlobalBtn) existingGlobalBtn.remove();
+    if (searchContainer) {
+        ['btnRefreshDash', 'btnGlobalPDF034', 'btnSaveAllDash'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.remove();
+        });
 
-    if (formId === '034') {
+        // 1. ปุ่มบันทึกการเปลี่ยนแปลงทั้งหมด
+        const saveAllBtn = document.createElement('button');
+        saveAllBtn.type = 'button';
+        saveAllBtn.id = 'btnSaveAllDash';
+        saveAllBtn.className = 'btn-save-all';
+        saveAllBtn.style.backgroundColor = '#8b5cf6';
+        saveAllBtn.style.color = 'white';
+        saveAllBtn.innerHTML = '💾 บันทึกทั้งหมด';
+        saveAllBtn.onclick = saveAllRecordsInline;
+        searchContainer.appendChild(saveAllBtn);
+
+        // 2. ปุ่มสร้างไฟล์ PDF รวบยอด
         const globalBtn = document.createElement('button');
         globalBtn.type = 'button';
         globalBtn.id = 'btnGlobalPDF034';
         globalBtn.className = 'btn-pdf-global';
         globalBtn.innerHTML = `
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
-            สร้างไฟล์ PDF รวบยอด (034)
+            สร้าง PDF รวบยอด
         `;
         globalBtn.onclick = generateBatchPDF034; 
         searchContainer.appendChild(globalBtn);
     }
-
-    // เพิ่มปุ่มบันทึกทั้งหมด (Save All)
-    const existingSaveAllBtn = document.getElementById('btnSaveAllDash');
-    if (existingSaveAllBtn) existingSaveAllBtn.remove();
-    const saveAllBtn = document.createElement('button');
-    saveAllBtn.type = 'button';
-    saveAllBtn.id = 'btnSaveAllDash';
-    saveAllBtn.className = 'btn-save-all';
-    saveAllBtn.style.backgroundColor = '#8b5cf6'; // สีม่วงสวยๆ
-    saveAllBtn.style.color = 'white';
-    saveAllBtn.innerHTML = '💾 บันทึกการเปลี่ยนแปลงทั้งหมด';
-    saveAllBtn.onclick = saveAllRecordsInline;
-    searchContainer.appendChild(saveAllBtn);
 }
 
 async function generateBatchPDF034() {
@@ -673,9 +631,9 @@ async function generateBatchPDF034() {
         });
         const result = await response.json();
         if (result.status === 'success') {
-            showModal('📜 สร้างสรุปสำเร็จ', `เสร็จเรียบร้อยครับ`, false, () => {
+            showModal('📜 สร้างสรุปสำเร็จ', `เสร็จเรียบร้อยครับ`, false, '📄', () => {
                 if (result.data.url) window.open(result.data.url, '_blank');
-            }, '📄');
+            });
         } else { throw new Error(result.message); }
     } catch (e) { showModal('❌ ผิดพลาด', e.message, false, null, '⚠️'); }
     finally { hideLoading(); }
@@ -982,8 +940,13 @@ async function sendData(action) {
     const formId = formTypeSelect.value;
     const isRecurring = isRecurringCheck.checked && action === 'generate';
     const rounds = isRecurring ? (parseInt(roundsInput.value) || 1) : 1;
-    isProcessing = true; resultBox.style.display = 'none'; linksContainer.innerHTML = '';
-    showLoading('กำลังส่งข้อมูล...');
+    
+    isProcessing = true; 
+    resultBox.style.display = 'none'; 
+    linksContainer.innerHTML = '';
+    
+    showLoading('กำลังเริ่มกระบวนการ...');
+    
     try {
         const baseData = {};
         currentHeaders.forEach(h => {
@@ -998,19 +961,24 @@ async function sendData(action) {
         });
         const tableData = collectTableData();
         const interval = parseInt(intervalDaysInput.value) || 7;
+        const subjectName = baseData.subject || baseData['ชื่อรายการที่ผลิต'] || 'ไม่ระบุชื่อ';
+
+        // แจ้งเตือนว่าเริ่มงานแล้ว
+        showToast('🚀 เริ่มงานเบื้องหลัง', `กำลังบันทึกข้อมูลและสร้าง PDF สำหรับ: ${subjectName}`, 'info');
         
+        // ปิด Loading ทันทีเพื่อให้ User ทำงานต่อได้
+        setTimeout(() => hideLoading(), 800);
+
+        // ทำงานวนรอบในเบื้องหลัง
         for (let r = 0; r < rounds; r++) {
             const currentData = { ...baseData };
-            // โลจิกคำนวณวันที่ใหม่ (Dynamic detection for all date groups: actdate, findate, sucdate, etc.)
             if (r > 0) {
                 Object.keys(currentData).forEach(key => {
                     const lowKey = key.toLowerCase();
                     if (lowKey.endsWith('date')) {
                         const prefix = lowKey.substring(0, lowKey.length - 4);
-                        // ค้นหาฟิลด์ mouth และ ac ที่มี prefix เดียวกัน
                         const mKey = Object.keys(currentData).find(k => k.toLowerCase() === prefix + 'mouth');
                         const yKey = Object.keys(currentData).find(k => k.toLowerCase() === prefix + 'ac');
-                        
                         if (mKey && yKey && currentData[key] && currentData[mKey] && currentData[yKey]) {
                             const next = calcNextDate(currentData[key], currentData[mKey], currentData[yKey], r * interval);
                             currentData[key] = next.day;
@@ -1021,25 +989,46 @@ async function sendData(action) {
                 });
             }
 
-            const response = await fetch(url, { 
+            // ส่งข้อมูล (Async)
+            fetch(url, { 
                 method: 'POST', 
                 headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                 body: JSON.stringify({ action, formId, data: currentData, tableData, rowIndex: currentEditRowIndex }) 
-            });
-            const result = await response.json();
-            if (result.status === 'success') {
-                addResultLink(result.data.url, result.data.name);
-                // เมื่อบันทึกสำเร็จ และไม่ใช่การทำซ้ำ ให้ล้างโหมดแก้ไข
-                if (rounds === 1) {
-                    currentEditRowIndex = 0;
-                    const banner = document.getElementById('editModeBanner');
-                    if (banner) banner.style.display = 'none';
+            })
+            .then(res => res.json())
+            .then(result => {
+                if (result.status === 'success') {
+                    addResultLink(result.data.url, result.data.name);
+                    showToast('✅ สร้างสำเร็จ', `สร้าง PDF: ${result.data.name} เรียบร้อยแล้ว`, 'success');
+                    
+                    // อัปเดต UI ผลลัพธ์ (ถ้ายังอยู่หน้าเดิม)
+                    resultBox.style.display = 'block';
+                    
+                    if (rounds === 1) {
+                        currentEditRowIndex = 0;
+                        const banner = document.getElementById('editModeBanner');
+                        if (banner) banner.style.display = 'none';
+                    }
+                } else {
+                    showToast('❌ ผิดพลาด', result.message, 'error');
                 }
-            } else { throw new Error(result.message); }
+            })
+            .catch(err => {
+                showToast('❌ เกิดข้อผิดพลาด', err.message, 'error');
+            })
+            .finally(() => {
+                if (r === rounds - 1) isProcessing = false;
+            });
         }
-        resultBox.style.display = 'block'; resultBox.scrollIntoView({ behavior: 'smooth' });
-    } catch (e) { showModal('❌ ข้อผิดพลาด', e.message, false, '⚠️'); }
-    finally { isProcessing = false; hideLoading(); }
+        
+        // แจ้งเตือนผู้ใช้ว่าทำงานต่อได้เลย
+        showToast('💡 ข้อมูลถูกส่งแล้ว', 'คุณสามารถกรอกรายการถัดไปได้ทันที ระบบจะแจ้งเตือนเมื่อ PDF เสร็จครับ', 'info', 8000);
+
+    } catch (e) { 
+        hideLoading();
+        isProcessing = false;
+        showModal('❌ ข้อผิดพลาด', e.message, false, '⚠️'); 
+    }
 }
 
 function renderInputGroup(container, h) {
@@ -1063,7 +1052,7 @@ function addResultLink(url, name) {
     linksContainer.appendChild(div);
 }
 
-function showModal(title, message, isConfirm = false, icon = '🔔') {
+function showModal(title, message, isConfirm = false, icon = '🔔', onConfirm = null) {
     return new Promise((resolve) => {
         const overlay = document.getElementById('modalOverlay');
         document.getElementById('modalIcon').textContent = icon;
@@ -1081,6 +1070,7 @@ function showModal(title, message, isConfirm = false, icon = '🔔') {
 
         btnConfirm.onclick = () => { 
             overlay.classList.remove('active'); 
+            if (onConfirm) onConfirm();
             resolve(true); 
         };
         btnCancel.onclick = () => { 
@@ -1092,6 +1082,35 @@ function showModal(title, message, isConfirm = false, icon = '🔔') {
 
 function showLoading(m) { document.getElementById('loadingOverlay').classList.add('active'); document.getElementById('loadingText').textContent = m; }
 function hideLoading() { document.getElementById('loadingOverlay').classList.remove('active'); }
+
+// --- TOAST NOTIFICATION LOGIC ---
+function showToast(title, msg, type = 'info', duration = 5000) {
+    const container = document.getElementById('toastContainer');
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    
+    let icon = '🔔';
+    if (type === 'success') icon = '✅';
+    if (type === 'error') icon = '❌';
+    if (type === 'info') icon = 'ℹ️';
+
+    toast.innerHTML = `
+        <div class="toast-icon">${icon}</div>
+        <div class="toast-content">
+            <div class="toast-title">${title}</div>
+            <div class="toast-msg">${msg}</div>
+        </div>
+        <div class="toast-close" onclick="this.parentElement.remove()">×</div>
+    `;
+
+    container.appendChild(toast);
+
+    // Auto remove
+    setTimeout(() => {
+        toast.classList.add('fade-out');
+        setTimeout(() => toast.remove(), 400);
+    }, duration);
+}
 
 document.getElementById('docForm').onsubmit = async (e) => {
     e.preventDefault();
@@ -1105,10 +1124,28 @@ document.getElementById('btnPreview').onclick = () => sendData('preview');
 async function clearForm() {
     const ok = await showModal('📋 เคลียร์ฟอร์ม', 'คุณต้องการลบข้อมูลที่พิมพ์ไว้และเริ่มสร้างรายการใหม่ใช่หรือไม่?', true, '✨');
     if (ok) {
+        // 1. ล้างตาราง Batch (ถ้ามี)
         const tbody = document.getElementById('batchTableBody');
         if (tbody) tbody.innerHTML = '';
-        const inputs = fieldsContainer.querySelectorAll('input');
+        
+        // 2. ล้าง Input Text ทั้งหมดใน Fields Container
+        const inputs = fieldsContainer.querySelectorAll('input[type="text"], input[type="number"], textarea');
         inputs.forEach(inp => inp.value = '');
+
+        // 3. ล้าง Checkbox ทั้งหมด
+        const checkboxes = fieldsContainer.querySelectorAll('input[type="checkbox"]');
+        checkboxes.forEach(cb => cb.checked = false);
+
+        // 4. ล้างผลลัพธ์เก่า
+        resultBox.style.display = 'none';
+        linksContainer.innerHTML = '';
+        
+        // 5. รีเซ็ตสถานะการแก้ไข (Edit Mode)
+        currentEditRowIndex = 0;
+        const banner = document.getElementById('editModeBanner');
+        if (banner) banner.style.display = 'none';
+
+        showToast('✨ เคลียร์ฟอร์มแล้ว', 'คุณสามารถเริ่มกรอกข้อมูลใหม่ได้เลยครับ', 'success');
     }
 }
 
@@ -1120,72 +1157,47 @@ async function generateAllPDFs() {
     }
 
     const confirmed = await showModal('📄 ยืนยันการสร้างทั้งหมด', 
-        `คุณต้องการสร้าง PDF จากรายการทั้งหมด ${dashboardData.length} รายการในหน้านี้ใช่หรือไม่?\n(ระบบจะใช้เวลาครู่หนึ่งตามจำนวนรายการครับ)`, true, '🖨️');
+        `คุณต้องการสร้าง PDF จากรายการทั้งหมด ${dashboardData.length} รายการในหน้านี้ใช่หรือไม่?\n(ระบบจะทำงานเบื้องหลัง คุณสามารถปิดหน้าต่างนี้เพื่อทำงานอื่นต่อได้)`, true, '🖨️');
     if (!confirmed) return;
 
     const url = scriptUrlInput.value.trim();
     const formId = currentDashFormId || formTypeSelect.value;
-    const successList = [];
-    const errorList = [];
+    
+    showToast('🚀 เริ่มสร้าง PDF ทั้งหมด', `ระบบกำลังประมวลผล ${dashboardData.length} รายการในเบื้องหลัง...`, 'info', 10000);
+    closeDashboardModal();
 
-    showLoading(`เริ่มกระบวนการสร้าง PDF ทั้งหมด (0/${dashboardData.length})...`);
+    // ทำงานเบื้องหลัง
+    (async () => {
+        let successCount = 0;
+        let errorCount = 0;
 
-    for (let i = 0; i < dashboardData.length; i++) {
-        const r = dashboardData[i];
-        updateLoadingText(`กำลังสร้าง PDF รายการที่ ${i + 1}/${dashboardData.length}\n"${r.subject || r['ชื่อรายการที่ผลิต'] || 'ไม่ระบุชื่อ'}"`);
-        
-        try {
-            let tableData = [];
-            if (r.tableData || r.tableBody || r._tableData) {
-                try { tableData = JSON.parse(r.tableData || r.tableBody || r._tableData); } 
-                catch(e) { tableData = [r]; }
-            } else { tableData = [r]; }
+        for (let i = 0; i < dashboardData.length; i++) {
+            const r = dashboardData[i];
+            try {
+                let tableData = [];
+                if (r.tableData || r.tableBody || r._tableData) {
+                    try { tableData = JSON.parse(r.tableData || r.tableBody || r._tableData); } 
+                    catch(e) { tableData = [r]; }
+                } else { tableData = [r]; }
 
-            const response = await fetch(url, { 
-                method: 'POST', 
-                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                body: JSON.stringify({ 
-                    action: 'generate', 
-                    formId: formId, 
-                    data: r, 
-                    tableData: tableData, 
-                    rowIndex: r._rowIndex 
-                }) 
-            });
-            const result = await response.json();
-            if (result.status === 'success') {
-                successList.push(result.data);
-                addResultLink(result.data.url, result.data.name);
-            } else {
-                errorList.push({ name: r.subject || `แถวที่ ${r._rowIndex}`, message: result.message });
-            }
-        } catch (err) {
-            errorList.push({ name: r.subject || `แถวที่ ${r._rowIndex}`, message: err.message });
+                const response = await fetch(url, { 
+                    method: 'POST', 
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({ action: 'generate', formId, data: r, tableData, rowIndex: r._rowIndex }) 
+                });
+                const result = await response.json();
+                if (result.status === 'success') {
+                    successCount++;
+                    // แจ้งเตือนความคืบหน้าทุกๆ 5 รายการ หรือรายการสุดท้าย
+                    if (successCount % 5 === 0 || i === dashboardData.length - 1) {
+                        showToast('⏳ ความคืบหน้า', `สร้างสำเร็จแล้ว ${successCount}/${dashboardData.length} รายการ`, 'info');
+                    }
+                } else { errorCount++; }
+            } catch (err) { errorCount++; }
         }
-    }
 
-    hideLoading();
-    
-    let summaryHtml = `<div style="text-align:left;">`;
-    summaryHtml += `<p style="font-weight:700; color:var(--success);">✅ สร้างสำเร็จ: ${successList.length} รายการ</p>`;
-    
-    // เพิ่มปุ่มรวมไฟล์ถ้ามีมากกว่า 1 ไฟล์
-    if (successList.length > 1) {
-        summaryHtml += `<button type="button" class="btn-pdf-all" style="width:100%; margin-bottom:15px; background:var(--primary);" onclick='mergeAllGeneratedPDFs(${JSON.stringify(successList.map(s => s.url))})'>📄 รวมไฟล์ทั้งหมดเป็นไฟล์เดียว (.pdf)</button>`;
-    }
-
-    if (errorList.length > 0) summaryHtml += `<p style="font-weight:700; color:var(--error);">❌ ผิดพลาด: ${errorList.length} รายการ</p>`;
-    
-    summaryHtml += `<div style="max-height:200px; overflow-y:auto; margin-top:15px; border:1px solid #f1f5f9; padding:15px; border-radius:12px; background:#f8fafc; font-size:0.85rem;">`;
-    successList.forEach(s => {
-        summaryHtml += `<div style="margin-bottom:8px; border-bottom:1px solid #eee; padding-bottom:4px;">✔️ <a href="${s.url}" target="_blank" style="color:var(--primary); text-decoration:none;">${s.name}</a></div>`;
-    });
-    errorList.forEach(e => {
-        summaryHtml += `<div style="margin-bottom:8px; color:var(--error); border-bottom:1px solid #eee; padding-bottom:4px;">✖️ ${e.name}: ${e.message}</div>`;
-    });
-    summaryHtml += `</div></div>`;
-
-    showModal('🏁 กระบวนการเสร็จสิ้น', summaryHtml, false, '✨');
+        showToast('🏁 กระบวนการเสร็จสิ้น', `สร้างสำเร็จ ${successCount} รายการ ${errorCount > 0 ? `(ผิดพลาด ${errorCount})` : ''}`, successCount > 0 ? 'success' : 'error', 15000);
+    })();
 }
 
 // --- PDF MERGE SYSTEM ---

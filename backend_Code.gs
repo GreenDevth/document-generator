@@ -107,17 +107,28 @@ function createPDF(formConfig, rowData, isPreview, tableData, cleanId) {
       }
     }
 
-    // หากเป็น 034 (แบบกลุ่ม)
-    if (cleanId === '034' && tableData && tableData.length > 0) {
-      tableData.forEach((row, i) => {
-        const idx = i + 1;
-        // ปรับปรุง: เฉพาะกรณีที่มีค่าส่งมาจริงๆ เท่านั้นถึงจะทับ (ป้องกันการเอาค่าว่างไปทับรายการที่ 1 ที่มีอยู่ใน rowData อยู่แล้ว)
-        if (row.format || row['รูปแบบสื่อ']) finalData['format' + idx] = row.format || row['รูปแบบสื่อ'];
-        if (row.ep || row['ตอน']) finalData['ep' + idx] = row.ep || row['ตอน'];
-        if (row.teach || row['วิทยากร']) finalData['teach' + idx] = row.teach || row['วิทยากร'];
-        if (row.dur || row['ความยาว']) finalData['dur' + idx] = row.dur || row['ความยาว'];
-        if (row.dma || row['ผลิตแล้วเสร็จวันที่']) finalData['dma' + idx] = row.dma || row['ผลิตแล้วเสร็จวันที่'];
-      });
+    // หากเป็น 034 (แบบกลุ่ม) - ปรับปรุงให้ดึงข้อมูลได้ทั้งแบบแยกแถวและรวบแถว
+    if (cleanId === '034') {
+      const firstRow = (tableData && tableData.length > 0) ? tableData[0] : {};
+      
+      for (let idx = 1; idx <= 11; idx++) {
+        // ดึงค่าจากแถวที่ i (ถ้ามี) หรือดึงจากคอลัมน์ที่มีตัวเลขกำกับ (เช่น format1, format2)
+        const row = (tableData && tableData[idx-1]) ? tableData[idx-1] : {};
+        
+        finalData['format' + idx] = row.format || row['รูปแบบสื่อ'] || firstRow['format' + idx] || firstRow['รูปแบบสื่อ' + idx] || "";
+        finalData['ep' + idx] = row.ep || row['ตอน'] || firstRow['ep' + idx] || firstRow['ตอน' + idx] || "";
+        finalData['teach' + idx] = row.teach || row['วิทยากร'] || firstRow['teach' + idx] || firstRow['วิทยากร' + idx] || "";
+        finalData['dur' + idx] = row.dur || row['ความยาว'] || firstRow['dur' + idx] || firstRow['ความยาว' + idx] || "";
+        
+        let dmaVal = row.dma || row['ผลิตแล้วเสร็จวันที่'] || firstRow['dma' + idx] || firstRow['ผลิตแล้วเสร็จวันที่' + idx] || "";
+        // แปลงรูปแบบวันที่
+        if (dmaVal instanceof Date) {
+          const dmaStr = Utilities.formatDate(dmaVal, "GMT+7", "dd/MM/yyyy");
+          const p = dmaStr.split('/');
+          dmaVal = `${p[0]}/${p[1]}/${parseInt(p[2]) + 543}`;
+        }
+        finalData['dma' + idx] = dmaVal;
+      }
     }
 
     // จัดการ Checkbox (แบบเรียบง่ายตามรูปที่ 2)
@@ -276,34 +287,36 @@ function getRecentData(formId) {
   const records = d.map((r, idx) => {
     const obj = { _rowIndex: startRow + idx };
     allHeaders.forEach((h, i) => {
-      if (!h) return;
-      let val = r[i]; // เริ่มต้นด้วยค่าที่เห็นในหน้า Sheet
-      let raw = v[idx][i];
+      const cleanHeader = h ? h.toString().trim() : "";
+      if (!cleanHeader) return;
+      
+      let val = r[i]; // ค่าที่เห็นในหน้า Sheet (Display Value)
+      let raw = v[idx][i]; // ค่าจริง (Raw Value)
 
-      // กรณีพิเศษ: ถ้าค่าดิบเป็น Date Object (Google มักจะแปลง Duration เป็น Date)
-      if (raw instanceof Date && raw.getFullYear() < 1905) {
-        // คำนวณเวลาใหม่เองเพื่อป้องกัน Timezone เพี้ยน
-        const hh = raw.getHours();
-        const mm = raw.getMinutes();
-        const ss = raw.getSeconds();
-        if (hh > 0) {
-          // ถ้ามีชั่วโมง: โชว์ hh:mm (และ :ss ถ้ามีวินาทีที่ไม่ใช่ 0)
-          val = hh + ":" + (mm < 10 ? "0" + mm : mm);
-          if (ss > 0) val += ":" + (ss < 10 ? "0" + ss : ss);
+      // ปรับปรุง: ถ้าเป็นวันที่ ให้แปลงเป็นรูปแบบไทยทันทีป้องกัน ISO Format
+      if (raw instanceof Date) {
+        if (raw.getFullYear() < 1905) {
+          // จัดการเวลา/Duration
+          const hh = raw.getHours();
+          const mm = raw.getMinutes();
+          const ss = raw.getSeconds();
+          val = (hh > 0 ? hh + ":" : "") + (mm < 10 && hh > 0 ? "0" + mm : mm) + ":" + (ss < 10 ? "0" + ss : ss);
         } else {
-          // ถ้าไม่มีชั่วโมง: โชว์ m:ss
-          val = mm + ":" + (ss < 10 ? "0" + ss : ss);
+          // จัดการวันที่ (พ.ศ.)
+          val = Utilities.formatDate(raw, "GMT+7", "dd/MM/yyyy");
+          const p = val.split('/');
+          val = `${p[0]}/${p[1]}/${parseInt(p[2]) + 543}`;
         }
       }
       
       // ถ้าเป็น 0:00 ให้โชว์เป็นขีด
       if (val === "0:00" || val === "00:00" || val === "0:00:00") val = "-";
       
-      obj[h] = val;
+      obj[cleanHeader] = val;
     });
     return obj;
   });
-  const cleanHeaders = allHeaders.filter(h => h && h.toString().trim() !== "");
+  const cleanHeaders = allHeaders.filter(h => h && h.toString().trim() !== "").map(h => h.toString().trim());
   return createJsonResponse('success', { records, headers: cleanHeaders });
 }
 
