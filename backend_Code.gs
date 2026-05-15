@@ -406,3 +406,34 @@ function authorizeProject() {
   DriveApp.getFileById(pres.getId()).setTrashed(true);
   Logger.log('ยินดีด้วย! คุณอนุญาตสิทธิ์ระบบ Slides เรียบร้อยแล้วครับ');
 }
+function batchUpdateRowsInSheet(formId, updates) {
+  if (!updates || !Array.isArray(updates)) return { status: 'error', message: 'ไม่มีข้อมูลอัปเดต' };
+  const { sheet } = getTargetSheet(formId);
+  if (!sheet) return { status: 'error', message: 'ไม่พบ Sheet' };
+  
+  const allHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  
+  updates.forEach(u => {
+    const rowIndex = u.rowIndex;
+    const data = u.data;
+    if (!rowIndex || !data) return;
+    
+    const rowRange = sheet.getRange(rowIndex, 1, 1, sheet.getLastColumn());
+    const rowValues = rowRange.getValues()[0];
+    
+    allHeaders.forEach((h, i) => {
+      if (h && data[h] !== undefined) {
+        let val = data[h];
+        if (typeof val === 'string' && val.includes('T') && val.includes('Z') && val.length > 15) {
+           const d = new Date(val);
+           if (!isNaN(d.getTime())) val = Utilities.formatDate(d, "GMT+7", "dd/MM/yyyy");
+        }
+        rowValues[i] = val;
+      }
+    });
+    rowRange.setValues([rowValues]);
+  });
+  return { status: 'success', count: updates.length };
+}
+
+// ... (คงเดิม)

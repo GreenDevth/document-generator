@@ -184,7 +184,8 @@ function renderFields(headers, formId) {
 }
 
 function renderGrid034(headers) {
-    const basicHeaders = headers.filter(h => !['ep', 'teach', 'dur', 'dma', 'format'].some(k => h.toLowerCase().includes(k)));
+    const tableKeywords = ['ep', 'teach', 'dur', 'dma', 'format', 'ตอน', 'วิทยากร', 'ความยาว', 'ผลิตแล้วเสร็จ', 'รูปแบบสื่อ'];
+    const basicHeaders = headers.filter(h => !tableKeywords.some(k => h.toLowerCase().includes(k)));
     const cbHeaders = basicHeaders.filter(h => h.toLowerCase().startsWith('cb') || checkboxConfig[h]);
     const regularHeaders = basicHeaders.filter(h => !cbHeaders.includes(h));
 
@@ -482,9 +483,9 @@ function displayHistoryModal(records, headers = []) {
         displayHeaders = Object.keys(records[0]).filter(k => k !== '_rowIndex');
     }
     
-    // กรองคอลัมน์ที่ไม่ต้องการโชว์ และจำกัดจำนวนคอลัมน์เพื่อความสวยงาม
+    // กรองคอลัมน์ที่ไม่ต้องการโชว์ และจำกัดจำนวนคอลัมน์ (เพิ่มเป็น 100 เพื่อให้ 03-4 แสดงครบ)
     const exclude = ['tabledata', 'tablebody', '_tabledata', 'id', 'createdat'];
-    displayHeaders = displayHeaders.filter(h => h && h.toString().trim() !== "" && !exclude.includes(h.toLowerCase())).slice(0, 30);
+    displayHeaders = displayHeaders.filter(h => h && h.toString().trim() !== "" && !exclude.includes(h.toLowerCase())).slice(0, 100);
     
     headerRow.innerHTML = `<th>ลำดับ</th>`;
     displayHeaders.forEach(h => {
@@ -621,9 +622,22 @@ function renderDashTable(records, headers, dashboardFormId = null) {
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
             สร้างไฟล์ PDF รวบยอด (034)
         `;
-        globalBtn.onclick = generateBatchPDF034; // ผูกฟังก์ชันโดยตรง
+        globalBtn.onclick = generateBatchPDF034; 
         searchContainer.appendChild(globalBtn);
     }
+
+    // เพิ่มปุ่มบันทึกทั้งหมด (Save All)
+    const existingSaveAllBtn = document.getElementById('btnSaveAllDash');
+    if (existingSaveAllBtn) existingSaveAllBtn.remove();
+    const saveAllBtn = document.createElement('button');
+    saveAllBtn.type = 'button';
+    saveAllBtn.id = 'btnSaveAllDash';
+    saveAllBtn.className = 'btn-save-all';
+    saveAllBtn.style.backgroundColor = '#8b5cf6'; // สีม่วงสวยๆ
+    saveAllBtn.style.color = 'white';
+    saveAllBtn.innerHTML = '💾 บันทึกการเปลี่ยนแปลงทั้งหมด';
+    saveAllBtn.onclick = saveAllRecordsInline;
+    searchContainer.appendChild(saveAllBtn);
 }
 
 async function generateBatchPDF034() {
@@ -700,6 +714,71 @@ async function saveRecordInline(idx) {
         if (json.status === 'success') {
             dashboardData[idx] = updatedData; // Update Local State
             showModal('✅ บันทึกสำเร็จ', `อัปเดตข้อมูลแถวที่ ${idx + 1} เรียบร้อยแล้วครับ`, false, '✨');
+        } else { throw new Error(json.message); }
+    } catch (e) { showModal('❌ ผิดพลาด', e.message, false, null, '⚠️'); }
+    finally { hideLoading(); }
+}
+
+async function saveAllRecordsInline() {
+    const rows = document.querySelectorAll('#dashBody tr');
+    const updates = [];
+    const url = scriptUrlInput.value.trim();
+    const formId = formTypeSelect.value;
+
+    rows.forEach((tr, idx) => {
+        const inputs = tr.querySelectorAll('.dash-inline-input');
+        if (inputs.length === 0) return;
+        
+        const originalData = dashboardData[idx];
+        const updatedData = { ...originalData };
+        let hasChanged = false;
+
+        inputs.forEach(input => {
+            const field = input.dataset.field;
+            if (updatedData[field] !== input.value) {
+                updatedData[field] = input.value;
+                hasChanged = true;
+                // Mapping กลับสำหรับคีย์ภาษาไทย
+                if (field === 'subject') updatedData['ชื่อรายการที่ผลิต'] = input.value;
+                if (field === 'ep') updatedData['ตอน'] = input.value;
+                if (field === 'teach') updatedData['วิทยากร/ผู้บรรยาย'] = input.value;
+                if (field === 'dma') updatedData['วันผลิตแล้วเสร็จ'] = input.value;
+            }
+        });
+
+        if (hasChanged) {
+            updates.push({
+                rowIndex: originalData._rowIndex,
+                data: updatedData,
+                localIndex: idx
+            });
+        }
+    });
+
+    if (updates.length === 0) {
+        showModal('ℹ️ แจ้งเตือน', 'ไม่พบการเปลี่ยนแปลงข้อมูลในตารางครับ', false, '💡');
+        return;
+    }
+
+    if (!await showModal('💾 ยืนยันการบันทึก', `ต้องการบันทึกการเปลี่ยนแปลงทั้งหมด ${updates.length} รายการใช่หรือไม่?`, true, '❓')) return;
+
+    showLoading(`กำลังบันทึกข้อมูล ${updates.length} รายการ...`);
+    try {
+        const response = await fetch(url, {
+            method: 'POST',
+            body: JSON.stringify({
+                action: 'batchUpdateRows',
+                formId: formId,
+                updates: updates
+            })
+        });
+        const json = await response.json();
+        if (json.status === 'success') {
+            // Update Local State
+            updates.forEach(u => {
+                dashboardData[u.localIndex] = u.data;
+            });
+            showModal('✅ บันทึกสำเร็จ', `อัปเดตข้อมูลทั้งหมด ${updates.length} รายการเรียบร้อยแล้วครับ`, false, '✨');
         } else { throw new Error(json.message); }
     } catch (e) { showModal('❌ ผิดพลาด', e.message, false, null, '⚠️'); }
     finally { hideLoading(); }
@@ -783,7 +862,7 @@ function editRecord(idx) {
             if(e) e.value = fmt(data.ep || data['ตอน'] || r[`ep${r}`] || r[`ตอน${r}`]);
             if(t) t.value = fmt(data.teach || data['วิทยากร/ผู้บรรยาย'] || data['วิทยากร'] || r[`teach${r}`] || r[`วิทยากร${r}`]);
             if(d) d.value = fmt(data.dur || data['ความยาว'] || data['ความยาวรายการ (นาที)'] || r[`dur${r}`] || r[`ความยาว${r}`]).toString().replace(' ชม.', '');
-            if(a) a.value = fmt(data.dma || data['ผลิตแล้วเสร็จวันที่'] || data['วันผลิตแล้วเสร็จ'] || r[`dma${r}`] || r[`วันผลิตแล้วเสร็จ${r}`]);
+            if(a) a.value = fmt(data.dma || data.sucdate || data['วันผลิตแล้วเสร็จ'] || data['ผลิตแล้วเสร็จวันที่'] || r[`dma${r}`] || r[`sucdate${r}`] || r[`วันผลิตแล้วเสร็จ${r}`] || r[`ผลิตแล้วเสร็จวันที่${r}`]);
         }
     } else {
         // กู้คืนตารางโหนด (ฟอร์มอื่น)
