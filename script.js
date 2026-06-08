@@ -95,9 +95,13 @@ function calcNextDate(day, monthThai, yearBE, daysToAdd) {
 }
 
 formTypeSelect.addEventListener('change', async () => {
+    await loadFormSchema(formTypeSelect.value);
+});
+
+// ฟังก์ชัน Asynchronous ดึงโครงสร้าง Schema ฟอร์ม (แก้ไข Race Condition)
+async function loadFormSchema(formId) {
     const url = scriptUrlInput.value.trim();
-    const formId = formTypeSelect.value;
-    if (!url || !formId || formId === "-- เลือกแบบฟอร์ม --") return;
+    if (!url || !formId || formId === "-- เลือกแบบฟอร์ม --") return false;
     showLoading('กำลังดึงโครงสร้างข้อมูล...');
     try {
         const response = await fetch(url, {
@@ -110,9 +114,14 @@ formTypeSelect.addEventListener('change', async () => {
             renderFields(json.data.headers, formId);
             dynamicSection.classList.add('active');
             hideLoading();
+            return true;
         } else { throw new Error(json.message); }
-    } catch (err) { hideLoading(); showModal('❌ ผิดพลาด', err.message, false, null, '⚠️'); }
-});
+    } catch (err) { 
+        hideLoading(); 
+        showModal('❌ ผิดพลาด', err.message, false, null, '⚠️'); 
+        return false;
+    }
+}
 
 function renderFields(headers, formId) {
     currentHeaders = headers;
@@ -534,9 +543,9 @@ function renderDashTable(records, headers, dashboardFormId = null) {
                             const day = d.getUTCDate().toString().padStart(2, '0');
                             const month = (d.getUTCMonth() + 1).toString().padStart(2, '0');
                             const year = d.getUTCFullYear();
-                            // หมายเหตุ: ปีใน Spreadsheet เป็น พ.ศ. อยู่แล้ว หรืออาจต้อง +543 ถ้าเป็น ค.ศ.
-                            // แต่ปกติ GAS จะส่งปี พ.ศ. มาเป็นตัวเลขที่ถูกต้องแล้ว
-                            val = `${day}/${month}/${year}`;
+                            // หากเป็น ค.ศ. (< 2400) ให้บวก 543 เพื่อทำเป็น พ.ศ. หากเป็น พ.ศ. อยู่แล้วให้คงไว้
+                            const beYear = year < 2400 ? year + 543 : year;
+                            val = `${day}/${month}/${beYear}`;
                         }
                     }
                 } catch(e) {}
@@ -773,14 +782,15 @@ function filterDashboard() {
     renderDashTable(filtered);
 }
 
-function editRecord(idx) {
+async function editRecord(idx) {
     const r = dashboardData[idx];
     const fid = currentDashFormId || formTypeSelect.value.toString().trim();
     
-    // ตั้งค่าประเภทฟอร์มหลักให้ตรงกับที่เลือกใน Dashboard
+    // ตั้งค่าประเภทฟอร์มหลักให้ตรงกับที่เลือกใน Dashboard และรอโหลด Schema เสร็จสิ้นป้องกัน Race Condition
     if (formTypeSelect.value !== fid) {
         formTypeSelect.value = fid;
-        formTypeSelect.dispatchEvent(new Event('change'));
+        const success = await loadFormSchema(fid);
+        if (!success) return;
     }
 
     currentEditRowIndex = r._rowIndex;
@@ -807,7 +817,12 @@ function editRecord(idx) {
                         const ss = d.getSeconds();
                         return hh + ":" + (mm < 10 ? "0" + mm : mm) + (ss > 0 ? ":" + (ss < 10 ? "0" + ss : ss) : "");
                     }
-                    return d.toLocaleDateString('th-TH');
+                    // จัดการแสดงผลปี พ.ศ. โดยไม่บวกปี 543 ซ้ำสอง
+                    const day = d.getDate().toString().padStart(2, '0');
+                    const month = (d.getMonth() + 1).toString().padStart(2, '0');
+                    const year = d.getFullYear();
+                    const beYear = year < 2400 ? year + 543 : year;
+                    return `${day}/${month}/${beYear}`;
                 }
             } catch(e) {}
         }

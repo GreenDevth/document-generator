@@ -126,7 +126,9 @@ function createPDF(formConfig, rowData, isPreview, tableData, cleanId) {
         if (isDate(dmaVal)) {
           const dmaStr = Utilities.formatDate(dmaVal, "GMT+7", "dd/MM/yyyy");
           const p = dmaStr.split('/');
-          dmaVal = `${p[0]}/${p[1]}/${parseInt(p[2]) + 543}`;
+          const year = parseInt(p[2]);
+          // หากปีเป็น พ.ศ. อยู่แล้ว (>= 2400) ไม่ต้องบวก 543 เพิ่มอีก
+          dmaVal = `${p[0]}/${p[1]}/${year < 2400 ? year + 543 : year}`;
         }
         finalData['dma' + idx] = dmaVal;
       }
@@ -318,7 +320,9 @@ function getRecentData(formId) {
           // จัดการวันที่ (พ.ศ.)
           val = Utilities.formatDate(raw, "GMT+7", "dd/MM/yyyy");
           const p = val.split('/');
-          val = `${p[0]}/${p[1]}/${parseInt(p[2]) + 543}`;
+          const year = parseInt(p[2]);
+          // ปรับปรุง: ตรวจสอบปี หากเป็น พ.ศ. อยู่แล้ว (>= 2400) จะไม่นำไปบวกเพิ่มซ้ำสอง
+          val = `${p[0]}/${p[1]}/${year < 2400 ? year + 543 : year}`;
         }
       }
       
