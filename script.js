@@ -602,7 +602,8 @@ async function generateBatchPDF034() {
     alert('กำลังเตรียมสร้าง PDF รวบยอดจากตาราง Dashboard ครับ...');
     try {
         const url = scriptUrlInput.value.trim();
-        const formId = formTypeSelect.value.toString().trim();
+        // ดึงจากแผ่นงานหลักของ Dashboard หรือดึงจากหน้าแรกหากไม่มี
+        const formId = (currentDashFormId || formTypeSelect.value).toString().trim();
         const rows = document.querySelectorAll('#dashBody tr');
         const tableData = [];
         
@@ -663,7 +664,7 @@ async function saveRecordInline(idx) {
             method: 'POST',
             body: JSON.stringify({
                 action: 'updateRow',
-                formId: formTypeSelect.value,
+                formId: currentDashFormId || formTypeSelect.value,
                 rowIndex: r._rowIndex,
                 data: updatedData
             })
@@ -681,7 +682,8 @@ async function saveAllRecordsInline() {
     const rows = document.querySelectorAll('#dashBody tr');
     const updates = [];
     const url = scriptUrlInput.value.trim();
-    const formId = formTypeSelect.value;
+    // ใช้รหัสฟอร์มของ Dashboard ที่เลือกอยู่
+    const formId = currentDashFormId || formTypeSelect.value;
 
     rows.forEach((tr, idx) => {
         const inputs = tr.querySelectorAll('.dash-inline-input');
@@ -885,7 +887,8 @@ async function deleteRecord(idx) {
 async function generateRecordPDF(idx) {
     const r = dashboardData[idx];
     const url = scriptUrlInput.value.trim();
-    const formId = formTypeSelect.value;
+    // ใช้รหัสฟอร์มจากแท็บที่เลือกใน Dashboard ปัจจุบันเพื่อความถูกต้อง
+    const formId = currentDashFormId || formTypeSelect.value;
     
     let tableData = null;
     let mainData = { ...r };
