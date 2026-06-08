@@ -52,8 +52,9 @@ function getSchema(formId) {
 }
 
 function handlePDFRequest(request) {
-  const { action, formId, data, rowIndex, tableData } = request;
-  const isPreview = (action === 'preview');
+  const { action, formId, data, rowIndex, tableData, skipSave } = request;
+  // หากมี skipSave เป็น true ให้ทำงานในโหมดไม่บันทึกข้อมูล (เหมือน Preview)
+  const isPreview = (action === 'preview') || (skipSave === true);
   const { sheet, cleanId } = getTargetSheet(formId);
   const formConfig = CONFIG.FORMS[cleanId];
   
@@ -233,37 +234,49 @@ function fillSlidesTable(presentation, tableData) {
 
 function saveToSheet(sheet, baseData, rowIndex, tableData) {
   const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  
+  // จัดเตรียมข้อมูลของแถวที่จะเซฟ
+  let rows = [];
   if (tableData && Array.isArray(tableData) && tableData.length > 0) {
-    const rows = tableData.map(item => {
+    rows = tableData.map(item => {
       const merged = { ...baseData, ...item };
-      return headers.map(h => {
-        const key = h.toString().trim();
-        let val = merged[key] || merged[key.toLowerCase()];
-        if (val === undefined) {
-          const match = Object.keys(merged).find(k => k.toLowerCase() === key.toLowerCase());
-          val = match ? merged[match] : "";
-        }
-        
-        // --- ปรับปรุง: ตรวจสอบและแปลง ISO Date String กลับเป็นวันที่ปกติก่อนลง Sheet ---
-        if (typeof val === 'string' && val.includes('T') && val.includes('Z') && val.length > 15) {
-          try {
-            const d = new Date(val);
-            if (!isNaN(d.getTime())) {
-              // ถ้าปี < 1905 มักจะเป็น Duration หรือเวลาเฉยๆ ให้คงไว้ หรือถ้าเป็นวันที่ให้แปลงเป็น dd/MM/yyyy
-              val = (d.getFullYear() < 1905) ? Utilities.formatDate(d, "GMT+7", "H:mm") : Utilities.formatDate(d, "GMT+7", "dd/MM/yyyy");
-            }
-          } catch(e) {}
-        }
-
-        return Array.isArray(val) ? val.join(', ') : (val || "");
-      });
+      return mapRowToHeaders(headers, merged);
     });
-    if (rowIndex <= 0) {
-      rows.forEach(r => { sheet.appendRow(r); SpreadsheetApp.flush(); });
-    } else {
-      sheet.getRange(rowIndex, 1, 1, headers.length).setValues([rows[0]]);
-    }
+  } else {
+    // หากเป็นฟอร์มเดี่ยวที่ไม่มีข้อมูลตารางย่อย (เช่น 031) ให้บันทึกข้อมูลหลัก 1 แถว
+    rows = [mapRowToHeaders(headers, baseData)];
   }
+
+  if (rowIndex <= 0) {
+    rows.forEach(r => { sheet.appendRow(r); SpreadsheetApp.flush(); });
+  } else {
+    sheet.getRange(rowIndex, 1, 1, headers.length).setValues([rows[0]]);
+  }
+}
+
+// ฟังก์ชันสำหรับจัดรูปคอลัมน์ของแถวตามหัวตาราง (Helper)
+function mapRowToHeaders(headers, rowData) {
+  return headers.map(h => {
+    const key = h.toString().trim();
+    let val = rowData[key] || rowData[key.toLowerCase()];
+    if (val === undefined) {
+      const match = Object.keys(rowData).find(k => k.toLowerCase() === key.toLowerCase());
+      val = match ? rowData[match] : "";
+    }
+    
+    // --- ปรับปรุง: ตรวจสอบและแปลง ISO Date String กลับเป็นวันที่ปกติก่อนลง Sheet ---
+    if (typeof val === 'string' && val.includes('T') && val.includes('Z') && val.length > 15) {
+      try {
+        const d = new Date(val);
+        if (!isNaN(d.getTime())) {
+          // ถ้าปี < 1905 มักจะเป็น Duration หรือเวลาเฉยๆ ให้คงไว้ หรือถ้าเป็นวันที่ให้แปลงเป็น dd/MM/yyyy
+          val = (d.getFullYear() < 1905) ? Utilities.formatDate(d, "GMT+7", "H:mm") : Utilities.formatDate(d, "GMT+7", "dd/MM/yyyy");
+        }
+      } catch(e) {}
+    }
+
+    return Array.isArray(val) ? val.join(', ') : (val || "");
+  });
 }
 
 function createJsonResponse(status, data, message = "") {

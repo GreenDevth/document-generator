@@ -636,7 +636,14 @@ async function generateBatchPDF034() {
         const response = await fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-            body: JSON.stringify({ action: 'generate', formId, data: tableData[0], tableData, rowIndex: 0 })
+            body: JSON.stringify({ 
+                action: 'generate', 
+                formId, 
+                data: tableData[0], 
+                tableData, 
+                rowIndex: 0,
+                skipSave: true // ป้องกันการเขียนทับชีตสำหรับการสร้าง PDF รวบยอด
+            })
         });
         const result = await response.json();
         if (result.status === 'success') {
@@ -933,7 +940,8 @@ async function generateRecordPDF(idx) {
                 formId: formId, 
                 data: mainData, 
                 tableData: tableData, 
-                rowIndex: r._rowIndex 
+                rowIndex: r._rowIndex,
+                skipSave: true // ป้องกันการเขียนทับข้อมูลเดิมในชีตเมื่อสั่งสร้าง PDF จาก Dashboard
             }) 
         });
         const result = await response.json();
@@ -1196,7 +1204,14 @@ async function generateAllPDFs() {
                 const response = await fetch(url, { 
                     method: 'POST', 
                     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                    body: JSON.stringify({ action: 'generate', formId, data: r, tableData, rowIndex: r._rowIndex }) 
+                    body: JSON.stringify({ 
+                        action: 'generate', 
+                        formId, 
+                        data: r, 
+                        tableData, 
+                        rowIndex: r._rowIndex,
+                        skipSave: true // ป้องกันการเขียนทับข้อมูลเดิมในชีตเมื่อสั่งสร้าง PDF ทั้งหมดจาก Dashboard
+                    }) 
                 });
                 const result = await response.json();
                 if (result.status === 'success') {
