@@ -519,17 +519,25 @@ function renderDashTable(records, headers, dashboardFormId = null) {
             const headerStr = h.toString();
             let val = r[headerStr] || "";
             
-            // --- LOGIC: แปลงค่าวันที่ ISO ให้เป็นรูปแบบไทย ---
+            // --- LOGIC: แปลงค่าวันที่ ISO ให้เป็นรูปแบบไทย หรือแสดงผลเป็นระยะเวลา (Duration) ---
             if (typeof val === 'string' && val.includes('T') && val.endsWith('Z')) {
                 try {
                     const d = new Date(val);
                     if (!isNaN(d.getTime())) {
-                        const day = d.getUTCDate().toString().padStart(2, '0');
-                        const month = (d.getUTCMonth() + 1).toString().padStart(2, '0');
-                        const year = d.getUTCFullYear();
-                        // หมายเหตุ: ปีใน Spreadsheet เป็น พ.ศ. อยู่แล้ว หรืออาจต้อง +543 ถ้าเป็น ค.ศ.
-                        // แต่ปกติ GAS จะส่งปี พ.ศ. มาเป็นตัวเลขที่ถูกต้องแล้ว
-                        val = `${day}/${month}/${year}`;
+                        if (d.getFullYear() < 1905) {
+                            // จัดการฟอร์แมตระยะเวลาตามเขตเวลาท้องถิ่นเพื่อดึงเวลาจริง (h:mm หรือ hh:mm)
+                            const hh = d.getHours();
+                            const mm = d.getMinutes();
+                            const ss = d.getSeconds();
+                            val = hh + ":" + (mm < 10 ? "0" + mm : mm) + (ss > 0 ? ":" + (ss < 10 ? "0" + ss : ss) : "");
+                        } else {
+                            const day = d.getUTCDate().toString().padStart(2, '0');
+                            const month = (d.getUTCMonth() + 1).toString().padStart(2, '0');
+                            const year = d.getUTCFullYear();
+                            // หมายเหตุ: ปีใน Spreadsheet เป็น พ.ศ. อยู่แล้ว หรืออาจต้อง +543 ถ้าเป็น ค.ศ.
+                            // แต่ปกติ GAS จะส่งปี พ.ศ. มาเป็นตัวเลขที่ถูกต้องแล้ว
+                            val = `${day}/${month}/${year}`;
+                        }
                     }
                 } catch(e) {}
             }
@@ -786,9 +794,11 @@ function editRecord(idx) {
                 const d = new Date(v);
                 if (!isNaN(d.getTime())) {
                     if (d.getFullYear() < 1905) {
-                        const hh = d.getUTCHours();
-                        const mm = d.getUTCMinutes();
-                        return (hh > 0 ? hh + ":" : "") + (mm < 10 && hh > 0 ? "0" + mm : mm);
+                        // ปรับปรุง: ใช้เวลาแบบท้องถิ่น (Local Timezone) เพื่อให้ได้ค่าตรงกับในชีตจริง
+                        const hh = d.getHours();
+                        const mm = d.getMinutes();
+                        const ss = d.getSeconds();
+                        return hh + ":" + (mm < 10 ? "0" + mm : mm) + (ss > 0 ? ":" + (ss < 10 ? "0" + ss : ss) : "");
                     }
                     return d.toLocaleDateString('th-TH');
                 }

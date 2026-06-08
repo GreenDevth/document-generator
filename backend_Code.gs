@@ -122,7 +122,7 @@ function createPDF(formConfig, rowData, isPreview, tableData, cleanId) {
         
         let dmaVal = row.dma || row['ผลิตแล้วเสร็จวันที่'] || firstRow['dma' + idx] || firstRow['ผลิตแล้วเสร็จวันที่' + idx] || "";
         // แปลงรูปแบบวันที่
-        if (dmaVal instanceof Date) {
+        if (isDate(dmaVal)) {
           const dmaStr = Utilities.formatDate(dmaVal, "GMT+7", "dd/MM/yyyy");
           const p = dmaStr.split('/');
           dmaVal = `${p[0]}/${p[1]}/${parseInt(p[2]) + 543}`;
@@ -151,7 +151,7 @@ function createPDF(formConfig, rowData, isPreview, tableData, cleanId) {
       if (k && v !== undefined) {
         let valStr = "";
         
-        if (v instanceof Date) {
+        if (isDate(v)) {
           valStr = (v.getFullYear() < 1905) ? Utilities.formatDate(v, "GMT+7", "H:mm") : Utilities.formatDate(v, "GMT+7", "dd/MM/yyyy");
         } else if (typeof v === 'string' && v.includes('T') && v.includes('Z') && v.length > 15) {
           try {
@@ -293,8 +293,8 @@ function getRecentData(formId) {
       let val = r[i]; // ค่าที่เห็นในหน้า Sheet (Display Value)
       let raw = v[idx][i]; // ค่าจริง (Raw Value)
 
-      // ปรับปรุง: ถ้าเป็นวันที่ ให้แปลงเป็นรูปแบบไทยทันทีป้องกัน ISO Format
-      if (raw instanceof Date) {
+      // ปรับปรุง: ถ้าเป็นวันที่ ให้แปลงเป็นรูปแบบไทยทันทีป้องกัน ISO Format (รวมถึงจัดการชนิดข้อมูลระยะเวลา)
+      if (isDate(raw)) {
         if (raw.getFullYear() < 1905) {
           // จัดการเวลา/Duration
           const hh = raw.getHours();
@@ -449,4 +449,7 @@ function batchUpdateRowsInSheet(formId, updates) {
   return { status: 'success', count: updates.length };
 }
 
-// ... (คงเดิม)
+// ตรวจสอบชนิดข้อมูล Date อย่างแม่นยำ (แก้ปัญหา V8 Engine prototype cross-context)
+function isDate(val) {
+  return val && (val instanceof Date || Object.prototype.toString.call(val) === '[object Date]');
+}
