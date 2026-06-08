@@ -44,11 +44,11 @@ const checkboxConfig = { 'checkbox': ['หน่วยจัดและผล�
 document.addEventListener('DOMContentLoaded', () => {
     const savedUrl = sessionStorage.getItem('scriptUrl');
     const isLoggedIn = sessionStorage.getItem('isLoggedIn');
-    
+
     // ตั้งค่า URL เริ่มต้นในหน้าล็อกอิน
     const scriptUrlInput = document.getElementById('scriptUrlInput');
     if (scriptUrlInput) {
-        scriptUrlInput.value = savedUrl || 'https://script.google.com/macros/s/AKfycbz9oaurUPmKICdUsGV34G_ahDBWhGLK6K5zirAHd2kbTP7Zx2XtniWI2189FszuKaIy/exec';
+        scriptUrlInput.value = savedUrl || 'https://script.google.com/macros/s/AKfycbydeCn_wKywlK6l9aRbcUZcjEbLfV1LweCCt7cfdk0Uwpx-ytDoIwiD5BUD2j7pjYXZ/exec';
     }
 
     if (isLoggedIn === 'true' && savedUrl) {
@@ -71,7 +71,7 @@ function setupEventListeners() {
             e.preventDefault();
             const password = document.getElementById('authPassword').value;
             const url = document.getElementById('scriptUrlInput').value.trim();
-            
+
             if (!url) {
                 showModal('⚠️ คำเตือน', 'กรุณาระบุ Apps Script Web App URL', false);
                 return;
@@ -85,7 +85,7 @@ function setupEventListeners() {
                     headers: { 'Content-Type': 'text/plain;charset=utf-8' }
                 });
                 const result = await response.json();
-                
+
                 if (result.status === 'success' && result.data.isCorrect) {
                     scriptUrl = url;
                     sessionStorage.setItem('scriptUrl', url);
@@ -128,7 +128,7 @@ function setupEventListeners() {
     // ปุ่มสลับแท็บภายใน Workspace
     const tabFormBtn = document.getElementById('tabFormBtn');
     const tabTableBtn = document.getElementById('tabTableBtn');
-    
+
     if (tabFormBtn && tabTableBtn) {
         tabFormBtn.onclick = () => switchWorkspaceView('form');
         tabTableBtn.onclick = () => switchWorkspaceView('table');
@@ -199,22 +199,19 @@ function setupEventListeners() {
 function showPage(pageId) {
     document.querySelectorAll('.page-section, .auth-container').forEach(el => {
         el.classList.remove('active');
+        // ล้างสไตล์ inline ที่ค้างอยู่เพื่อให้การควบคุมสลับหน้า SPA เป็นของ CSS Class ทั้งหมด
+        el.style.display = '';
     });
     const target = document.getElementById(pageId);
     if (target) {
-        if (pageId === 'loginPage') {
-            target.classList.add('active');
-        } else {
-            target.classList.add('active');
-            target.style.display = 'flex';
-        }
+        target.classList.add('active');
     }
 }
 
 function switchWorkspaceView(viewType) {
     document.querySelectorAll('.work-tab').forEach(tab => tab.classList.remove('active'));
     document.querySelectorAll('.workspace-view').forEach(view => view.classList.remove('active'));
-    
+
     if (viewType === 'form') {
         document.getElementById('tabFormBtn').classList.add('active');
         document.getElementById('formWorkspaceView').classList.add('active');
@@ -237,19 +234,19 @@ async function loadDynamicSheets() {
             headers: { 'Content-Type': 'text/plain;charset=utf-8' }
         });
         const json = await response.json();
-        
+
         if (json.status === 'success' && Array.isArray(json.data)) {
             grid.innerHTML = '';
-            
+
             // ดึงข้อมูลจำนวนแผ่นงานและสถิติรวมของระบบมาวาด
             let totalRows = 0;
             json.data.forEach(s => {
                 totalRows += s.rowCount;
-                
+
                 const card = document.createElement('div');
                 const cleanNum = s.baseFormId || '031';
                 card.className = `sheet-card form-${cleanNum}`;
-                
+
                 card.innerHTML = `
                     <div class="sheet-card-info">
                         <h3>FM สท.03-${cleanNum.substring(2)}</h3>
@@ -261,7 +258,7 @@ async function loadDynamicSheets() {
                         <button type="button" class="btn btn-outline btn-goto-table">📊 ดูตารางข้อมูล</button>
                     </div>
                 `;
-                
+
                 // จัดการเมื่อผู้ใช้กดที่การ์ดหรือปุ่มในการ์ด
                 card.querySelector('.btn-goto-form').onclick = (e) => {
                     e.stopPropagation();
@@ -331,14 +328,14 @@ function updateStatWidgets(sheetCount, totalRows) {
 // --- ฟังก์ชันเข้าสู่ Workspace ทำงานของแผ่นงานที่เลือก ---
 async function enterWorkspace(sheetName, defaultView = 'form') {
     activeSheet = sheetName;
-    
+
     // ตั้งชื่อแผ่นงานในหน้าทำงาน
     const activeSheetNameEl = document.getElementById('activeSheetName');
     if (activeSheetNameEl) activeSheetNameEl.textContent = sheetName;
-    
+
     showPage('appWorkspace');
     cancelEditMode(); // เคลียร์ฟอร์มการแก้ไข
-    
+
     // โหลด Schema โครงสร้างคอลัมน์ของแผ่นงานนั้น
     const success = await loadFormSchema(sheetName);
     if (success) {
@@ -376,7 +373,7 @@ function renderFields(headers, formId) {
     currentHeaders = headers;
     const fieldsContainer = document.getElementById('fieldsContainer');
     fieldsContainer.innerHTML = '';
-    
+
     // แปลงชื่อชีตเพื่อระบุประเภทแบบฟอร์ม (031, 033, 034, 035) สำหรับใช้คัดแยกเลย์เอาต์พิเศษ
     const cleanId = formId.toString().replace(/[-_\s]/g, '');
     let baseFormId = '031';
@@ -405,16 +402,16 @@ function renderFields(headers, formId) {
         cbGroup.style.padding = '20px';
         cbGroup.style.borderRadius = '15px';
         cbGroup.style.border = '1px solid var(--primary-light)';
-        
+
         const label = document.createElement('label');
         label.textContent = 'หน่วยงานที่ได้รับมอบหมาย / หัวข้อเลือก';
         cbGroup.appendChild(label);
-        
+
         const optionsContainer = document.createElement('div');
         optionsContainer.style.display = 'grid';
         optionsContainer.style.gridTemplateColumns = 'repeat(auto-fit, minmax(280px, 1fr))';
         optionsContainer.style.gap = '10px';
-        
+
         cbHeaders.forEach(header => {
             if (checkboxConfig[header]) {
                 checkboxConfig[header].forEach(opt => renderSingleCheckbox(optionsContainer, header, opt, opt));
@@ -431,15 +428,15 @@ function renderFields(headers, formId) {
     while (i < regularHeaders.length) {
         const header = regularHeaders[i];
         const low = header.toLowerCase();
-        
+
         // จัดกลุ่มสำหรับวันที่ (วัน/เดือน/พ.ศ.) ให้มาอยู่แถวเดียวกัน
-        const isGroupStart = (low.startsWith('act') || low.startsWith('fin') || low.startsWith('suc') || low.startsWith('use') || (low === 'date' && regularHeaders[i+1]?.toLowerCase() === 'mouth'));
-        
+        const isGroupStart = (low.startsWith('act') || low.startsWith('fin') || low.startsWith('suc') || low.startsWith('use') || (low === 'date' && regularHeaders[i + 1]?.toLowerCase() === 'mouth'));
+
         if (isGroupStart) {
             const groupPrefix = low.substring(0, 3);
             const groupContainer = document.createElement('div');
             groupContainer.className = 'date-row';
-            
+
             while (i < regularHeaders.length && (regularHeaders[i].toLowerCase().startsWith(groupPrefix) || (groupPrefix === 'dat' && ['date', 'mouth', 'ac'].includes(regularHeaders[i].toLowerCase())))) {
                 renderInputGroup(groupContainer, regularHeaders[i]);
                 i++;
@@ -479,12 +476,12 @@ function renderGrid034(headers) {
         cbGroup.style.borderRadius = '15px';
         cbGroup.style.border = '1px solid var(--primary-light)';
         cbGroup.innerHTML = `<label style="font-weight:700; color:var(--primary); margin-bottom:15px; display:block;">🔹 หน่วยงานที่เกี่ยวข้อง / รูปแบบการจัดส่ง</label>`;
-        
+
         const optionsContainer = document.createElement('div');
         optionsContainer.style.display = 'grid';
         optionsContainer.style.gridTemplateColumns = 'repeat(auto-fit, minmax(280px, 1fr))';
         optionsContainer.style.gap = '10px';
-        
+
         cbHeaders.forEach(header => {
             const low = header.toLowerCase();
             if (checkboxConfig[header]) {
@@ -527,7 +524,7 @@ function renderGrid034(headers) {
     `;
     fieldsContainer.appendChild(gridContainer);
     const tbody = gridContainer.querySelector('#grid034Body');
-    
+
     for (let r = 1; r <= 11; r++) {
         const tr = document.createElement('tr');
         tr.innerHTML = `
@@ -574,50 +571,50 @@ function addBatchRow(headers, existingData = null) {
     const rowIndex = tbody.children.length;
     const tr = document.createElement('tr');
     tr.className = 'batch-row';
-    
+
     headers.forEach(h => {
         const td = document.createElement('td');
         const low = h.toLowerCase();
         let input;
-        
+
         if (low === 'dur' || low === 'ความยาว') {
-            const grp = document.createElement('div'); 
+            const grp = document.createElement('div');
             grp.className = 'unit-input-group';
-            input = document.createElement('input'); 
-            input.type = 'text'; 
-            input.dataset.key = h; 
+            input = document.createElement('input');
+            input.type = 'text';
+            input.dataset.key = h;
             input.placeholder = '0.00';
-            
-            const sel = document.createElement('select'); 
-            sel.className = 'unit-select'; 
+
+            const sel = document.createElement('select');
+            sel.className = 'unit-select';
             sel.dataset.unitFor = h;
-            
-            ['ชม.', 'น.'].forEach(u => { 
-                const o = document.createElement('option'); 
-                o.value = u; 
-                o.textContent = u; 
-                sel.appendChild(o); 
+
+            ['ชม.', 'น.'].forEach(u => {
+                const o = document.createElement('option');
+                o.value = u;
+                o.textContent = u;
+                sel.appendChild(o);
             });
-            
-            grp.appendChild(input); 
+
+            grp.appendChild(input);
             grp.appendChild(sel);
-            
+
             if (existingData && existingData[h]) {
                 const m = existingData[h].toString().match(/^([\d.]+)\s*(.*)$/);
-                if (m) { 
-                    input.value = m[1]; 
-                    sel.value = m[2] || 'ชม.'; 
+                if (m) {
+                    input.value = m[1];
+                    sel.value = m[2] || 'ชม.';
                 } else {
                     input.value = existingData[h];
                 }
             }
             td.appendChild(grp);
         } else {
-            input = document.createElement('input'); 
-            input.type = 'text'; 
+            input = document.createElement('input');
+            input.type = 'text';
             input.dataset.key = h;
             input.placeholder = labelMap[low] || h;
-            
+
             if (existingData && existingData[h]) {
                 input.value = existingData[h];
             } else if (low === 'ep' && !existingData) {
@@ -633,7 +630,7 @@ function addBatchRow(headers, existingData = null) {
         }
         tr.appendChild(td);
     });
-    
+
     const delTd = document.createElement('td');
     delTd.style.textAlign = 'center';
     delTd.innerHTML = '<button type="button" class="btn-remove">🗑️</button>';
@@ -678,7 +675,7 @@ function collectTableData() {
         }
         return [row];
     }
-    
+
     const rows = document.querySelectorAll('.batch-row');
     const data = [];
     rows.forEach(tr => {
@@ -699,15 +696,15 @@ async function sendData(action) {
     if (isProcessing) return;
     const isRecurring = document.getElementById('isRecurring').checked && action === 'generate';
     const rounds = isRecurring ? (parseInt(document.getElementById('recurringCount').value) || 1) : 1;
-    
-    isProcessing = true; 
+
+    isProcessing = true;
     const resultBox = document.getElementById('resultBox');
     const linksContainer = document.getElementById('linksContainer');
-    resultBox.style.display = 'none'; 
+    resultBox.style.display = 'none';
     linksContainer.innerHTML = '';
-    
+
     showLoading('กำลังเริ่มประมวลผลข้อมูล...');
-    
+
     try {
         const baseData = {};
         currentHeaders.forEach(h => {
@@ -720,7 +717,7 @@ async function sendData(action) {
                 if (el) baseData[h] = el.value;
             }
         });
-        
+
         const tableData = collectTableData();
         const interval = parseInt(document.getElementById('intervalDays').value) || 7;
         const subjectName = baseData.subject || baseData['ชื่อรายการที่ผลิต'] || 'ไม่ระบุชื่อ';
@@ -748,52 +745,52 @@ async function sendData(action) {
             }
 
             // ส่งข้อมูลไปหลังบ้าน
-            fetch(scriptUrl, { 
-                method: 'POST', 
+            fetch(scriptUrl, {
+                method: 'POST',
                 headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                body: JSON.stringify({ action, formId: activeSheet, data: currentData, tableData, rowIndex: currentEditRowIndex }) 
+                body: JSON.stringify({ action, formId: activeSheet, data: currentData, tableData, rowIndex: currentEditRowIndex })
             })
-            .then(res => res.json())
-            .then(result => {
-                if (result.status === 'success') {
-                    addResultLink(result.data.url, result.data.name);
-                    showToast('✅ สร้างสำเร็จ', `สร้าง PDF: ${result.data.name} เรียบร้อยแล้ว`, 'success');
-                    resultBox.style.display = 'block';
-                    
-                    if (rounds === 1) {
-                        cancelEditMode();
+                .then(res => res.json())
+                .then(result => {
+                    if (result.status === 'success') {
+                        addResultLink(result.data.url, result.data.name);
+                        showToast('✅ สร้างสำเร็จ', `สร้าง PDF: ${result.data.name} เรียบร้อยแล้ว`, 'success');
+                        resultBox.style.display = 'block';
+
+                        if (rounds === 1) {
+                            cancelEditMode();
+                        }
+                    } else {
+                        showToast('❌ ผิดพลาด', result.message, 'error');
                     }
-                } else {
-                    showToast('❌ ผิดพลาด', result.message, 'error');
-                }
-            })
-            .catch(err => {
-                showToast('❌ เกิดข้อผิดพลาด', err.message, 'error');
-            })
-            .finally(() => {
-                if (r === rounds - 1) isProcessing = false;
-            });
+                })
+                .catch(err => {
+                    showToast('❌ เกิดข้อผิดพลาด', err.message, 'error');
+                })
+                .finally(() => {
+                    if (r === rounds - 1) isProcessing = false;
+                });
         }
-        
+
         showToast('💡 ส่งคำขอแล้ว', 'คุณสามารถสลับหน้าจอหรือรอระบบแจ้งการสร้าง PDF สำเร็จได้ครับ', 'info', 8000);
 
-    } catch (e) { 
+    } catch (e) {
         hideLoading();
         isProcessing = false;
-        showModal('❌ ข้อผิดพลาด', e.message, false); 
+        showModal('❌ ข้อผิดพลาด', e.message, false);
     }
 }
 
 // --- ฟังก์ชันดึงประวัติข้อมูลล่าสุดมาแสดงผลในตาราง (Dashboard) ---
 async function fetchRecentData(targetFormId) {
     if (!scriptUrl || !targetFormId) return;
-    
+
     showLoading(`กำลังดึงประวัติข้อมูลแผ่นงาน ${targetFormId}...`);
     try {
-        const response = await fetch(scriptUrl, { 
-            method: 'POST', 
+        const response = await fetch(scriptUrl, {
+            method: 'POST',
             headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-            body: JSON.stringify({ action: 'getRecentData', formId: targetFormId, limit: 100 }) 
+            body: JSON.stringify({ action: 'getRecentData', formId: targetFormId, limit: 100 })
         });
         const json = await response.json();
         if (json.status === 'success') {
@@ -814,9 +811,9 @@ function renderDashTable(records, headers = []) {
     const body = document.getElementById('dashBody');
     const headerRow = document.getElementById('dashHeaderRow');
     body.innerHTML = '';
-    
+
     let displayHeaders = (headers && headers.length > 0) ? [...headers] : [];
-    
+
     if (records.length > 0) {
         records.forEach(r => {
             const rawTable = r.tableData || r.tableBody || r._tableData;
@@ -830,7 +827,7 @@ function renderDashTable(records, headers = []) {
                             }
                         });
                     }
-                } catch(e) {}
+                } catch (e) { }
             }
         });
     }
@@ -838,10 +835,10 @@ function renderDashTable(records, headers = []) {
     if (displayHeaders.length === 0 && records.length > 0) {
         displayHeaders = Object.keys(records[0]).filter(k => k !== '_rowIndex');
     }
-    
+
     const exclude = ['tabledata', 'tablebody', '_tabledata', 'id', 'createdat'];
     displayHeaders = displayHeaders.filter(h => h && h.toString().trim() !== "" && !exclude.includes(h.toLowerCase())).slice(0, 100);
-    
+
     headerRow.innerHTML = `<th>ลำดับ</th>`;
     displayHeaders.forEach(h => {
         headerRow.innerHTML += `<th>${h}</th>`;
@@ -857,12 +854,12 @@ function renderDashTable(records, headers = []) {
     records.forEach((r, idx) => {
         const tr = document.createElement('tr');
         tr.dataset.rowIndex = r._rowIndex;
-        
+
         let rowHtml = `<td>${idx + 1}</td>`;
         displayHeaders.forEach(h => {
             const headerStr = h.toString();
             let val = r[headerStr] || "";
-            
+
             // แปลงค่าวันที่ ISO ให้เป็น พ.ศ. 
             if (typeof val === 'string' && val.includes('T') && val.endsWith('Z')) {
                 try {
@@ -881,7 +878,7 @@ function renderDashTable(records, headers = []) {
                             val = `${day}/${month}/${beYear}`;
                         }
                     }
-                } catch(e) {}
+                } catch (e) { }
             }
 
             const lowerH = headerStr.toLowerCase();
@@ -893,7 +890,7 @@ function renderDashTable(records, headers = []) {
             const charCount = Math.max(headerStr.length, val.toString().length);
             let widthNum = (charCount * 11) + 30;
             widthNum = Math.min(Math.max(widthNum, 60), 450);
-            
+
             const width = widthNum + 'px';
             const textAlign = charCount <= 3 ? 'center' : 'left';
 
@@ -947,7 +944,7 @@ function updateTableControlPanel() {
         globalBtn.className = 'btn-pdf-all';
         globalBtn.style.backgroundColor = '#f59e0b';
         globalBtn.innerHTML = `📄 สร้าง PDF รวบยอด`;
-        globalBtn.onclick = () => generateBatchPDF034(); 
+        globalBtn.onclick = () => generateBatchPDF034();
         btnTool.appendChild(globalBtn);
     }
 }
@@ -956,7 +953,7 @@ function updateTableControlPanel() {
 async function saveRecordInline(idx) {
     const r = dashboardData[idx];
     const tr = document.querySelector(`#dashBody tr:nth-child(${idx + 1})`);
-    
+
     const inputs = tr.querySelectorAll('.dash-inline-input');
     const updatedData = { ...r };
     inputs.forEach(input => {
@@ -1000,7 +997,7 @@ async function saveAllRecordsInline() {
     rows.forEach((tr, idx) => {
         const inputs = tr.querySelectorAll('.dash-inline-input');
         if (inputs.length === 0) return;
-        
+
         const originalData = dashboardData[idx];
         const updatedData = { ...originalData };
         let hasChanged = false;
@@ -1062,7 +1059,7 @@ async function saveAllRecordsInline() {
 
 async function editRecord(idx) {
     const r = dashboardData[idx];
-    
+
     // ตั้งค่าแถวการแก้ไขและเปิดแบนเนอร์แสดงสถานะ Edit
     currentEditRowIndex = r._rowIndex;
     const banner = document.getElementById('editModeBanner');
@@ -1090,13 +1087,13 @@ async function editRecord(idx) {
                     const beYear = year < 2400 ? year + 543 : year;
                     return `${day}/${month}/${beYear}`;
                 }
-            } catch(e) {}
+            } catch (e) { }
         }
         return v;
     };
 
     restoreBaseData(r, fmt);
-    
+
     const cleanId = activeSheet.toString().replace(/[-_\s]/g, '');
     let baseFormId = '031';
     if (cleanId.includes('031')) baseFormId = '031';
@@ -1109,25 +1106,25 @@ async function editRecord(idx) {
         const related = dashboardData.filter(row => {
             const rowSub = (row.subject || row['ชื่อรายการที่ผลิต'] || "").toString().toLowerCase().trim();
             return rowSub === subject && subject !== "";
-        }).sort((a,b) => {
-             const epA = parseInt((a.ep || a['ตอน'] || "0").toString().replace(/\D/g, '')) || 0;
-             const epB = parseInt((b.ep || b['ตอน'] || "0").toString().replace(/\D/g, '')) || 0;
-             return epA - epB;
+        }).sort((a, b) => {
+            const epA = parseInt((a.ep || a['ตอน'] || "0").toString().replace(/\D/g, '')) || 0;
+            const epB = parseInt((b.ep || b['ตอน'] || "0").toString().replace(/\D/g, '')) || 0;
+            return epA - epB;
         });
 
         for (let r = 1; r <= 11; r++) {
-            const data = related[r-1] || {};
+            const data = related[r - 1] || {};
             const f = document.getElementById(`input_format${r}`);
             const e = document.getElementById(`input_ep${r}`);
             const t = document.getElementById(`input_teach${r}`);
             const d = document.getElementById(`input_dur${r}`);
             const a = document.getElementById(`input_dma${r}`);
-            
-            if(f) f.value = fmt(data.format || data['รูปแบบสื่อ'] || r[`format${r}`] || r[`รูปแบบสื่อ${r}`]);
-            if(e) e.value = fmt(data.ep || data['ตอน'] || r[`ep${r}`] || r[`ตอน${r}`]);
-            if(t) t.value = fmt(data.teach || data['วิทยากร/ผู้บรรยาย'] || data['วิทยากร'] || r[`teach${r}`] || r[`วิทยากร${r}`]);
-            if(d) d.value = fmt(data.dur || data['ความยาว'] || data['ความยาวรายการ (นาที)'] || r[`dur${r}`] || r[`ความยาว${r}`]).toString().replace(' ชม.', '');
-            if(a) a.value = fmt(data.dma || data.sucdate || data['วันผลิตแล้วเสร็จ'] || data['ผลิตแล้วเสร็จวันที่'] || r[`dma${r}`] || r[`sucdate${r}`] || r[`วันผลิตแล้วเสร็จ${r}`] || r[`ผลิตแล้วเสร็จวันที่${r}`]);
+
+            if (f) f.value = fmt(data.format || data['รูปแบบสื่อ'] || r[`format${r}`] || r[`รูปแบบสื่อ${r}`]);
+            if (e) e.value = fmt(data.ep || data['ตอน'] || r[`ep${r}`] || r[`ตอน${r}`]);
+            if (t) t.value = fmt(data.teach || data['วิทยากร/ผู้บรรยาย'] || data['วิทยากร'] || r[`teach${r}`] || r[`วิทยากร${r}`]);
+            if (d) d.value = fmt(data.dur || data['ความยาว'] || data['ความยาวรายการ (นาที)'] || r[`dur${r}`] || r[`ความยาว${r}`]).toString().replace(' ชม.', '');
+            if (a) a.value = fmt(data.dma || data.sucdate || data['วันผลิตแล้วเสร็จ'] || data['ผลิตแล้วเสร็จวันที่'] || r[`dma${r}`] || r[`sucdate${r}`] || r[`วันผลิตแล้วเสร็จ${r}`] || r[`ผลิตแล้วเสร็จวันที่${r}`]);
         }
     } else {
         const tableKeywords = ['ep', 'format', 'teach', 'dur', 'dma', 'item', 'qty', 'ตอน', 'รูปแบบสื่อ', 'วิทยากร', 'ความยาว', 'ผลิตแล้วเสร็จ'];
@@ -1140,12 +1137,12 @@ async function editRecord(idx) {
                     try {
                         const rows = JSON.parse(r.tableData || r.tableBody || r._tableData);
                         rows.forEach(rowData => addBatchRow(tableHeaders, rowData));
-                    } catch(e) { addBatchRow(tableHeaders, r); }
+                    } catch (e) { addBatchRow(tableHeaders, r); }
                 } else { addBatchRow(tableHeaders, r); }
             }
         }
     }
-    
+
     switchWorkspaceView('form');
     showToast('✏️ โหมดแก้ไข', `ดึงข้อมูลของโครงการ "${r.subject || 'ไม่ระบุชื่อ'}" เข้าสู่ฟอร์มเรียบร้อยแล้ว`, 'info');
 }
@@ -1154,7 +1151,7 @@ function restoreBaseData(r, formatFn = null) {
     currentHeaders.forEach(h => {
         let val = r[h] || '';
         if (formatFn) val = formatFn(val);
-        
+
         const checkboxes = document.querySelectorAll(`input[name="${h}"]`);
         if (checkboxes.length > 0) {
             checkboxes.forEach(cb => {
@@ -1172,15 +1169,15 @@ async function deleteRecord(idx) {
     if (await showModal('🗑️ ยืนยันการลบ', 'คุณต้องการลบรายการข้อมูลนี้ออกจากแผ่นงานใช่หรือไม่?', true)) {
         showLoading('กำลังลบข้อมูลออกจาก Sheet...');
         try {
-            const response = await fetch(scriptUrl, { 
-                method: 'POST', 
+            const response = await fetch(scriptUrl, {
+                method: 'POST',
                 headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                body: JSON.stringify({ action: 'deleteData', rowIndex: r._rowIndex }) 
+                body: JSON.stringify({ action: 'deleteData', rowIndex: r._rowIndex })
             });
             const json = await response.json();
             if (json.status === 'success') {
                 showToast('✅ ลบข้อมูลแล้ว', 'ลบแถวข้อมูลเรียบร้อยแล้วครับ', 'success');
-                fetchRecentData(activeSheet); 
+                fetchRecentData(activeSheet);
             } else {
                 throw new Error(json.message);
             }
@@ -1201,7 +1198,7 @@ async function generateRecordPDF(idx) {
     if (cleanId.includes('034')) {
         showLoading('กำลังดึงแถวรวบยอดข้อมูลโครงการ...');
         const subjectToMatch = (r.subject || r['ชื่อรายการที่ผลิต'] || "").toString().toLowerCase().trim();
-        
+
         tableData = dashboardData.filter(row => {
             const rowSubject = (row.subject || row['ชื่อรายการที่ผลิต'] || "").toString().toLowerCase().trim();
             return rowSubject === subjectToMatch && subjectToMatch !== "";
@@ -1218,22 +1215,22 @@ async function generateRecordPDF(idx) {
 
     showLoading(`กำลังประมวลผลการสร้างเอกสาร PDF...`);
     try {
-        const response = await fetch(scriptUrl, { 
-            method: 'POST', 
-            body: JSON.stringify({ 
-                action: 'generate', 
-                formId: activeSheet, 
-                data: mainData, 
-                tableData: tableData, 
+        const response = await fetch(scriptUrl, {
+            method: 'POST',
+            body: JSON.stringify({
+                action: 'generate',
+                formId: activeSheet,
+                data: mainData,
+                tableData: tableData,
                 rowIndex: r._rowIndex,
-                skipSave: true 
-            }) 
+                skipSave: true
+            })
         });
         const result = await response.json();
         if (result.status === 'success') {
-            showModal('📜 สร้างไฟล์สำเร็จ', 
+            showModal('📜 สร้างไฟล์สำเร็จ',
                 `สร้าง PDF แผ่นงาน ${activeSheet} เรียบร้อยแล้วครับ<br><br>` +
-                `<a href="${result.data.url}" target="_blank" style="display:inline-block; padding:12px 24px; background:#4f46e5; color:white; border-radius:10px; text-decoration:none; font-weight:bold; box-shadow:0 4px 10px rgba(79,70,229,0.2);">🌐 เปิดดูไฟล์เอกสาร PDF</a>`, 
+                `<a href="${result.data.url}" target="_blank" style="display:inline-block; padding:12px 24px; background:#4f46e5; color:white; border-radius:10px; text-decoration:none; font-weight:bold; box-shadow:0 4px 10px rgba(79,70,229,0.2);">🌐 เปิดดูไฟล์เอกสาร PDF</a>`,
                 false);
         } else {
             throw new Error(result.message);
@@ -1249,7 +1246,7 @@ async function generateBatchPDF034() {
     try {
         const rows = document.querySelectorAll('#dashBody tr');
         const tableData = [];
-        
+
         rows.forEach(tr => {
             const inputs = tr.querySelectorAll('.dash-inline-input');
             if (inputs.length === 0) return;
@@ -1271,13 +1268,13 @@ async function generateBatchPDF034() {
         const response = await fetch(scriptUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-            body: JSON.stringify({ 
-                action: 'generate', 
-                formId: activeSheet, 
-                data: tableData[0], 
-                tableData, 
+            body: JSON.stringify({
+                action: 'generate',
+                formId: activeSheet,
+                data: tableData[0],
+                tableData,
                 rowIndex: 0,
-                skipSave: true 
+                skipSave: true
             })
         });
         const result = await response.json();
@@ -1302,7 +1299,7 @@ async function generateAllPDFs() {
         return;
     }
 
-    const confirmed = await showModal('📄 ยืนยันสร้างทั้งหมด', 
+    const confirmed = await showModal('📄 ยืนยันสร้างทั้งหมด',
         `คุณต้องการเริ่มคำสั่งสร้าง PDF จากรายการข้อมูลทั้งหมด ${dashboardData.length} รายการในหน้านี้ใช่หรือไม่? (ระบบจะประมวลผลเบื้องหลัง)`, true);
     if (!confirmed) return;
 
@@ -1318,23 +1315,23 @@ async function generateAllPDFs() {
             try {
                 let tableData = [];
                 if (r.tableData || r.tableBody || r._tableData) {
-                    try { tableData = JSON.parse(r.tableData || r.tableBody || r._tableData); } 
-                    catch(e) { tableData = [r]; }
+                    try { tableData = JSON.parse(r.tableData || r.tableBody || r._tableData); }
+                    catch (e) { tableData = [r]; }
                 } else {
                     tableData = [r];
                 }
 
-                const response = await fetch(scriptUrl, { 
-                    method: 'POST', 
+                const response = await fetch(scriptUrl, {
+                    method: 'POST',
                     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                    body: JSON.stringify({ 
-                        action: 'generate', 
-                        formId: activeSheet, 
-                        data: r, 
-                        tableData, 
+                    body: JSON.stringify({
+                        action: 'generate',
+                        formId: activeSheet,
+                        data: r,
+                        tableData,
                         rowIndex: r._rowIndex,
-                        skipSave: true 
-                    }) 
+                        skipSave: true
+                    })
                 });
                 const result = await response.json();
                 if (result.status === 'success') {
@@ -1362,7 +1359,7 @@ function calcNextDate(day, monthThai, yearBE, daysToAdd) {
     const yearAD = parseInt(yearArabic) - 543;
     const date = new Date(yearAD, mIdx, parseInt(dayArabic));
     date.setDate(date.getDate() + daysToAdd);
-    
+
     const hasThaiDigits = (/[๐-๙]/.test(day.toString()) || /[๐-๙]/.test(yearBE.toString()));
     return {
         day: hasThaiDigits ? toThaiDigits(date.getDate()) : date.getDate(),
@@ -1383,7 +1380,7 @@ function cancelEditMode() {
 
 function clearForm() {
     const fieldsContainer = document.getElementById('fieldsContainer');
-    
+
     // ล้าง Input Text และ Textarea
     const inputs = fieldsContainer.querySelectorAll('input[type="text"], input[type="number"], textarea');
     inputs.forEach(inp => inp.value = '');
@@ -1398,7 +1395,7 @@ function clearForm() {
 
     // รีเซ็ตการแก้ไข
     cancelEditMode();
-    
+
     // ซ่อนกล่องดาวน์โหลด PDF เก่า
     document.getElementById('resultBox').style.display = 'none';
 
@@ -1406,7 +1403,7 @@ function clearForm() {
 }
 
 // --- ฟังก์ชันค้นหาและฟิลเตอร์ในตาราง Dashboard ---
-window.filterDashboard = function() {
+window.filterDashboard = function () {
     const query = document.getElementById('dashSearch').value.toLowerCase();
     const filtered = dashboardData.filter(r => {
         const title = (r.subject || r['ชื่อรายการที่ผลิต'] || r.activity || '').toLowerCase();
@@ -1426,7 +1423,7 @@ async function openDriveFilePicker() {
         });
         const json = await response.json();
         hideLoading();
-        
+
         if (json.status === 'success' && json.data.length > 0) {
             let html = '<div class="drive-list-container">';
             html += `
@@ -1435,7 +1432,7 @@ async function openDriveFilePicker() {
                     <label for="driveSelectAll" style="cursor:pointer;margin-left:8px;">เลือกทั้งหมด (${json.data.length} ไฟล์)</label>
                 </div>
             `;
-            
+
             json.data.forEach(f => {
                 html += `
                 <label class="drive-file-item">
@@ -1447,10 +1444,10 @@ async function openDriveFilePicker() {
                 </label>`;
             });
             html += '</div>';
-            
+
             // รอรับคำยืนยัน
             const confirmed = await showModal('🗂️ เลือกเอกสารบน Drive เพื่อนำมารวมไฟล์', html, true);
-            
+
             // การจัดการ Select All ภายหลังการแสดง DOM
             const selectAll = document.getElementById('driveSelectAll');
             if (selectAll) {
@@ -1482,26 +1479,26 @@ async function mergeAllGeneratedPDFs(fileIds) {
     try {
         const { PDFDocument } = window.PDFLib;
         const mergedPdf = await PDFDocument.create();
-        
+
         for (let i = 0; i < fileIds.length; i++) {
             updateLoadingText(`กำลังรวมไฟล์รายการที่ ${i + 1}/${fileIds.length}...`);
-            
+
             // ดึงไฟล์ base64 ผ่าน Apps Script
             const base64 = await callBackend('getFileBytes', { fileId: fileIds[i] });
             const bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0)).buffer;
-            
+
             const pdf = await PDFDocument.load(bytes);
             const copiedPages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
             copiedPages.forEach((page) => mergedPdf.addPage(page));
         }
-        
+
         const mergedPdfBytes = await mergedPdf.save();
         const blob = new Blob([mergedPdfBytes], { type: 'application/pdf' });
         const link = document.createElement('a');
         link.href = URL.createObjectURL(blob);
         link.download = `Combined_Documents_${new Date().getTime()}.pdf`;
         link.click();
-        
+
         showModal('✨ รวมไฟล์สำเร็จ', 'ระบบได้ทำการดาวน์โหลดไฟล์ PDF รวมรายการของท่านเรียบร้อยแล้ว', false);
     } catch (e) {
         showModal('❌ เกิดข้อผิดพลาด', 'ล้มเหลวในการรวมไฟล์ PDF: ' + e.message, false);
@@ -1531,7 +1528,7 @@ function showModal(title, message, isConfirm = false, icon = '🔔', onConfirm =
         const overlay = document.getElementById('modalOverlay');
         document.getElementById('modalIcon').textContent = icon;
         document.getElementById('modalTitle').textContent = title;
-        
+
         const desc = document.getElementById('modalDesc');
         if (typeof message === 'string') {
             desc.innerHTML = message;
@@ -1539,22 +1536,22 @@ function showModal(title, message, isConfirm = false, icon = '🔔', onConfirm =
             desc.innerHTML = '';
             desc.appendChild(message);
         }
-        
+
         const btnCancel = document.getElementById('modalCancel');
         const btnConfirm = document.getElementById('modalConfirm');
-        
+
         btnCancel.style.display = isConfirm ? 'block' : 'none';
         btnConfirm.textContent = isConfirm ? 'ยืนยัน' : 'ตกลง';
         overlay.classList.add('active');
 
-        btnConfirm.onclick = () => { 
-            overlay.classList.remove('active'); 
+        btnConfirm.onclick = () => {
+            overlay.classList.remove('active');
             if (onConfirm) onConfirm();
-            resolve(true); 
+            resolve(true);
         };
-        btnCancel.onclick = () => { 
-            overlay.classList.remove('active'); 
-            resolve(false); 
+        btnCancel.onclick = () => {
+            overlay.classList.remove('active');
+            resolve(false);
         };
     });
 }
@@ -1573,7 +1570,7 @@ function showToast(title, msg, type = 'info', duration = 5000) {
     const container = document.getElementById('toastContainer');
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
-    
+
     let icon = '🔔';
     if (type === 'success') icon = '✅';
     if (type === 'error') icon = '❌';
@@ -1600,15 +1597,15 @@ function renderInputGroup(container, h) {
     const low = h.toLowerCase();
     const group = document.createElement('div');
     group.className = 'form-group';
-    
-    const label = document.createElement('label'); 
+
+    const label = document.createElement('label');
     label.textContent = labelMap[low] || h;
-    
-    const input = document.createElement('input'); 
-    input.id = `input_${h}`; 
+
+    const input = document.createElement('input');
+    input.id = `input_${h}`;
     input.placeholder = label.textContent;
-    
-    container.appendChild(label); 
+
+    container.appendChild(label);
     container.appendChild(input);
 }
 
@@ -1622,16 +1619,16 @@ function renderSingleCheckbox(container, name, labelText, value) {
     wrapper.style.background = 'white';
     wrapper.style.borderRadius = '10px';
     wrapper.style.border = '1px solid #e2e8f0';
-    
-    const cb = document.createElement('input'); 
-    cb.type = 'checkbox'; 
-    cb.name = name; 
+
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.name = name;
     cb.value = value;
     cb.style.width = '18px';
     cb.style.height = '18px';
     cb.style.accentColor = 'var(--primary)';
-    
-    wrapper.appendChild(cb); 
+
+    wrapper.appendChild(cb);
     wrapper.appendChild(document.createTextNode(labelText));
     container.appendChild(wrapper);
 }
