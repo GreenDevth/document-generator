@@ -4,22 +4,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Premium Document Generator | ระบบสร้างเอกสารอัจฉริยะ</title>
-
+    <title>Smart Document Generator Portal | ระบบสร้างเอกสารอัจฉริยะ</title>
     <!-- นำเข้าฟอนต์ Google Fonts: Outfit (อังกฤษ) และ Sarabun (ไทย) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
-        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=Sarabun:wght@300;400;600&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=Sarabun:wght@300;400;600;700&display=swap"
         rel="stylesheet">
-
-    <!-- นำเข้าสไตล์ชีตแยกส่วน (Standard CSS for Local & GitHub Pages) -->
-    <link rel="stylesheet" href="style.css">
     <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
 </head>
 
 <body>
-    <!-- ตกแต่งพื้นหลัง -->
+    <!-- ตกแต่งพื้นหลังด้วยวงกลม Gradient -->
     <div class="bg-blobs">
         <div class="blob" style="top: -10%; right: -10%;"></div>
         <div class="blob"
@@ -27,112 +23,159 @@
         </div>
     </div>
 
-    <div class="main-container">
-        <header>
-            <h1>แบบฟอร์มมอบหมายงาน</h1>
-            <p class="subtitle">ระบบสร้างเอกสาร PDF อัตโนมัติสำหรับ GitHub Pages 🌐</p>
-        </header>
-
-        <!-- เซกชันตั้งค่า URL และเลือกฟอร์ม -->
-        <div class="config-card">
-            <div class="form-group">
-                <label for="scriptUrl">Apps Script Web App URL</label>
-                <input type="url" id="scriptUrl" placeholder="https://script.google.com/macros/s/.../exec">
+    <!-- 1. หน้าจอ Authentication (Login) -->
+    <div id="loginPage" class="auth-container active">
+        <div class="auth-card">
+            <div class="auth-icon">🔑</div>
+            <h2>เข้าสู่ระบบจัดการเอกสาร</h2>
+            <p>ระบบสร้างและจัดการเอกสาร PDF อัจฉริยะ</p>
+            <div class="form-group" style="margin-top: 25px; text-align: left;">
+                <label for="scriptUrlInput">Apps Script Web App URL</label>
+                <input type="url" id="scriptUrlInput" placeholder="https://script.google.com/macros/s/.../exec">
             </div>
-            <div class="form-group" style="position: relative;">
-                <label for="formType">ประเภทเอกสาร (Form ID)</label>
-                <div style="display: flex; gap: 10px; align-items: stretch;">
-                    <select id="formType" style="flex: 1; margin-bottom: 0;">
-                        <option value="" disabled selected>-- เลือกแบบฟอร์ม --</option>
-                        <option value="031">FM สท.03-1</option>
-                        <option value="033">FM สท.03-3</option>
-                        <option value="034">FM สท.03-4</option>
-                        <option value="035">FM สท.03-5</option>
-                    </select>
-                    <button type="button" id="btnLoadData" class="btn btn-outline" style="padding: 0 20px; width: auto; flex: 0 0 auto; white-space: nowrap; align-items: center; justify-content: center; height: 52px; margin-top: 0;">
-                        <span>📊 เปิดศูนย์จัดการข้อมูล</span>
-                    </button>
+            <form id="loginForm" style="margin-top: 15px; width: 100%; text-align: left;">
+                <div class="form-group">
+                    <label for="authPassword">รหัสผ่านสำหรับเข้าใช้งาน</label>
+                    <input type="password" id="authPassword" placeholder="กรอกรหัสผ่าน (เช่น 1234)" required>
+                </div>
+                <button type="submit" class="btn btn-primary" style="margin-top: 25px; width: 100%; height: 52px; font-weight: 700;">เข้าสู่ระบบ 🚀</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 2. หน้าจอ Dashboard Portal Overview (ภาพรวมระบบ) -->
+    <div id="portalPage" class="page-section">
+        <div class="main-container portal-container">
+            <header>
+                <div class="header-portal-row">
+                    <div class="portal-logo">📂 Document Generator Portal</div>
+                    <button type="button" class="btn-logout" id="btnLogoutPortal">ออกจากระบบ 🚪</button>
+                </div>
+                <h1 style="margin-top: 20px;">ระบบจัดการและอนุมัติเอกสารอัจฉริยะ</h1>
+                <p class="subtitle">เลือกแผ่นงานเพื่อบันทึกข้อมูลและสร้างเอกสาร PDF หรือตรวจสอบข้อมูลย้อนหลัง</p>
+            </header>
+            
+            <div class="portal-sheets-grid" id="portalSheetsGrid">
+                <!-- โหลดการ์ดแผ่นงานแบบ dynamic จาก Apps Script -->
+                <div style="grid-column: span 3; text-align: center; padding: 40px 0;">
+                    <div class="spinner" style="margin: 0 auto 20px;"></div>
+                    <p style="color: #64748b;">กำลังโหลดข้อมูลแผ่นงานจาก Google Sheets...</p>
                 </div>
             </div>
         </div>
+    </div>
 
-        <!-- Floating Action Button สำหรับ Dashboard -->
-        <div class="fab-container" onclick="fetchRecentData()">
-            <div class="fab-btn">
-                <span>📊</span>
-                <small>จัดการข้อมูล</small>
-            </div>
-        </div>
-
-        <form id="docForm">
-            <!-- ส่วนฟิลด์ที่จะถูก Render แบบไดนามิก -->
-            <div id="dynamicContent" class="dynamic-section">
-                <!-- ตั้งค่าการส่งต่อเนื่อง (Recurring) -->
-                <div class="recurring-row" id="recurringPanel">
-                    <label class="switch-label">
-                        <input type="checkbox" id="isRecurring">
-                        <span class="switch-text">🔄 เปิดโหมดสร้างต่อเนื่อง (Recurring Mode)</span>
-                    </label>
-                    <div class="recurring-controls" id="recurringControls">
-                        <div class="form-group">
-                            <label for="recurringCount">จำนวนรอบ (ROUNDS)</label>
-                            <input type="number" id="recurringCount" value="1" min="1" max="100">
-                        </div>
-                        <div class="form-group">
-                            <label>ห่างกันกี่วัน (Interval Days)</label>
-                            <input type="number" id="intervalDays" value="7" min="1">
-                        </div>
-                    </div>
+    <!-- 3. หน้าจอ Workspace ทำงานหลัก -->
+    <div id="appWorkspace" class="page-section">
+        <div class="main-container workspace-container">
+            <!-- Navigation Bar ของ Workspace -->
+            <div class="workspace-nav">
+                <button type="button" class="btn-nav-back" id="btnBackToPortal">
+                    <span>⬅️ กลับหน้าภาพรวม</span>
+                </button>
+                <div class="workspace-title-area">
+                    <span class="active-sheet-badge">แผ่นงานหลัก</span>
+                    <h2 id="activeSheetName">FM สท.03-1</h2>
                 </div>
+                <div class="workspace-tabs">
+                    <button type="button" class="work-tab active" id="tabFormBtn">📝 กรอกข้อมูลฟอร์ม</button>
+                    <button type="button" class="work-tab" id="tabTableBtn">📊 จัดการข้อมูล (ตาราง)</button>
+                </div>
+            </div>
 
-                <div id="dynamicContent" class="form-card">
-                    <div id="modeSelector" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px; padding-bottom: 20px; border-bottom: 2px dashed rgba(0,0,0,0.04);">
-                        <div style="font-weight: 700; color: #1e293b; font-size: 1.2rem; display: flex; align-items: center; gap: 10px;">
-                            <span style="font-size: 1.4rem;">🖋️</span> กำลังจัดทำเอกสาร
+            <!-- หน้ากรอกแบบฟอร์ม -->
+            <div id="formWorkspaceView" class="workspace-view active">
+                <form id="docForm">
+                    <!-- ส่วนฟิลด์ที่จะถูก Render แบบไดนามิก -->
+                    <div id="dynamicContent" class="dynamic-section active">
+                        <!-- ตั้งค่าการส่งต่อเนื่อง (Recurring) -->
+                        <div class="recurring-row" id="recurringPanel">
+                            <label class="switch-label">
+                                <input type="checkbox" id="isRecurring">
+                                <span class="switch-text">🔄 เปิดโหมดสร้างต่อเนื่อง (Recurring Mode)</span>
+                            </label>
+                            <div class="recurring-controls" id="recurringControls">
+                                <div class="form-group">
+                                    <label for="recurringCount">จำนวนรอบ (ROUNDS)</label>
+                                    <input type="number" id="recurringCount" value="1" min="1" max="100">
+                                </div>
+                                <div class="form-group">
+                                    <label>ห่างกันกี่วัน (Interval Days)</label>
+                                    <input type="number" id="intervalDays" value="7" min="1">
+                                </div>
+                            </div>
                         </div>
-                        <div style="display: flex; gap: 15px;">
-                            <div class="mode-icon-btn primary" onclick="fetchRecentData()" data-tooltip="เลือกข้อมูลจากประวัติ">
-                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+
+                        <div class="form-card">
+                            <div id="modeSelector" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px; padding-bottom: 20px; border-bottom: 2px dashed rgba(0,0,0,0.04);">
+                                <div style="font-weight: 700; color: #1e293b; font-size: 1.2rem; display: flex; align-items: center; gap: 10px;">
+                                    <span style="font-size: 1.4rem;">🖋️</span> กรอกข้อมูลแบบฟอร์ม
+                                </div>
+                            </div>
+
+                            <!-- Edit Mode Banner -->
+                            <div id="editModeBanner" style="display: none; background: #fef9c3; border: 1px solid #fde047; padding: 12px 18px; border-radius: 12px; margin-bottom: 20px; align-items: center; justify-content: space-between;">
+                                <div style="color: #854d0e; font-weight: 600; font-size: 0.9rem; display: flex; align-items: center; gap: 8px;">
+                                    🔍 กำลังแก้ไขรายการลำดับที่ <span id="editRowNumber">0</span> (บรรทัดใน Sheet)
+                                </div>
+                                <button type="button" id="btnCancelEdit" style="background: none; border: none; color: #a16207; font-size: 0.8rem; cursor: pointer; text-decoration: underline;">❌ ยกเลิกการแก้ไข</button>
+                            </div>
+
+                            <div class="grid-layout" id="fieldsContainer">
+                                <!-- ฟิลด์จะถูกสร้างที่นี่ -->
+                            </div>
+
+                            <div class="button-row">
+                                <button type="button" id="btnClearFormBtn" class="btn btn-outline" style="border-color: #cbd5e1; color: #64748b;">
+                                    <span>🧹 ล้างฟอร์ม</span>
+                                </button>
+                                <button type="button" id="btnPreview" class="btn btn-outline">
+                                    <span>👁️ Preview (ตัวอย่าง)</span>
+                                </button>
+                                <button type="submit" class="btn btn-success" id="btnSubmit">
+                                    <span>✅ บันทึกข้อมูลและสร้าง PDF</span>
+                                </button>
                             </div>
                         </div>
                     </div>
+                </form>
 
-                    <!-- Edit Mode Banner -->
-                    <div id="editModeBanner" style="display: none; background: #fef9c3; border: 1px solid #fde047; padding: 12px 18px; border-radius: 12px; margin-bottom: 20px; align-items: center; justify-content: space-between;">
-                        <div style="color: #854d0e; font-weight: 600; font-size: 0.9rem; display: flex; align-items: center; gap: 8px;">
-                            🔍 กำลังแก้ไขรายการลำดับที่ <span id="editRowNumber">0</span> (บรรทัดใน Sheet)
-                        </div>
-                        <button type="button" onclick="clearForm()" style="background: none; border: none; color: #a16207; font-size: 0.8rem; cursor: pointer; text-decoration: underline;">❌ ยกเลิกการแก้ไข</button>
-                    </div>
-
-                    <div class="grid-layout" id="fieldsContainer">
-                        <!-- ฟิลด์จะถูกสร้างที่นี่ -->
-                    </div>
-
-                    <div class="button-row">
-                        <button type="button" onclick="clearForm()" class="btn btn-outline" style="border-color: #cbd5e1; color: #64748b;">
-                            <span>🧹 ล้างฟอร์ม</span>
-                        </button>
-                        <button type="button" id="btnPreview" class="btn btn-outline">
-                            <span>👁️ Preview (ตัวอย่าง)</span>
-                        </button>
-                        <button type="submit" class="btn btn-success" id="btnSubmit">
-                            <span>✅ บันทึกข้อมูลและสร้าง PDF</span>
-                        </button>
+                <!-- แสดงผลลัพธ์ -->
+                <div id="resultBox" class="result-box">
+                    <h3 id="resultTitle" style="color: var(--success); margin-bottom: 10px;">สำเร็จ! 🚀</h3>
+                    <p id="resultMsg" style="margin-bottom: 20px;">เอกสารของคุณถูกสร้างเรียบร้อยแล้ว</p>
+                    <div id="linksContainer" style="display: flex; flex-direction: column; gap: 10px;">
+                        <a id="downloadLink" href="#" target="_blank" class="btn btn-primary" style="text-decoration: none;">
+                            📥 ดาวน์โหลดเอกสาร PDF (Download)
+                        </a>
                     </div>
                 </div>
             </div>
-        </form>
 
-        <!-- แสดงผลลัพธ์ -->
-        <div id="resultBox" class="result-box">
-            <h3 id="resultTitle" style="color: var(--success); margin-bottom: 10px;">สำเร็จ! 🚀</h3>
-            <p id="resultMsg" style="margin-bottom: 20px;">เอกสารของคุณถูกสร้างเรียบร้อยแล้ว</p>
-            <div id="linksContainer" style="display: flex; flex-direction: column; gap: 10px;">
-                <a id="downloadLink" href="#" target="_blank" class="btn btn-primary" style="text-decoration: none;">
-                    📥 ดาวน์โหลดเอกสาร PDF (Download)
-                </a>
+            <!-- หน้าจัดการตารางข้อมูล -->
+            <div id="tableWorkspaceView" class="workspace-view">
+                <div class="dash-search-container" style="margin-bottom: 20px; display: flex; gap: 15px; justify-content: space-between; align-items: center;">
+                    <input type="text" id="dashSearch" placeholder="🔍 ค้นหาชื่อรายการ ชื่อผู้ผลิต หรือข้อมูลอื่นๆ..." oninput="filterDashboard()" style="flex: 1; max-width: 450px;">
+                    <div class="dash-tool-btns" id="dashToolBtns" style="display: flex; gap: 10px;">
+                        <button type="button" class="btn-refresh" id="btnRefreshWorkspace">🔄 อัปเดตจาก Sheet</button>
+                        <button type="button" class="btn-pdf-all" style="background:#4ade80;" id="btnDrivePickerWorkspace">🗂️ ดึงไฟล์จาก Drive</button>
+                        <button type="button" class="btn-pdf-all" id="btnPDFAllWorkspace">📄 สร้าง PDF ทั้งหมด</button>
+                    </div>
+                </div>
+                <div class="dashboard-table-container">
+                    <table class="dashboard-table">
+                        <thead>
+                            <tr id="dashHeaderRow">
+                                <!-- Dynamic Headers -->
+                            </tr>
+                        </thead>
+                        <tbody id="dashBody">
+                            <!-- Dynamic Content -->
+                        </tbody>
+                    </table>
+                </div>
             </div>
+
         </div>
     </div>
 
@@ -159,55 +202,10 @@
         </div>
     </div>
 
-    <!-- [ DASHBOARD MODAL: ศูนย์จัดการข้อมูลแบบเต็มจอ ] -->
-    <div id="dashboardModal" class="modal-overlay">
-        <div class="modal-content modal-lg">
-            <div class="modal-header">
-                <span id="dashModalIcon" style="font-size: 1.8rem;">📊</span>
-                <h2 id="dashModalTitle">รายการข้อมูลทั้งหมด (Dashboard)</h2>
-                <button type="button" class="btn-close-dash" onclick="closeDashboardModal()">×</button>
-            </div>
-            <div class="modal-body">
-                <!-- Tab Selector ภายใน Dashboard -->
-                <div class="dash-tabs-container">
-                    <button type="button" class="dash-tab active" onclick="switchDashTab('031')">FM สท.03-1</button>
-                    <button type="button" class="dash-tab" onclick="switchDashTab('033')">FM สท.03-3</button>
-                    <button type="button" class="dash-tab" onclick="switchDashTab('034')">FM สท.03-4</button>
-                    <button type="button" class="dash-tab" onclick="switchDashTab('035')">FM สท.03-5</button>
-                </div>
-
-                <div class="dash-search-container">
-                    <input type="text" id="dashSearch" placeholder="🔍 ค้นหาชื่อรายการ ชื่อผู้ผลิต หรือข้อมูลอื่นๆ..." oninput="filterDashboard()">
-                    <div class="dash-tool-btns">
-                        <button type="button" class="btn-refresh" onclick="fetchRecentData()">🔄 รีเฟรช</button>
-                        <button type="button" class="btn-pdf-all" style="background:#4ade80;" onclick="openDriveFilePicker()">🗂️ ดึงไฟล์จาก Drive</button>
-                        <button type="button" class="btn-pdf-all" onclick="generateAllPDFs()">📄 สร้าง PDF ทั้งหมด</button>
-                    </div>
-                </div>
-                <div class="dashboard-table-container">
-                    <table class="dashboard-table">
-                        <thead>
-                            <tr id="dashHeaderRow">
-                                <!-- Dynamic Headers -->
-                            </tr>
-                        </thead>
-                        <tbody id="dashBody">
-                            <!-- Dynamic Content -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            <div class="modal-footer" style="padding: 15px; border-top: 1px solid rgba(0,0,0,0.05); display: flex; justify-content: flex-end;">
-                <button type="button" class="modal-btn btn-cancel" onclick="closeDashboardModal()">ปิดหน้าต่าง</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- [ MODULE ] นำเข้าฟังก์ชันควบคุม JavaScript (Standard JS for Local & GitHub Pages) -->
-
     <!-- Toast Container -->
     <div id="toastContainer" class="toast-container"></div>
-    <script src="script.js" defer></script>
+
+    <script type="module" src="/src/main.js"></script>
 </body>
 
 </html>

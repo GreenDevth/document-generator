@@ -25,6 +25,8 @@ function doPost(e) {
   try {
     const request = JSON.parse(e.postData.contents);
     const action = request.action;
+    if (action === 'verifyPassword') return verifyPassword(request.password);
+    if (action === 'getSheets') return getSheets();
     if (action === 'getSchema') return getSchema(request.formId);
     if (action === 'generate' || action === 'preview') return handlePDFRequest(request);
     if (action === 'getRecentData') return getRecentData(request.formId);
@@ -55,10 +57,14 @@ function handlePDFRequest(request) {
   const { action, formId, data, rowIndex, tableData, skipSave } = request;
   // หากมี skipSave เป็น true ให้ทำงานในโหมดไม่บันทึกข้อมูล (เหมือน Preview)
   const isPreview = (action === 'preview') || (skipSave === true);
-  const { sheet, cleanId } = getTargetSheet(formId);
-  const formConfig = CONFIG.FORMS[cleanId];
+  const { sheet } = getTargetSheet(formId);
+  if (!sheet) throw new Error('ไม่พบข้อมูล Sheet: ' + formId);
   
-  if (!formConfig) throw new Error('ไม่พบข้อมูล Template สำหรับ: ' + cleanId);
+  const sheetName = sheet.getName();
+  const formConfig = getFormConfig(sheetName);
+  
+  if (!formConfig) throw new Error('ไม่พบข้อมูล Template สำหรับแผ่นงาน: ' + sheetName);
+  const cleanId = formConfig.baseId;
 
   const result = createPDF(formConfig, data, isPreview, tableData, cleanId);
 
@@ -389,9 +395,8 @@ function deleteData(request) {
 
 function getDriveFiles(formId) {
   try {
-    const cleanId = formId.toString().replace('.json', '').replace('-', '').trim();
-    const config = CONFIG.FORMS[cleanId];
-    if (!config || !config.folderId) return createJsonResponse('error', null, 'ไม่พบโฟลเดอร์สำหรับ: ' + cleanId);
+    const config = getFormConfig(formId);
+    if (!config || !config.folderId) return createJsonResponse('error', null, 'ไม่พบโฟลเดอร์สำหรับ: ' + formId);
 
     const folder = DriveApp.getFolderById(config.folderId);
     const folderName = folder.getName();
@@ -469,4 +474,50 @@ function batchUpdateRowsInSheet(formId, updates) {
 // ตรวจสอบชนิดข้อมูล Date อย่างแม่นยำ (แก้ปัญหา V8 Engine prototype cross-context)
 function isDate(val) {
   return val && (val instanceof Date || Object.prototype.toString.call(val) === '[object Date]');
+}
+
+// ยืนยันรหัสผ่านสำหรับเข้าใช้งานระบบ
+function verifyPassword(password) {
+  const isCorrect = (password === '1234');
+  return createJsonResponse('success', { isCorrect });
+}
+
+// ค้นหาการจับคู่เทมเพลตสำหรับแผ่นงานโดยสแกนเลขแบบฟอร์ม
+function getFormConfig(sheetName) {
+  const name = sheetName.toString().replace(/[-_\s]/g, '').trim();
+  let baseId = '';
+  if (name.includes('031')) baseId = '031';
+  else if (name.includes('033')) baseId = '033';
+  else if (name.includes('034')) baseId = '034';
+  else if (name.includes('035')) baseId = '035';
+  
+  if (baseId && CONFIG.FORMS[baseId]) {
+    return { ...CONFIG.FORMS[baseId], baseId: baseId };
+  }
+  return null;
+}
+
+// ดึงรายชื่อแผ่นงานทั้งหมดและนับจำนวนข้อมูลเพื่อทำสถิติแบบ Dynamic
+function getSheets() {
+  try {
+    const ss = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
+    const sheets = ss.getSheets();
+    const result = sheets.map(s => {
+      const name = s.getName();
+      const config = getFormConfig(name);
+      let rowCount = 0;
+      if (config) {
+        rowCount = Math.max(0, s.getLastRow() - 1);
+      }
+      return {
+        name: name,
+        isValid: config !== null,
+        baseFormId: config ? config.baseId : null,
+        rowCount: rowCount
+      };
+    }).filter(item => item.isValid);
+    return createJsonResponse('success', result);
+  } catch(e) {
+    return createJsonResponse('error', null, e.toString());
+  }
 }
