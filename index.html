@@ -287,6 +287,13 @@
             <span class="modal-icon" style="font-size: 2.5rem; display: block; text-align: center; margin-bottom: 10px;">⚙️</span>
             <div class="modal-title" style="text-align: center; font-size: 1.5rem; margin-bottom: 20px; font-weight: 700; color: #1e293b;">ตั้งค่าระบบผู้ดูแลระบบ (Admin Config)</div>
             
+            <!-- ส่วนระบบนำเข้าและส่งออกคอนฟิกูเรชัน -->
+            <div class="config-io-row" style="display: flex; gap: 10px; justify-content: flex-end; margin-bottom: 15px; border-bottom: 1px dashed rgba(0,0,0,0.08); padding-bottom: 15px;">
+                <button type="button" id="btnExportConfig" class="btn btn-outline" style="padding: 8px 14px; font-size: 0.85rem; border-color: var(--primary); color: var(--primary); border-radius: 8px; font-weight: 600; display: flex; align-items: center; gap: 4px;">📤 ส่งออกคอนฟิก (Export JSON)</button>
+                <button type="button" id="btnImportConfig" class="btn btn-outline" style="padding: 8px 14px; font-size: 0.85rem; border-color: var(--accent); color: var(--accent); border-radius: 8px; font-weight: 600; display: flex; align-items: center; gap: 4px;">📥 นำเข้าคอนฟิก (Import JSON)</button>
+                <input type="file" id="importConfigFile" accept=".json" style="display: none;">
+            </div>
+            
             <form id="adminSettingsForm" style="display: flex; flex-direction: column; gap: 20px;">
                 <div class="form-group">
                     <label for="adminScriptUrl" style="font-weight: 600;">Google Apps Script Web App URL</label>

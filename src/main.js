@@ -394,6 +394,93 @@ function setupEventListeners() {
             saveAdminSettings();
         };
     }
+
+    // ระบบส่งออกไฟล์คอนฟิกูเรชัน (Export Config)
+    const btnExportConfig = document.getElementById('btnExportConfig');
+    if (btnExportConfig) {
+        btnExportConfig.onclick = () => {
+            const config = {
+                scriptUrl: document.getElementById('adminScriptUrl').value.trim(),
+                spreadsheetId: document.getElementById('adminSpreadsheetId').value.trim(),
+                rootFolderId: document.getElementById('adminRootFolderId').value.trim(),
+                autoTrigger: document.getElementById('adminAutoGenerateTrigger').checked,
+                forms: {
+                    '031': {
+                        templateId: document.getElementById('cfg_template_031').value.trim(),
+                        folderId: document.getElementById('cfg_folder_031').value.trim()
+                    },
+                    '033': {
+                        templateId: document.getElementById('cfg_template_033').value.trim(),
+                        folderId: document.getElementById('cfg_folder_033').value.trim()
+                    },
+                    '034': {
+                        templateId: document.getElementById('cfg_template_034').value.trim(),
+                        folderId: document.getElementById('cfg_folder_034').value.trim()
+                    },
+                    '035': {
+                        templateId: document.getElementById('cfg_template_035').value.trim(),
+                        folderId: document.getElementById('cfg_folder_035').value.trim()
+                    }
+                }
+            };
+
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(config, null, 4));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", `document_generator_config_${new Date().toISOString().slice(0, 10)}.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+            showToast('📤 ส่งออกคอนฟิกสำเร็จ', 'ระบบได้ทำการส่งออกไฟล์การตั้งค่าระบบเรียบร้อยแล้ว', 'success');
+        };
+    }
+
+    // ระบบนำเข้าไฟล์คอนฟิกูเรชัน (Import Config)
+    const btnImportConfig = document.getElementById('btnImportConfig');
+    const importConfigFile = document.getElementById('importConfigFile');
+    if (btnImportConfig && importConfigFile) {
+        btnImportConfig.onclick = () => importConfigFile.click();
+        
+        importConfigFile.onchange = (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const config = JSON.parse(e.target.result);
+                    
+                    if (config.scriptUrl !== undefined) document.getElementById('adminScriptUrl').value = config.scriptUrl;
+                    if (config.spreadsheetId !== undefined) document.getElementById('adminSpreadsheetId').value = config.spreadsheetId;
+                    if (config.rootFolderId !== undefined) document.getElementById('adminRootFolderId').value = config.rootFolderId;
+                    if (config.autoTrigger !== undefined) document.getElementById('adminAutoGenerateTrigger').checked = config.autoTrigger;
+
+                    if (config.forms) {
+                        const ids = ['031', '033', '034', '035'];
+                        ids.forEach(id => {
+                            if (config.forms[id]) {
+                                const templateInput = document.getElementById(`cfg_template_${id}`);
+                                const folderInput = document.getElementById(`cfg_folder_${id}`);
+                                if (templateInput && config.forms[id].templateId !== undefined) {
+                                    templateInput.value = config.forms[id].templateId;
+                                }
+                                if (folderInput && config.forms[id].folderId !== undefined) {
+                                    folderInput.value = config.forms[id].folderId;
+                                }
+                            }
+                        });
+                    }
+
+                    showToast('📥 นำเข้าคอนฟิกสำเร็จ', 'นำเข้าข้อมูลเข้าหน้าฟอร์มเรียบร้อยแล้ว กรุณากดปุ่มบันทึกเพื่อบันทึกข้อมูลลงหลังบ้านครับ', 'success');
+                } catch (err) {
+                    showModal('❌ นำเข้าล้มเหลว', 'รูปแบบไฟล์คอนฟิก JSON ไม่ถูกต้องหรือชำรุด: ' + err.message, false);
+                }
+                // ล้างค่าอินพุตเพื่อให้เลือกไฟล์ซ้ำได้
+                importConfigFile.value = '';
+            };
+            reader.readAsText(file);
+        };
+    }
 }
 
 // --- ฟังก์ชันสำหรับการจัดการสลับหน้าเพจ (SPA Navigation) ---
