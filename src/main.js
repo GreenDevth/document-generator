@@ -4,6 +4,8 @@
 // ==========================================================================
 
 import './style.css';
+import backendCodeRaw from '../backend_Code.gs?raw';
+
 
 // --- ตัวแปรและสถานะการทำงานหลัก ---
 let scriptUrl = '';
@@ -12,6 +14,12 @@ let currentHeaders = [];
 let isProcessing = false;
 let currentEditRowIndex = 0;
 let dashboardData = [];
+
+// ตัวแปรควบคุมการท่องหน้าต่างโฟลเดอร์ Google Drive
+let currentFolderId = ''; // ไอดีโฟลเดอร์ระดับปัจจุบัน
+let rootFolderId = ''; // ไอดีโฟลเดอร์หลักเริ่มต้นของแผ่นงานนั้น
+let folderHistory = []; // ประวัติการท่องโฟลเดอร์ [{ id, name }]
+
 
 const thaiMonths = [
     'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
@@ -42,13 +50,20 @@ const checkboxConfig = { 'checkbox': ['หน่วยจัดและผล�
 
 // --- ส่วนตรวจสอบการเข้าสู่ระบบและเริ่มใช้งานหน้าเว็บ ---
 document.addEventListener('DOMContentLoaded', () => {
-    const savedUrl = sessionStorage.getItem('scriptUrl');
+    const savedUrl = localStorage.getItem('scriptUrl') || sessionStorage.getItem('scriptUrl');
+    const savedSheetId = localStorage.getItem('spreadsheetId') || sessionStorage.getItem('spreadsheetId');
     const isLoggedIn = sessionStorage.getItem('isLoggedIn');
 
     // ตั้งค่า URL เริ่มต้นในหน้าล็อกอิน
     const scriptUrlInput = document.getElementById('scriptUrlInput');
     if (scriptUrlInput) {
         scriptUrlInput.value = savedUrl || 'https://script.google.com/macros/s/AKfycbydeCn_wKywlK6l9aRbcUZcjEbLfV1LweCCt7cfdk0Uwpx-ytDoIwiD5BUD2j7pjYXZ/exec';
+    }
+
+    // ตั้งค่า Spreadsheet ID เริ่มต้นในหน้าล็อกอิน
+    const spreadsheetIdInput = document.getElementById('spreadsheetIdInput');
+    if (spreadsheetIdInput && savedSheetId) {
+        spreadsheetIdInput.value = savedSheetId;
     }
 
     if (isLoggedIn === 'true' && savedUrl) {
@@ -71,6 +86,8 @@ function setupEventListeners() {
             e.preventDefault();
             const password = document.getElementById('authPassword').value;
             const url = document.getElementById('scriptUrlInput').value.trim();
+            const sheetIdInput = document.getElementById('spreadsheetIdInput');
+            const sheetId = sheetIdInput ? sheetIdInput.value.trim() : '';
 
             if (!url) {
                 showModal('⚠️ คำเตือน', 'กรุณาระบุ Apps Script Web App URL', false);
@@ -88,7 +105,17 @@ function setupEventListeners() {
 
                 if (result.status === 'success' && result.data.isCorrect) {
                     scriptUrl = url;
+                    localStorage.setItem('scriptUrl', url);
                     sessionStorage.setItem('scriptUrl', url);
+                    
+                    if (sheetId) {
+                        localStorage.setItem('spreadsheetId', sheetId);
+                        sessionStorage.setItem('spreadsheetId', sheetId);
+                    } else {
+                        localStorage.removeItem('spreadsheetId');
+                        sessionStorage.removeItem('spreadsheetId');
+                    }
+                    
                     sessionStorage.setItem('isLoggedIn', 'true');
                     showPage('portalPage');
                     loadDynamicSheets();
@@ -99,6 +126,118 @@ function setupEventListeners() {
                 showModal('❌ ข้อผิดพลาด', err.message, false);
             } finally {
                 hideLoading();
+            }
+        };
+    }
+
+    // สลับหน้าสำหรับการติดตั้งครั้งแรก
+    const btnGoToSetup = document.getElementById('btnGoToSetup');
+    const loginCard = document.getElementById('loginCard');
+    const setupCard = document.getElementById('setupCard');
+    if (btnGoToSetup && loginCard && setupCard) {
+        btnGoToSetup.onclick = () => {
+            loginCard.style.display = 'none';
+            setupCard.style.display = 'block';
+            
+            // ดึงค่า URL เดิมมาวางช่วยเพื่อความรวดเร็ว
+            const setupScriptUrl = document.getElementById('setupScriptUrl');
+            const savedUrl = localStorage.getItem('scriptUrl') || sessionStorage.getItem('scriptUrl');
+            if (setupScriptUrl && savedUrl) {
+                setupScriptUrl.value = savedUrl;
+            }
+        };
+    }
+
+    // ย้อนกลับมาหน้าล็อกอินหลัก
+    const btnBackToLogin = document.getElementById('btnBackToLogin');
+    if (btnBackToLogin && loginCard && setupCard) {
+        btnBackToLogin.onclick = () => {
+            setupCard.style.display = 'none';
+            loginCard.style.display = 'block';
+        };
+    }
+
+    // เริ่มต้นทำงานคัดลอกระบบอัตโนมัติแบบคลิกเดียว
+    const btnStartSetup = document.getElementById('btnStartSetup');
+    if (btnStartSetup) {
+        btnStartSetup.onclick = async () => {
+            const url = document.getElementById('setupScriptUrl').value.trim();
+            const folderUrlVal = document.getElementById('setupFolderUrl').value.trim();
+            const password = document.getElementById('setupPassword').value;
+            const setupStatus = document.getElementById('setupStatus');
+
+            if (!url) {
+                showModal('⚠️ คำเตือน', 'กรุณาระบุ Apps Script Web App URL', false);
+                return;
+            }
+            if (!folderUrlVal) {
+                showModal('⚠️ คำเตือน', 'กรุณาระบุลิงก์โฟลเดอร์ Google Drive สำหรับจัดเก็บไฟล์', false);
+                return;
+            }
+            if (!password) {
+                showModal('⚠️ คำเตือน', 'กรุณากรอกรหัสผ่านติดตั้งโครงการ', false);
+                return;
+            }
+
+            // สกัดหา ID ของโฟลเดอร์ Google Drive จาก URL
+            const folderIdMatch = folderUrlVal.match(/[-\w]{25,}/);
+            const targetFolderId = folderIdMatch ? folderIdMatch[0] : folderUrlVal;
+
+            if (setupStatus) {
+                setupStatus.textContent = '⏳ กำลังคัดลอกแบบฟอร์มและจัดโครงสร้างไฟล์... (ใช้เวลาประมาณ 10-15 วินาที)';
+                setupStatus.style.display = 'block';
+            }
+            btnStartSetup.disabled = true;
+
+            showLoading('ระบบกำลังเชื่อมโยงและสำเนาเทมเพลตลงใน Google Drive ของคุณ...');
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    body: JSON.stringify({ 
+                        action: 'setupWorkspace', 
+                        password: password,
+                        targetFolderId: targetFolderId 
+                    }),
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+                });
+                const result = await response.json();
+
+                if (result.status === 'success') {
+                    const sheetLink = '<a href="' + result.data.spreadsheetUrl + '" target="_blank" style="color:var(--primary); font-weight:700; text-decoration:underline;">คลิกเปิดแผ่นงาน Google Sheets ใหม่ของคุณ</a>';
+                    showModal('✅ ติดตั้งโครงการสำเร็จ!', 'ระบบคัดลอกโฟลเดอร์ไฟล์เอกสาร แผ่นงานฐานข้อมูล และสไลด์เทมเพลตไปยัง Drive ของคุณเรียบร้อยแล้ว<br><br>' + sheetLink + '<br><br>สามารถกรอกรหัสผ่านปกติเพื่อเริ่มต้นใช้งานได้เลยครับ', false);
+                    
+                    localStorage.setItem('scriptUrl', url);
+                    sessionStorage.setItem('scriptUrl', url);
+                    
+                    if (result.data.spreadsheetId) {
+                        localStorage.setItem('spreadsheetId', result.data.spreadsheetId);
+                        sessionStorage.setItem('spreadsheetId', result.data.spreadsheetId);
+                        const spreadsheetIdInput = document.getElementById('spreadsheetIdInput');
+                        if (spreadsheetIdInput) {
+                            spreadsheetIdInput.value = result.data.spreadsheetId;
+                        }
+                    }
+                    
+                    const scriptUrlInput = document.getElementById('scriptUrlInput');
+                    if (scriptUrlInput) {
+                        scriptUrlInput.value = url;
+                    }
+                    
+                    if (setupCard && loginCard) {
+                        setupCard.style.display = 'none';
+                        loginCard.style.display = 'block';
+                    }
+                } else {
+                    throw new Error(result.message || 'การคัดลอกระบบล้มเหลว');
+                }
+            } catch (err) {
+                showModal('❌ ผิดพลาดการตั้งค่า', err.message, false);
+            } finally {
+                hideLoading();
+                btnStartSetup.disabled = false;
+                if (setupStatus) {
+                    setupStatus.style.display = 'none';
+                }
             }
         };
     }
@@ -115,6 +254,47 @@ function setupEventListeners() {
             if (pass) pass.value = '';
         };
     }
+
+    // ปุ่มซิงค์ข้อมูลแผ่นงานล่าสุดจาก Google Sheets
+    const btnSyncSheets = document.getElementById('btnSyncSheets');
+    if (btnSyncSheets) {
+        btnSyncSheets.onclick = () => {
+            loadDynamicSheets();
+        };
+    }
+
+    // ควบคุมการเปิดและปิดหน้าต่างคู่มือการติดตั้ง (Setup Guide Modal)
+    const btnOpenGuide = document.getElementById('btnOpenGuide');
+    const btnCloseGuide = document.getElementById('btnCloseGuide');
+    const guideModal = document.getElementById('guideModal');
+
+    if (btnOpenGuide && guideModal) {
+        btnOpenGuide.onclick = () => {
+            guideModal.classList.add('active');
+        };
+    }
+
+    if (btnCloseGuide && guideModal) {
+        btnCloseGuide.onclick = () => {
+            guideModal.classList.remove('active');
+        };
+    }
+
+
+    // จัดการการคลิกปุ่มคัดลอกสคริปต์หลังบ้านลงคลิปบอร์ด (Clipboard copy)
+    const btnCopyBackendCode = document.getElementById('btnCopyBackendCode');
+    if (btnCopyBackendCode) {
+        btnCopyBackendCode.onclick = async () => {
+            try {
+                await navigator.clipboard.writeText(backendCodeRaw);
+                showModal('📋 คัดลอกสำเร็จ', 'ระบบได้บันทึกโค้ด Apps Script ลงในคลิปบอร์ดของคุณแล้ว สามารถนำไปเปิดวาง (Paste) ในหน้าจอ Apps Script ของ Google Sheets ได้ทันทีครับ', false);
+            } catch (err) {
+                showModal('❌ คัดลอกไม่สำเร็จ', 'ไม่สามารถคัดลอกอัตโนมัติได้เนื่องจากสิทธิ์ความปลอดภัยของบราวเซอร์ กรุณาเปิดคัดลอกโค้ดโดยตรงจากในโฟลเดอร์โครงการครับ', false);
+            }
+        };
+    }
+
+
 
     // ปุ่มย้อนกลับจาก Workspace ไป Portal
     const btnBackToPortal = document.getElementById('btnBackToPortal');
@@ -193,6 +373,27 @@ function setupEventListeners() {
             }
         };
     }
+
+    // ปุ่มเปิด-ปิดหน้า Admin Settings
+    const btnOpenAdminSettings = document.getElementById('btnOpenAdminSettings');
+    const btnCloseAdminSettings = document.getElementById('btnCloseAdminSettings');
+    const adminSettingsModal = document.getElementById('adminSettingsModal');
+    const adminSettingsForm = document.getElementById('adminSettingsForm');
+
+    if (btnOpenAdminSettings) {
+        btnOpenAdminSettings.onclick = () => openAdminSettings();
+    }
+
+    if (btnCloseAdminSettings && adminSettingsModal) {
+        btnCloseAdminSettings.onclick = () => adminSettingsModal.classList.remove('active');
+    }
+
+    if (adminSettingsForm) {
+        adminSettingsForm.onsubmit = (e) => {
+            e.preventDefault();
+            saveAdminSettings();
+        };
+    }
 }
 
 // --- ฟังก์ชันสำหรับการจัดการสลับหน้าเพจ (SPA Navigation) ---
@@ -228,9 +429,10 @@ async function loadDynamicSheets() {
     if (!grid) return;
 
     try {
+        const sheetId = localStorage.getItem('spreadsheetId') || '';
         const response = await fetch(scriptUrl, {
             method: 'POST',
-            body: JSON.stringify({ action: 'getSheets' }),
+            body: JSON.stringify({ action: 'getSheets', spreadsheetId: sheetId }),
             headers: { 'Content-Type': 'text/plain;charset=utf-8' }
         });
         const json = await response.json();
@@ -348,9 +550,10 @@ async function loadFormSchema(formId) {
     if (!scriptUrl || !formId) return false;
     showLoading('กำลังวิเคราะห์โครงสร้างแผ่นงาน...');
     try {
+        const sheetId = localStorage.getItem('spreadsheetId') || '';
         const response = await fetch(scriptUrl, {
             method: 'POST',
-            body: JSON.stringify({ action: 'getSchema', formId }),
+            body: JSON.stringify({ action: 'getSchema', formId, spreadsheetId: sheetId }),
             headers: { 'Content-Type': 'text/plain;charset=utf-8' }
         });
         const json = await response.json();
@@ -703,28 +906,34 @@ async function sendData(action) {
     resultBox.style.display = 'none';
     linksContainer.innerHTML = '';
 
-    showLoading('กำลังเริ่มประมวลผลข้อมูล...');
+    const baseData = {};
+    currentHeaders.forEach(h => {
+        const checkboxes = document.querySelectorAll(`input[name="${h}"]`);
+        if (checkboxes.length > 0) {
+            const selected = Array.from(checkboxes).filter(cb => cb.checked).map(cb => cb.value);
+            baseData[h] = selected.length > 1 ? selected : (selected.length === 1 ? selected[0] : "");
+        } else {
+            const el = document.getElementById(`input_${h}`);
+            if (el) baseData[h] = el.value;
+        }
+    });
+
+    const tableData = collectTableData();
+    const interval = parseInt(document.getElementById('intervalDays').value) || 7;
+    const subjectName = baseData.subject || baseData['ชื่อรายการที่ผลิต'] || 'ไม่ระบุชื่อ';
+
+    // เปิดโมดอลความคืบหน้าหากเป็นการสร้างต่อเนื่องหลายรอบ
+    const showProgress = (rounds > 1);
+    if (showProgress) {
+        initProgressModal('🔄 กำลังสร้างไฟล์ PDF ต่อเนื่อง', rounds);
+    } else {
+        showLoading('กำลังเริ่มต้นประมวลผลข้อมูล...');
+    }
+
+    let successCount = 0;
+    let errorCount = 0;
 
     try {
-        const baseData = {};
-        currentHeaders.forEach(h => {
-            const checkboxes = document.querySelectorAll(`input[name="${h}"]`);
-            if (checkboxes.length > 0) {
-                const selected = Array.from(checkboxes).filter(cb => cb.checked).map(cb => cb.value);
-                baseData[h] = selected.length > 1 ? selected : (selected.length === 1 ? selected[0] : "");
-            } else {
-                const el = document.getElementById(`input_${h}`);
-                if (el) baseData[h] = el.value;
-            }
-        });
-
-        const tableData = collectTableData();
-        const interval = parseInt(document.getElementById('intervalDays').value) || 7;
-        const subjectName = baseData.subject || baseData['ชื่อรายการที่ผลิต'] || 'ไม่ระบุชื่อ';
-
-        showToast('🚀 เริ่มส่งข้อมูล', `กำลังจัดทำ PDF สำหรับโครงการ: ${subjectName}`, 'info');
-        setTimeout(() => hideLoading(), 800);
-
         for (let r = 0; r < rounds; r++) {
             const currentData = { ...baseData };
             if (r > 0) {
@@ -744,40 +953,70 @@ async function sendData(action) {
                 });
             }
 
-            // ส่งข้อมูลไปหลังบ้าน
-            fetch(scriptUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                body: JSON.stringify({ action, formId: activeSheet, data: currentData, tableData, rowIndex: currentEditRowIndex })
-            })
-                .then(res => res.json())
-                .then(result => {
-                    if (result.status === 'success') {
-                        addResultLink(result.data.url, result.data.name);
-                        showToast('✅ สร้างสำเร็จ', `สร้าง PDF: ${result.data.name} เรียบร้อยแล้ว`, 'success');
-                        resultBox.style.display = 'block';
+            const sheetId = localStorage.getItem('spreadsheetId') || '';
+            const currentSubject = currentData.subject || currentData['ชื่อรายการที่ผลิต'] || subjectName;
+            
+            if (showProgress) {
+                updateProgressStatus(r, rounds, `กำลังประมวลผลรายการที่ ${r + 1}: ${currentSubject}`);
+            }
 
-                        if (rounds === 1) {
-                            cancelEditMode();
-                        }
+            try {
+                // เปลี่ยนไปส่งคำขอและรอรับผลลัพธ์แบบ Sequential ด้วย await
+                const response = await fetch(scriptUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({ action, formId: activeSheet, data: currentData, tableData, rowIndex: currentEditRowIndex, spreadsheetId: sheetId })
+                });
+                const result = await response.json();
+
+                if (result.status === 'success') {
+                    successCount++;
+                    addResultLink(result.data.url, result.data.name);
+                    resultBox.style.display = 'block';
+
+                    if (showProgress) {
+                        addProgressLog(`✅ [สำเร็จ] สร้างไฟล์: ${result.data.name}`);
+                    } else {
+                        showToast('✅ สร้างสำเร็จ', `สร้าง PDF: ${result.data.name} เรียบร้อยแล้ว`, 'success');
+                        cancelEditMode();
+                    }
+                } else {
+                    errorCount++;
+                    if (showProgress) {
+                        addProgressLog(`❌ [ล้มเหลว] รายการที่ ${r + 1}: ${result.message}`);
                     } else {
                         showToast('❌ ผิดพลาด', result.message, 'error');
                     }
-                })
-                .catch(err => {
+                }
+            } catch (err) {
+                errorCount++;
+                if (showProgress) {
+                    addProgressLog(`❌ [ผิดพลาด] รายการที่ ${r + 1}: ${err.message}`);
+                } else {
                     showToast('❌ เกิดข้อผิดพลาด', err.message, 'error');
-                })
-                .finally(() => {
-                    if (r === rounds - 1) isProcessing = false;
-                });
+                }
+            }
         }
 
-        showToast('💡 ส่งคำขอแล้ว', 'คุณสามารถสลับหน้าจอหรือรอระบบแจ้งการสร้าง PDF สำเร็จได้ครับ', 'info', 8000);
+        if (showProgress) {
+            updateProgressStatus(rounds, rounds, `🏁 สร้างเสร็จสิ้นครบถ้วน!`);
+            addProgressLog(`🎉 การประมวลผลเรียบร้อย: สำเร็จ ${successCount} รายการ, ล้มเหลว ${errorCount} รายการ`);
+            showProgressEndButton();
+        } else {
+            hideLoading();
+        }
 
     } catch (e) {
-        hideLoading();
+        if (showProgress) {
+            updateProgressStatus(rounds, rounds, `❌ เกิดข้อผิดพลาดร้ายแรง`);
+            addProgressLog(`❌ เกิดข้อผิดพลาด: ${e.message}`);
+            showProgressEndButton();
+        } else {
+            hideLoading();
+            showModal('❌ ข้อผิดพลาด', e.message, false);
+        }
+    } finally {
         isProcessing = false;
-        showModal('❌ ข้อผิดพลาด', e.message, false);
     }
 }
 
@@ -787,10 +1026,11 @@ async function fetchRecentData(targetFormId) {
 
     showLoading(`กำลังดึงประวัติข้อมูลแผ่นงาน ${targetFormId}...`);
     try {
+        const sheetId = localStorage.getItem('spreadsheetId') || '';
         const response = await fetch(scriptUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-            body: JSON.stringify({ action: 'getRecentData', formId: targetFormId, limit: 100 })
+            body: JSON.stringify({ action: 'getRecentData', formId: targetFormId, limit: 100, spreadsheetId: sheetId })
         });
         const json = await response.json();
         if (json.status === 'success') {
@@ -928,10 +1168,9 @@ function updateTableControlPanel() {
     const saveAllBtn = document.createElement('button');
     saveAllBtn.type = 'button';
     saveAllBtn.id = 'btnSaveAllWorkspace';
-    saveAllBtn.className = 'btn-save-all';
-    saveAllBtn.style.backgroundColor = '#8b5cf6';
-    saveAllBtn.style.color = 'white';
-    saveAllBtn.innerHTML = '💾 บันทึกทั้งหมด';
+    saveAllBtn.className = 'btn-icon-round btn-saveall-icon';
+    saveAllBtn.setAttribute('data-tooltip', 'บันทึกแก้ไขข้อมูลทั้งหมดลง Google Sheet 💾');
+    saveAllBtn.innerHTML = '💾';
     saveAllBtn.onclick = () => saveAllRecordsInline();
     btnTool.appendChild(saveAllBtn);
 
@@ -941,9 +1180,9 @@ function updateTableControlPanel() {
         const globalBtn = document.createElement('button');
         globalBtn.type = 'button';
         globalBtn.id = 'btnGlobalPDFWorkspace';
-        globalBtn.className = 'btn-pdf-all';
-        globalBtn.style.backgroundColor = '#f59e0b';
-        globalBtn.innerHTML = `📄 สร้าง PDF รวบยอด`;
+        globalBtn.className = 'btn-icon-round btn-globalpdf-icon';
+        globalBtn.setAttribute('data-tooltip', 'สร้างไฟล์ PDF สรุปรวมยอดกลุ่ม 📊');
+        globalBtn.innerHTML = `📊`;
         globalBtn.onclick = () => generateBatchPDF034();
         btnTool.appendChild(globalBtn);
     }
@@ -967,13 +1206,15 @@ async function saveRecordInline(idx) {
 
     showLoading('กำลังแก้ไขข้อมูลลงแผ่นงาน...');
     try {
+        const sheetId = localStorage.getItem('spreadsheetId') || '';
         const response = await fetch(scriptUrl, {
             method: 'POST',
             body: JSON.stringify({
                 action: 'updateRow',
                 formId: activeSheet,
                 rowIndex: r._rowIndex,
-                data: updatedData
+                data: updatedData,
+                spreadsheetId: sheetId
             })
         });
         const json = await response.json();
@@ -1032,12 +1273,14 @@ async function saveAllRecordsInline() {
 
     showLoading(`กำลังอัปเดตข้อมูล ${updates.length} รายการ...`);
     try {
+        const sheetId = localStorage.getItem('spreadsheetId') || '';
         const response = await fetch(scriptUrl, {
             method: 'POST',
             body: JSON.stringify({
                 action: 'batchUpdateRowsInSheet', // ตรงกับฟังก์ชันหลังบ้านใน Apps Script
                 formId: activeSheet,
-                updates: updates
+                updates: updates,
+                spreadsheetId: sheetId
             })
         });
         const json = await response.json();
@@ -1169,10 +1412,11 @@ async function deleteRecord(idx) {
     if (await showModal('🗑️ ยืนยันการลบ', 'คุณต้องการลบรายการข้อมูลนี้ออกจากแผ่นงานใช่หรือไม่?', true)) {
         showLoading('กำลังลบข้อมูลออกจาก Sheet...');
         try {
+            const sheetId = localStorage.getItem('spreadsheetId') || '';
             const response = await fetch(scriptUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                body: JSON.stringify({ action: 'deleteData', rowIndex: r._rowIndex })
+                body: JSON.stringify({ action: 'deleteData', rowIndex: r._rowIndex, spreadsheetId: sheetId })
             });
             const json = await response.json();
             if (json.status === 'success') {
@@ -1215,6 +1459,7 @@ async function generateRecordPDF(idx) {
 
     showLoading(`กำลังประมวลผลการสร้างเอกสาร PDF...`);
     try {
+        const sheetId = localStorage.getItem('spreadsheetId') || '';
         const response = await fetch(scriptUrl, {
             method: 'POST',
             body: JSON.stringify({
@@ -1223,7 +1468,8 @@ async function generateRecordPDF(idx) {
                 data: mainData,
                 tableData: tableData,
                 rowIndex: r._rowIndex,
-                skipSave: true
+                skipSave: true,
+                spreadsheetId: sheetId
             })
         });
         const result = await response.json();
@@ -1265,6 +1511,7 @@ async function generateBatchPDF034() {
         }
 
         showLoading(`กำลังสร้าง PDF สรุปรวมแบบกลุ่ม (${tableData.length} รายการ)...`);
+        const sheetId = localStorage.getItem('spreadsheetId') || '';
         const response = await fetch(scriptUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -1274,7 +1521,8 @@ async function generateBatchPDF034() {
                 data: tableData[0],
                 tableData,
                 rowIndex: 0,
-                skipSave: true
+                skipSave: true,
+                spreadsheetId: sheetId
             })
         });
         const result = await response.json();
@@ -1300,18 +1548,22 @@ async function generateAllPDFs() {
     }
 
     const confirmed = await showModal('📄 ยืนยันสร้างทั้งหมด',
-        `คุณต้องการเริ่มคำสั่งสร้าง PDF จากรายการข้อมูลทั้งหมด ${dashboardData.length} รายการในหน้านี้ใช่หรือไม่? (ระบบจะประมวลผลเบื้องหลัง)`, true);
+        `คุณต้องการเริ่มคำสั่งสร้าง PDF จากรายการข้อมูลทั้งหมด ${dashboardData.length} รายการในหน้านี้ใช่หรือไม่?`, true);
     if (!confirmed) return;
 
-    showToast('🚀 เริ่มสร้าง PDF ทั้งหมด', `ระบบกำลังทยอยทำ PDF ทั้งหมด ${dashboardData.length} รายการ...`, 'info', 8000);
+    isProcessing = true;
+    initProgressModal('📄 กำลังสร้างไฟล์ PDF ทั้งหมดย้อนหลัง', dashboardData.length);
 
-    // ย้ายไปทำงานแบบ Asynchronous ใน Background
-    (async () => {
-        let successCount = 0;
-        let errorCount = 0;
+    let successCount = 0;
+    let errorCount = 0;
 
+    try {
         for (let i = 0; i < dashboardData.length; i++) {
             const r = dashboardData[i];
+            const subjectName = r.subject || r['ชื่อรายการที่ผลิต'] || `แถวที่ ${r._rowIndex}`;
+            
+            updateProgressStatus(i, dashboardData.length, `กำลังทำ PDF รายการที่ ${i + 1}/${dashboardData.length}: ${subjectName}`);
+
             try {
                 let tableData = [];
                 if (r.tableData || r.tableBody || r._tableData) {
@@ -1321,6 +1573,7 @@ async function generateAllPDFs() {
                     tableData = [r];
                 }
 
+                const sheetId = localStorage.getItem('spreadsheetId') || '';
                 const response = await fetch(scriptUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -1330,24 +1583,35 @@ async function generateAllPDFs() {
                         data: r,
                         tableData,
                         rowIndex: r._rowIndex,
-                        skipSave: true
+                        skipSave: true,
+                        spreadsheetId: sheetId
                     })
                 });
                 const result = await response.json();
                 if (result.status === 'success') {
                     successCount++;
-                    if (successCount % 5 === 0 || i === dashboardData.length - 1) {
-                        showToast('⏳ ความคืบหน้า', `บันทึกเสร็จแล้ว ${successCount}/${dashboardData.length} รายการ`, 'info');
-                    }
+                    addProgressLog(`✅ [สำเร็จ] รายการที่ ${i + 1}: ${result.data.name}`);
                 } else {
                     errorCount++;
+                    addProgressLog(`❌ [ล้มเหลว] รายการที่ ${i + 1}: ${result.message}`);
                 }
             } catch (err) {
                 errorCount++;
+                addProgressLog(`❌ [ผิดพลาด] รายการที่ ${i + 1}: ${err.message}`);
             }
         }
-        showToast('🏁 ดำเนินการสร้างครบแล้ว', `สร้างสำเร็จ ${successCount} ไฟล์ ${errorCount > 0 ? `(ผิดพลาด ${errorCount} รายการ)` : ''}`, successCount > 0 ? 'success' : 'error', 15000);
-    })();
+        
+        updateProgressStatus(dashboardData.length, dashboardData.length, `🏁 การประมวลผลจัดสร้างครบถ้วนแล้ว!`);
+        addProgressLog(`🎉 สร้างสำเร็จ ${successCount} รายการ, ล้มเหลว ${errorCount} รายการ`);
+        showProgressEndButton();
+
+    } catch (err) {
+        updateProgressStatus(dashboardData.length, dashboardData.length, `❌ เกิดข้อผิดพลาดในการรันแบตช์`);
+        addProgressLog(`❌ เกิดข้อผิดพลาดร้ายแรง: ${err.message}`);
+        showProgressEndButton();
+    } finally {
+        isProcessing = false;
+    }
 }
 
 // --- ฟังก์ชันช่วยเหลือและคำนวณวันเวลา ---
@@ -1414,55 +1678,51 @@ window.filterDashboard = function () {
 };
 
 // --- ดึงรายการ PDF จาก Google Drive เพื่อนำมารวมไฟล์ (Drive Picker) ---
-async function openDriveFilePicker() {
+// --- ดึงรายการ PDF จาก Google Drive เพื่อนำมารวมไฟล์ หรือสั่งพิมพ์ (Drive PDF Manager) ---
+// --- ดึงรายการ PDF และโฟลเดอร์จาก Google Drive เพื่อนำมาจัดการ (Drive Picker) ---
+async function openDriveFilePicker(targetFolderId = null) {
     showLoading('กำลังเชื่อมต่อเพื่ออ่านรายการไฟล์บน Drive...');
     try {
+        const sheetId = localStorage.getItem('spreadsheetId') || '';
         const response = await fetch(scriptUrl, {
             method: 'POST',
-            body: JSON.stringify({ action: 'getDriveFiles', formId: activeSheet })
+            body: JSON.stringify({ 
+                action: 'getDriveFiles', 
+                formId: activeSheet, 
+                spreadsheetId: sheetId,
+                folderId: targetFolderId // ส่งไอดีโฟลเดอร์ย่อยย่อยหากมี
+            })
         });
         const json = await response.json();
         hideLoading();
 
-        if (json.status === 'success' && json.data.length > 0) {
-            let html = '<div class="drive-list-container">';
-            html += `
-                <div class="select-all-header">
-                    <input type="checkbox" id="driveSelectAll">
-                    <label for="driveSelectAll" style="cursor:pointer;margin-left:8px;">เลือกทั้งหมด (${json.data.length} ไฟล์)</label>
-                </div>
-            `;
+        if (json.status === 'success') {
+            const data = json.data;
+            rootFolderId = data.rootFolderId;
+            currentFolderId = data.currentFolderId;
 
-            json.data.forEach(f => {
-                html += `
-                <label class="drive-file-item">
-                    <input type="checkbox" class="drive-file-cb" value="${f.id}" data-name="${f.name}"> 
-                    <div style="margin-left:12px;">
-                        <div style="font-weight:600; color:#1e293b;">${f.name}</div>
-                        <div style="font-size:0.75rem; color:#64748b;">สร้างเมื่อ: ${f.date}</div>
-                    </div>
-                </label>`;
-            });
-            html += '</div>';
-
-            // รอรับคำยืนยัน
-            const confirmed = await showModal('🗂️ เลือกเอกสารบน Drive เพื่อนำมารวมไฟล์', html, true);
-
-            // การจัดการ Select All ภายหลังการแสดง DOM
-            const selectAll = document.getElementById('driveSelectAll');
-            if (selectAll) {
-                selectAll.onchange = () => {
-                    document.querySelectorAll('.drive-file-cb').forEach(cb => cb.checked = selectAll.checked);
-                };
+            // จัดการประวัติการท่องโฟลเดอร์ (Breadcrumbs)
+            if (!targetFolderId || targetFolderId === rootFolderId) {
+                folderHistory = [{ id: rootFolderId, name: 'หน้าแรก' }];
+            } else {
+                // ค้นหาตำแหน่งของโฟลเดอร์ในประวัติเพื่อย้อนกลับ หรือเพิ่มเป็นชั้นย่อยใหม่
+                const existIdx = folderHistory.findIndex(h => h.id === targetFolderId);
+                if (existIdx !== -1) {
+                    folderHistory = folderHistory.slice(0, existIdx + 1);
+                } else {
+                    folderHistory.push({ id: targetFolderId, name: data.folderName });
+                }
             }
 
-            if (confirmed) {
-                const selected = Array.from(document.querySelectorAll('.drive-file-cb:checked')).map(cb => cb.value);
-                if (selected.length > 0) {
-                    mergeAllGeneratedPDFs(selected);
-                } else {
-                    showToast('⚠️ คำเตือน', 'ไม่ได้เลือกไฟล์ใด ๆ', 'info');
-                }
+            // เรียกเปิดโมดอลจัดการไฟล์ PDF
+            const result = await showDrivePickerModal(`🗂️ จัดการเอกสาร PDF บน Google Drive`, data);
+            
+            if (result.action === 'merge' && result.fileIds.length > 0) {
+                mergeAllGeneratedPDFs(result.fileIds);
+            } else if (result.action === 'print' && result.fileIds.length > 0) {
+                mergeAndPrintPDFs(result.fileIds);
+            } else if (result.action === 'navigate') {
+                openDriveFilePicker(result.targetFolderId);
             }
         } else {
             showModal('📁 แจ้งเตือน', json.message || 'ไม่พบไฟล์ PDF ในโฟลเดอร์สำหรับแผ่นงานนี้ครับ', false);
@@ -1473,7 +1733,429 @@ async function openDriveFilePicker() {
     }
 }
 
-// --- ฟังก์ชันการดาวน์โหลดและรวมไฟล์ PDF ผ่าน pdf-lib ---
+// --- โมดอลเลือกและจัดการไฟล์แบบ Dynamic สำหรับ Google Drive (รองรับการจัดการโฟลเดอร์ย่อย) ---
+function showDrivePickerModal(title, data) {
+    return new Promise((resolve) => {
+        const overlay = document.getElementById('modalOverlay');
+        document.getElementById('modalIcon').textContent = '🗂️';
+        document.getElementById('modalTitle').textContent = title;
+        const desc = document.getElementById('modalDesc');
+        desc.innerHTML = '';
+
+        // 1. สร้างส่วน Breadcrumbs สำหรับท่องโครงสร้างโฟลเดอร์
+        const breadcrumbContainer = document.createElement('div');
+        breadcrumbContainer.className = 'drive-breadcrumb-container';
+        folderHistory.forEach((h, idx) => {
+            if (idx > 0) {
+                const sep = document.createElement('span');
+                sep.textContent = ' / ';
+                sep.style.color = '#94a3b8';
+                breadcrumbContainer.appendChild(sep);
+            }
+            const link = document.createElement('span');
+            link.className = 'drive-breadcrumb-link';
+            link.textContent = h.name;
+            if (idx === folderHistory.length - 1) {
+                link.classList.add('active');
+            } else {
+                link.onclick = () => resolve({ action: 'navigate', targetFolderId: h.id });
+            }
+            breadcrumbContainer.appendChild(link);
+        });
+        desc.appendChild(breadcrumbContainer);
+
+        // 2. สร้างแถบเครื่องมือด่วนสำหรับการสร้างโฟลเดอร์ย่อยและการย้ายไฟล์
+        const toolBar = document.createElement('div');
+        toolBar.className = 'drive-toolbar';
+        toolBar.style.display = 'flex';
+        toolBar.style.justifyContent = 'space-between';
+        toolBar.style.alignItems = 'center';
+        toolBar.style.margin = '15px 0 10px 0';
+        toolBar.style.gap = '10px';
+
+        const btnNewFolder = document.createElement('button');
+        btnNewFolder.type = 'button';
+        btnNewFolder.className = 'btn btn-outline';
+        btnNewFolder.style.padding = '8px 14px';
+        btnNewFolder.style.fontSize = '0.85rem';
+        btnNewFolder.style.borderRadius = '10px';
+        btnNewFolder.innerHTML = '📁 สร้างโฟลเดอร์ย่อย';
+        btnNewFolder.onclick = () => createNewFolder(currentFolderId, () => {
+            resolve({ action: 'navigate', targetFolderId: currentFolderId });
+        });
+
+        const btnMoveSelected = document.createElement('button');
+        btnMoveSelected.type = 'button';
+        btnMoveSelected.id = 'btnMoveSelected';
+        btnMoveSelected.className = 'btn btn-outline';
+        btnMoveSelected.style.padding = '8px 14px';
+        btnMoveSelected.style.fontSize = '0.85rem';
+        btnMoveSelected.style.borderRadius = '10px';
+        btnMoveSelected.style.borderColor = '#d97706'; // สีส้มเพื่อความเด่น
+        btnMoveSelected.style.color = '#d97706';
+        btnMoveSelected.style.display = 'none'; // ซ่อนไว้ในเบื้องต้นจนกว่าจะเลือกไฟล์
+        btnMoveSelected.innerHTML = '📦 ย้ายไฟล์ไปเก็บ';
+        btnMoveSelected.onclick = () => {
+            const selected = Array.from(listContainer.querySelectorAll('.drive-file-cb:checked')).map(cb => cb.value);
+            if (selected.length > 0) {
+                moveSelectedFiles(selected, () => {
+                    resolve({ action: 'navigate', targetFolderId: currentFolderId });
+                });
+            }
+        };
+
+        toolBar.appendChild(btnNewFolder);
+        toolBar.appendChild(btnMoveSelected);
+        desc.appendChild(toolBar);
+
+        // 3. สร้างคอนเทนเนอร์รายการไฟล์และโฟลเดอร์
+        const listContainer = document.createElement('div');
+        listContainer.className = 'drive-list-container';
+        
+        const hasFiles = data.files && data.files.length > 0;
+        
+        listContainer.innerHTML = `
+            <div class="drive-select-all-row" style="display:flex; align-items:center; padding:12px 18px; background:#f8fafc; border-radius:12px; border:1px solid #e2e8f0; font-weight:700; color:#334155; margin-bottom:5px; font-size:0.95rem;">
+                <input type="checkbox" id="driveSelectAll" ${!hasFiles ? 'disabled' : ''}>
+                <label for="driveSelectAll" style="cursor:pointer;margin-left:8px;">เลือกทั้งหมด (${data.files.length} ไฟล์)</label>
+            </div>
+        `;
+
+        // เรนเดอร์โฟลเดอร์ย่อยย่อย (ถ้ามี)
+        if (data.folders && data.folders.length > 0) {
+            data.folders.forEach(f => {
+                const item = document.createElement('div');
+                item.className = 'drive-file-item drive-folder-item';
+                item.innerHTML = `
+                    <div class="drive-file-content">
+                        <span style="font-size:1.4rem; cursor:pointer;">📁</span>
+                        <div class="drive-file-info" style="margin-left:14px;">
+                            <div class="drive-file-name" style="font-weight:700;" title="${f.name}">${f.name}</div>
+                        </div>
+                    </div>
+                `;
+                item.onclick = () => resolve({ action: 'navigate', targetFolderId: f.id });
+                listContainer.appendChild(item);
+            });
+        }
+
+        // เรนเดอร์ไฟล์เอกสาร PDF
+        if (hasFiles) {
+            data.files.forEach(f => {
+                const item = document.createElement('div');
+                item.className = 'drive-file-item';
+                item.innerHTML = `
+                    <div class="drive-file-content">
+                        <input type="checkbox" class="drive-file-cb" value="${f.id}" data-name="${f.name}">
+                        <div class="drive-file-info">
+                            <div class="drive-file-name" title="${f.name}">${f.name}</div>
+                            <div class="drive-file-date">สร้างเมื่อ: ${f.date}</div>
+                        </div>
+                    </div>
+                    <div class="drive-file-actions">
+                        <button type="button" class="btn-file-action btn-download-file" data-tooltip="ดาวน์โหลดไฟล์นี้ 📥">📥</button>
+                        <button type="button" class="btn-file-action btn-print-file" data-tooltip="สั่งพิมพ์ไฟล์นี้ 🖨️">🖨️</button>
+                    </div>
+                `;
+
+                item.querySelector('.btn-download-file').onclick = (e) => {
+                    e.stopPropagation();
+                    downloadDriveFile(f.id, f.name);
+                };
+                item.querySelector('.btn-print-file').onclick = (e) => {
+                    e.stopPropagation();
+                    printDriveFile(f.id, f.name);
+                };
+
+                const checkbox = item.querySelector('.drive-file-cb');
+                checkbox.onchange = () => {
+                    const checked = listContainer.querySelectorAll('.drive-file-cb:checked').length;
+                    btnMoveSelected.style.display = checked > 0 ? 'block' : 'none';
+                };
+
+                item.onclick = (e) => {
+                    if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'BUTTON') {
+                        checkbox.checked = !checkbox.checked;
+                        checkbox.dispatchEvent(new Event('change'));
+                    }
+                };
+
+                listContainer.appendChild(item);
+            });
+        }
+
+        // กรณีโฟลเดอร์นี้ว่างเปล่าไม่มีไฟล์หรือโฟลเดอร์ย่อยเลย
+        if ((!data.folders || data.folders.length === 0) && (!data.files || data.files.length === 0)) {
+            const emptyEl = document.createElement('div');
+            emptyEl.style.textAlign = 'center';
+            emptyEl.style.padding = '40px 10px';
+            emptyEl.style.color = '#64748b';
+            emptyEl.innerHTML = `📂 โฟลเดอร์นี้ไม่มีไฟล์ PDF หรือโฟลเดอร์ย่อยครับ`;
+            listContainer.appendChild(emptyEl);
+        }
+
+        desc.appendChild(listContainer);
+
+        // จัดการ Select All
+        const selectAll = listContainer.querySelector('#driveSelectAll');
+        if (selectAll) {
+            selectAll.onchange = () => {
+                listContainer.querySelectorAll('.drive-file-cb').forEach(cb => {
+                    cb.checked = selectAll.checked;
+                    cb.dispatchEvent(new Event('change'));
+                });
+            };
+        }
+
+        // จัดการปุ่มด้านล่าง
+        const btnArea = document.getElementById('modalBtns');
+        btnArea.innerHTML = '';
+
+        const btnMergeDownload = document.createElement('button');
+        btnMergeDownload.className = 'modal-btn';
+        btnMergeDownload.style.backgroundColor = 'var(--primary)';
+        btnMergeDownload.style.color = 'white';
+        btnMergeDownload.style.fontWeight = '700';
+        btnMergeDownload.innerHTML = 'รวมและดาวน์โหลด 📥';
+        if (!hasFiles) btnMergeDownload.disabled = true;
+
+        const btnMergePrint = document.createElement('button');
+        btnMergePrint.className = 'modal-btn';
+        btnMergePrint.style.backgroundColor = 'var(--success)';
+        btnMergePrint.style.color = 'white';
+        btnMergePrint.style.fontWeight = '700';
+        btnMergePrint.innerHTML = 'พิมพ์เอกสาร 🖨️';
+        if (!hasFiles) btnMergePrint.disabled = true;
+
+        const btnClose = document.createElement('button');
+        btnClose.className = 'modal-btn';
+        btnClose.style.backgroundColor = '#f1f5f9';
+        btnClose.style.color = '#64748b';
+        btnClose.style.fontWeight = '700';
+        btnClose.innerHTML = 'ปิดหน้าต่าง ❌';
+
+        btnArea.appendChild(btnMergeDownload);
+        btnArea.appendChild(btnMergePrint);
+        btnArea.appendChild(btnClose);
+
+        overlay.classList.add('active');
+
+        const restoreDefaultModalBtns = () => {
+            btnArea.innerHTML = `
+                <button id="modalCancel" class="modal-btn btn-cancel">ยกเลิก</button>
+                <button id="modalConfirm" class="modal-btn btn-confirm">ตกลง</button>
+            `;
+        };
+
+        btnMergeDownload.onclick = () => {
+            const selected = Array.from(listContainer.querySelectorAll('.drive-file-cb:checked')).map(cb => cb.value);
+            if (selected.length > 0) {
+                overlay.classList.remove('active');
+                restoreDefaultModalBtns();
+                resolve({ action: 'merge', fileIds: selected });
+            } else {
+                showToast('⚠️ คำเตือน', 'กรุณาเลือกไฟล์ PDF ที่ต้องการรวมและดาวน์โหลด', 'info');
+            }
+        };
+
+        btnMergePrint.onclick = () => {
+            const selected = Array.from(listContainer.querySelectorAll('.drive-file-cb:checked')).map(cb => cb.value);
+            if (selected.length > 0) {
+                overlay.classList.remove('active');
+                restoreDefaultModalBtns();
+                resolve({ action: 'print', fileIds: selected });
+            } else {
+                showToast('⚠️ คำเตือน', 'กรุณาเลือกไฟล์ PDF ที่ต้องการสั่งพิมพ์', 'info');
+            }
+        };
+
+        btnClose.onclick = () => {
+            overlay.classList.remove('active');
+            restoreDefaultModalBtns();
+            resolve({ action: 'close' });
+        };
+    });
+}
+
+// --- ฟังก์ชันดาวน์โหลดไฟล์ PDF เดี่ยวจาก Drive ---
+async function downloadDriveFile(fileId, fileName) {
+    showLoading('กำลังดาวน์โหลดไฟล์...');
+    try {
+        const base64 = await callBackend('getFileBytes', { fileId });
+        const bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+        const blob = new Blob([bytes], { type: 'application/pdf' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = fileName.endsWith('.pdf') ? fileName : fileName + '.pdf';
+        link.click();
+        showToast('✅ ดาวน์โหลดสำเร็จ', `ดาวน์โหลดไฟล์ ${fileName} เรียบร้อยแล้ว`, 'success');
+    } catch (e) {
+        showModal('❌ ผิดพลาด', 'ไม่สามารถดาวน์โหลดไฟล์ได้: ' + e.message, false);
+    } finally {
+        hideLoading();
+    }
+}
+
+// --- ฟังก์ชันสั่งพิมพ์ไฟล์ PDF เดี่ยวจาก Drive ในแท็บใหม่ ---
+async function printDriveFile(fileId, fileName) {
+    // เปิดแท็บใหม่ทันทีก่อนการดาวน์โหลดเพื่อเอาชนะระบบบล็อกป๊อปอัป (Popup Blocker) ของเบราว์เซอร์
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+        printWindow.document.write(`
+            <html>
+            <head>
+                <title>กำลังเตรียมพิมพ์ - ${fileName}</title>
+                <style>
+                    body { font-family: sans-serif; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; background: #f8fafc; color: #475569; margin: 0; }
+                    .loader { border: 4px solid #cbd5e1; border-top: 4px solid #4f46e5; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin-bottom: 20px; }
+                    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+                </style>
+            </head>
+            <body>
+                <div class="loader"></div>
+                <h2>⏳ กำลังดาวน์โหลดและเตรียมเอกสารเพื่อสั่งพิมพ์...</h2>
+                <p>กรุณารอสักครู่ ระบบจะเปิดหน้าต่างสั่งพิมพ์ให้ท่านโดยอัตโนมัติ</p>
+            </body>
+            </html>
+        `);
+        printWindow.document.close();
+    }
+
+    showLoading('กำลังเตรียมพิมพ์ไฟล์...');
+    try {
+        const base64 = await callBackend('getFileBytes', { fileId });
+        const bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+        const blob = new Blob([bytes], { type: 'application/pdf' });
+        const blobUrl = URL.createObjectURL(blob);
+        
+        if (printWindow) {
+            printWindow.document.body.innerHTML = '';
+            printWindow.document.title = `พิมพ์เอกสาร PDF - ${fileName}`;
+            printWindow.document.write(`
+                <html>
+                <head>
+                    <title>พิมพ์เอกสาร PDF - ${fileName}</title>
+                    <style>
+                        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; }
+                        iframe { width: 100%; height: 100%; border: none; }
+                    </style>
+                </head>
+                <body>
+                    <iframe id="pdfFrame" src="${blobUrl}"></iframe>
+                    <script>
+                        const frame = document.getElementById('pdfFrame');
+                        frame.onload = function() {
+                            setTimeout(() => {
+                                frame.contentWindow.focus();
+                                frame.contentWindow.print();
+                            }, 500);
+                        };
+                    </script>
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
+        }
+    } catch (e) {
+        if (printWindow) {
+            printWindow.document.body.innerHTML = `<h2 style="color:#ef4444;text-align:center;margin-top:100px;">❌ ไม่สามารถดาวน์โหลดไฟล์ได้: ${e.message}</h2>`;
+        }
+        showModal('❌ ผิดพลาด', 'ไม่สามารถสั่งพิมพ์ไฟล์ได้: ' + e.message, false);
+    } finally {
+        hideLoading();
+    }
+}
+
+// --- ฟังก์ชันการรวมไฟล์ PDF (Merge) ผ่าน pdf-lib และสั่งพิมพ์ (Print) ในแท็บใหม่ ---
+async function mergeAndPrintPDFs(fileIds) {
+    // เปิดแท็บใหม่ทันทีก่อนการดาวน์โหลดเพื่อป้องกันระบบบล็อกป๊อปอัป
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+        printWindow.document.write(`
+            <html>
+            <head>
+                <title>กำลังเตรียมพิมพ์เอกสารรวม</title>
+                <style>
+                    body { font-family: sans-serif; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; background: #f8fafc; color: #475569; margin: 0; }
+                    .loader { border: 4px solid #cbd5e1; border-top: 4px solid #4f46e5; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin-bottom: 20px; }
+                    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+                </style>
+            </head>
+            <body>
+                <div class="loader"></div>
+                <h2>⏳ กำลังโหลดและรวมเอกสารเพื่อสั่งพิมพ์...</h2>
+                <p id="statusMsg">กรุณารอสักครู่ ระบบจะเปิดหน้าต่างสั่งพิมพ์ให้อัตโนมัติ</p>
+            </body>
+            </html>
+        `);
+        printWindow.document.close();
+    }
+
+    showLoading('กำลังดาวน์โหลดและรวมเอกสารเพื่อสั่งพิมพ์... (กรุณารอสักครู่)');
+    try {
+        const { PDFDocument } = window.PDFLib;
+        const mergedPdf = await PDFDocument.create();
+
+        for (let i = 0; i < fileIds.length; i++) {
+            const statusText = `กำลังรวมไฟล์รายการที่ ${i + 1}/${fileIds.length}...`;
+            updateLoadingText(statusText);
+            
+            if (printWindow) {
+                const statusEl = printWindow.document.getElementById('statusMsg');
+                if (statusEl) statusEl.textContent = statusText;
+            }
+
+            const base64 = await callBackend('getFileBytes', { fileId: fileIds[i] });
+            const bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0)).buffer;
+
+            const pdf = await PDFDocument.load(bytes);
+            const copiedPages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
+            copiedPages.forEach((page) => mergedPdf.addPage(page));
+        }
+
+        const mergedPdfBytes = await mergedPdf.save();
+        const blob = new Blob([mergedPdfBytes], { type: 'application/pdf' });
+        const blobUrl = URL.createObjectURL(blob);
+
+        if (printWindow) {
+            printWindow.document.body.innerHTML = '';
+            printWindow.document.title = `พิมพ์เอกสารรวม PDF`;
+            printWindow.document.write(`
+                <html>
+                <head>
+                    <title>พิมพ์เอกสารรวม PDF</title>
+                    <style>
+                        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; }
+                        iframe { width: 100%; height: 100%; border: none; }
+                    </style>
+                </head>
+                <body>
+                    <iframe id="pdfFrame" src="${blobUrl}"></iframe>
+                    <script>
+                        const frame = document.getElementById('pdfFrame');
+                        frame.onload = function() {
+                            setTimeout(() => {
+                                frame.contentWindow.focus();
+                                frame.contentWindow.print();
+                            }, 500);
+                        };
+                    </script>
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
+        }
+    } catch (e) {
+        if (printWindow) {
+            printWindow.document.body.innerHTML = `<h2 style="color:#ef4444;text-align:center;margin-top:100px;">❌ ล้มเหลวในการรวมไฟล์เพื่อสั่งพิมพ์: ${e.message}</h2>`;
+        }
+        showModal('❌ เกิดข้อผิดพลาด', 'ล้มเหลวในการรวมและสั่งพิมพ์ PDF: ' + e.message, false);
+    } finally {
+        hideLoading();
+    }
+}
+
+// --- ฟังก์ชันดาวน์โหลดและรวมไฟล์ PDF ผ่าน pdf-lib ---
 async function mergeAllGeneratedPDFs(fileIds) {
     showLoading('กำลังเริ่มดาวน์โหลดและรวมไฟล์ PDF ทั้งหมด... (กรุณารอสักครู่)');
     try {
@@ -1483,7 +2165,6 @@ async function mergeAllGeneratedPDFs(fileIds) {
         for (let i = 0; i < fileIds.length; i++) {
             updateLoadingText(`กำลังรวมไฟล์รายการที่ ${i + 1}/${fileIds.length}...`);
 
-            // ดึงไฟล์ base64 ผ่าน Apps Script
             const base64 = await callBackend('getFileBytes', { fileId: fileIds[i] });
             const bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0)).buffer;
 
@@ -1507,10 +2188,107 @@ async function mergeAllGeneratedPDFs(fileIds) {
     }
 }
 
+// --- ฟังก์ชันสร้างโฟลเดอร์ย่อยใหม่ ---
+async function createNewFolder(parentFolderId, callback) {
+    const folderName = prompt('📂 กรุณาระบุชื่อโฟลเดอร์ย่อยใหม่:');
+    if (!folderName || !folderName.trim()) return;
+
+    showLoading('กำลังสร้างโฟลเดอร์ย่อยใหม่บน Drive...');
+    try {
+        const sheetId = localStorage.getItem('spreadsheetId') || '';
+        const response = await fetch(scriptUrl, {
+            method: 'POST',
+            body: JSON.stringify({ 
+                action: 'createSubFolder', 
+                parentFolderId: parentFolderId, 
+                folderName: folderName.trim(), 
+                spreadsheetId: sheetId 
+            })
+        });
+        const json = await response.json();
+        hideLoading();
+
+        if (json.status === 'success') {
+            showToast('✅ สร้างโฟลเดอร์สำเร็จ', `สร้างโฟลเดอร์ "${folderName}" เรียบร้อยแล้ว`, 'success');
+            if (callback) callback();
+        } else {
+            throw new Error(json.message);
+        }
+    } catch (e) {
+        hideLoading();
+        showModal('❌ ผิดพลาด', e.message, false);
+    }
+}
+
+// --- ฟังก์ชันย้ายไฟล์ที่เลือกไปยังโฟลเดอร์ปลายทาง ---
+async function moveSelectedFiles(fileIds, callback) {
+    showLoading('กำลังโหลดรายการโฟลเดอร์ปลายทาง...');
+    try {
+        const sheetId = localStorage.getItem('spreadsheetId') || '';
+        const response = await fetch(scriptUrl, {
+            method: 'POST',
+            body: JSON.stringify({ 
+                action: 'getDriveFiles', 
+                formId: activeSheet, 
+                spreadsheetId: sheetId,
+                folderId: rootFolderId // ดึงรายการโฟลเดอร์ทั้งหมดจากระดับแรก
+            })
+        });
+        const json = await response.json();
+        hideLoading();
+
+        if (json.status === 'success') {
+            const folders = json.data.folders || [];
+
+            // สร้าง HTML dropdown สำหรับแสดงผลใน Modal ยืนยันการย้าย
+            const div = document.createElement('div');
+            div.style.textAlign = 'left';
+            div.innerHTML = `
+                <p style="margin-bottom:12px; font-weight:600;">กรุณาเลือกโฟลเดอร์ปลายทางเพื่อย้ายไฟล์จำนวน ${fileIds.length} รายการ:</p>
+                <select id="moveFolderSelect" style="width:100%; padding:12px 18px; border-radius:12px; border:2px solid #e2e8f0;">
+                    <option value="${rootFolderId}">📂 หน้าแรก (โฟลเดอร์หลัก)</option>
+                    ${folders.map(f => `<option value="${f.id}">📁 ${f.name}</option>`).join('')}
+                </select>
+            `;
+
+            const confirmed = await showModal('📦 ย้ายไฟล์เอกสาร PDF', div, true, '📦');
+            if (confirmed) {
+                const targetFolderId = document.getElementById('moveFolderSelect').value;
+                
+                showLoading('กำลังย้ายไฟล์ย่อยบน Google Drive...');
+                const moveResponse = await fetch(scriptUrl, {
+                    method: 'POST',
+                    body: JSON.stringify({ 
+                        action: 'moveFiles', 
+                        fileIds: fileIds, 
+                        targetFolderId: targetFolderId, 
+                        spreadsheetId: sheetId 
+                    })
+                });
+                const moveResult = await moveResponse.json();
+                hideLoading();
+
+                if (moveResult.status === 'success') {
+                    showToast('✅ ย้ายไฟล์สำเร็จ', moveResult.message, 'success');
+                    if (callback) callback();
+                } else {
+                    throw new Error(moveResult.message);
+                }
+            }
+        } else {
+            throw new Error(json.message);
+        }
+    } catch (e) {
+        hideLoading();
+        showModal('❌ ผิดพลาด', e.message, false);
+    }
+}
+
 async function callBackend(action, params) {
+    const sheetId = localStorage.getItem('spreadsheetId') || '';
     const response = await fetch(scriptUrl, {
         method: 'POST',
-        body: JSON.stringify({ action, ...params })
+        body: JSON.stringify({ action, spreadsheetId: sheetId, ...params })
     });
     const json = await response.json();
     if (json.status === 'success') return json.data;
@@ -1639,6 +2417,220 @@ function addResultLink(url, name) {
     div.className = 'batch-link';
     div.innerHTML = `<a href="${url}" target="_blank" style="text-decoration:none;color:inherit;display:block;width:100%;">📄 เปิดดูไฟล์เอกสาร: ${name}</a>`;
     container.appendChild(div);
+}
+
+// --- ฟังก์ชันเปิดและดึงข้อมูลมาแสดงใน Admin Settings Panel ---
+async function openAdminSettings() {
+    const adminSettingsModal = document.getElementById('adminSettingsModal');
+    if (!adminSettingsModal) return;
+
+    showLoading('กำลังดึงการตั้งค่าระบบปัจจุบันจากหลังบ้าน...');
+    try {
+        const spreadsheetId = localStorage.getItem('spreadsheetId') || '';
+        
+        // ดึง Config ล่าสุดจากหลังบ้าน
+        const response = await fetch(scriptUrl, {
+            method: 'POST',
+            body: JSON.stringify({ action: 'getConfig', spreadsheetId: spreadsheetId }),
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+        });
+        const json = await response.json();
+        
+        if (json.status === 'success' && json.data) {
+            const config = json.data;
+            
+            // นำข้อมูลไปเติมในหน้าฟอร์ม
+            document.getElementById('adminScriptUrl').value = scriptUrl;
+            document.getElementById('adminSpreadsheetId').value = config.SPREADSHEET_ID || spreadsheetId;
+            
+            // เติมเทมเพลตและโฟลเดอร์สำหรับ 031 - 035
+            const forms = ['031', '033', '034', '035'];
+            forms.forEach(id => {
+                const formCfg = config.FORMS && config.FORMS[id] ? config.FORMS[id] : {};
+                const templateInput = document.getElementById(`cfg_template_${id}`);
+                const folderInput = document.getElementById(`cfg_folder_${id}`);
+                if (templateInput) templateInput.value = formCfg.templateId || '';
+                if (folderInput) folderInput.value = formCfg.folderId || '';
+            });
+
+            // ดึงสถานะปัจจุบันของ Auto-Generate ทริกเกอร์หลังบ้าน
+            try {
+                const triggerRes = await fetch(scriptUrl, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'getAutoTriggerStatus', spreadsheetId: spreadsheetId }),
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+                });
+                const triggerJson = await triggerRes.json();
+                if (triggerJson.status === 'success') {
+                    document.getElementById('adminAutoGenerateTrigger').checked = triggerJson.data.isActive;
+                }
+            } catch (err) {}
+
+            hideLoading();
+            adminSettingsModal.classList.add('active');
+        } else {
+            throw new Error(json.message || 'ไม่สามารถดึงคอนฟิกได้');
+        }
+    } catch (e) {
+        hideLoading();
+        showModal('❌ ดึงข้อมูลล้มเหลว', 'ไม่สามารถเชื่อมโยงค่าระบบได้: ' + e.message, false);
+    }
+}
+
+// --- ฟังก์ชันส่งการตั้งค่าระบบผู้ดูแลกลับไปบันทึกที่หลังบ้าน ---
+async function saveAdminSettings() {
+    const adminSettingsModal = document.getElementById('adminSettingsModal');
+    const newScriptUrl = document.getElementById('adminScriptUrl').value.trim();
+    const newSpreadsheetId = document.getElementById('adminSpreadsheetId').value.trim();
+    const enableAuto = document.getElementById('adminAutoGenerateTrigger').checked;
+
+    if (!newScriptUrl) {
+        showToast('⚠️ คำเตือน', 'กรุณาระบุ Apps Script Web App URL', 'info');
+        return;
+    }
+    if (!newSpreadsheetId) {
+        showToast('⚠️ คำเตือน', 'กรุณาระบุ Google Spreadsheet ID', 'info');
+        return;
+    }
+
+    const configData = {
+        SPREADSHEET_ID: newSpreadsheetId,
+        DEBUG_MODE: true,
+        FORMS: {
+            '031': {
+                templateId: document.getElementById('cfg_template_031').value.trim(),
+                folderId: document.getElementById('cfg_folder_031').value.trim()
+            },
+            '033': {
+                templateId: document.getElementById('cfg_template_033').value.trim(),
+                folderId: document.getElementById('cfg_folder_033').value.trim()
+            },
+            '034': {
+                templateId: document.getElementById('cfg_template_034').value.trim(),
+                folderId: document.getElementById('cfg_folder_034').value.trim()
+            },
+            '035': {
+                templateId: document.getElementById('cfg_template_035').value.trim(),
+                folderId: document.getElementById('cfg_folder_035').value.trim()
+            }
+        }
+    };
+
+    showLoading('กำลังส่งการตั้งค่าและประมวลผลข้อมูลระบบ...');
+    try {
+        const response = await fetch(newScriptUrl, {
+            method: 'POST',
+            body: JSON.stringify({ 
+                action: 'saveConfig', 
+                spreadsheetId: newSpreadsheetId, 
+                configData: configData 
+            }),
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+        });
+        const json = await response.json();
+
+        if (json.status === 'success') {
+            // ส่งอัปเดตเปิด/ปิดระบบ Auto-Generate เบื้องหลังใน Apps Script
+            try {
+                await fetch(newScriptUrl, {
+                    method: 'POST',
+                    body: JSON.stringify({ 
+                        action: 'toggleAutoTrigger', 
+                        enable: enableAuto, 
+                        spreadsheetId: newSpreadsheetId 
+                    }),
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+                });
+            } catch (err) {}
+
+            hideLoading();
+            
+            // บันทึกสำเร็จให้อัปเดตค่า local variables และ localStorage
+            scriptUrl = newScriptUrl;
+            localStorage.setItem('scriptUrl', newScriptUrl);
+            sessionStorage.setItem('scriptUrl', newScriptUrl);
+
+            localStorage.setItem('spreadsheetId', newSpreadsheetId);
+            sessionStorage.setItem('spreadsheetId', newSpreadsheetId);
+
+            // ปิดโมดอลและแจ้งความสำเร็จ
+            if (adminSettingsModal) adminSettingsModal.classList.remove('active');
+            showModal('✅ สำเร็จ', 'บันทึกการตั้งค่าระบบผู้ดูแลลงใน Apps Script และจัดเก็บเสร็จเรียบร้อยแล้ว!', false);
+
+            // รีเฟรชหน้าจอ Portal
+            loadDynamicSheets();
+        } else {
+            throw new Error(json.message || 'บันทึกล้มเหลว');
+        }
+    } catch (e) {
+        hideLoading();
+        showModal('❌ ข้อผิดพลาด', 'ไม่สามารถบันทึกค่าระบบลงหลังบ้านได้: ' + e.message, false);
+    }
+}
+
+// --- ฟังก์ชันควบคุมหน้าต่างแสดงระดับความคืบหน้า (Progress Tracker UI) ---
+function initProgressModal(title, total) {
+    const modal = document.getElementById('progressModal');
+    const fill = document.getElementById('progressBarFill');
+    const logBox = document.getElementById('progressLogBox');
+    const btnContainer = document.getElementById('progressBtnContainer');
+    const icon = document.getElementById('progressIcon');
+
+    if (icon) {
+        icon.textContent = '⏳';
+        icon.style.animation = 'spin 2s linear infinite';
+    }
+    
+    document.getElementById('progressTitle').textContent = title;
+    document.getElementById('progressDesc').textContent = `กำลังเตรียมข้อมูลประมวลผล (0 / ${total} รายการ)`;
+    
+    if (fill) fill.style.width = '0%';
+    if (logBox) logBox.innerHTML = '<div style="color:#64748b;">⏳ เริ่มต้นติดตามและประมวลผลเอกสาร...</div>';
+    if (btnContainer) btnContainer.style.display = 'none';
+
+    if (modal) modal.classList.add('active');
+}
+
+function updateProgressStatus(current, total, descText) {
+    const fill = document.getElementById('progressBarFill');
+    const desc = document.getElementById('progressDesc');
+    
+    const pct = Math.round((current / total) * 100);
+    if (fill) fill.style.width = `${pct}%`;
+    if (desc) desc.textContent = `${descText} (${current} / ${total} รายการ - ${pct}%)`;
+}
+
+function addProgressLog(logText) {
+    const logBox = document.getElementById('progressLogBox');
+    if (logBox) {
+        const logRow = document.createElement('div');
+        logRow.style.marginBottom = '4px';
+        logRow.textContent = `[${new Date().toLocaleTimeString()}] ${logText}`;
+        logBox.appendChild(logRow);
+        logBox.scrollTop = logBox.scrollHeight;
+    }
+}
+
+function showProgressEndButton() {
+    const btnContainer = document.getElementById('progressBtnContainer');
+    const btn = document.getElementById('btnConfirmProgress');
+    const icon = document.getElementById('progressIcon');
+
+    if (icon) {
+        icon.textContent = '🎉';
+        icon.style.animation = 'none';
+    }
+
+    if (btnContainer && btn) {
+        btnContainer.style.display = 'block';
+        btn.onclick = () => {
+            const modal = document.getElementById('progressModal');
+            if (modal) modal.classList.remove('active');
+            // รีเซ็ตล้างโหมดแก้ไขและอัปเดตตารางหลังทำงานกลุ่มเสร็จ
+            cancelEditMode();
+            fetchRecentData(activeSheet);
+        };
+    }
 }
 
 // ผูกฟังก์ชันเหล่านี้กับ window เพื่อให้ onClick บนปุ่มตารางสามารถเรียกใช้ได้

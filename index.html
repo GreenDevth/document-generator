@@ -25,13 +25,18 @@
 
     <!-- 1. หน้าจอ Authentication (Login) -->
     <div id="loginPage" class="auth-container active">
-        <div class="auth-card">
+        <!-- การ์ดเข้าสู่ระบบปกติ (Login Card) -->
+        <div id="loginCard" class="auth-card">
             <div class="auth-icon">🔑</div>
             <h2>เข้าสู่ระบบจัดการเอกสาร</h2>
             <p>ระบบสร้างและจัดการเอกสาร PDF อัจฉริยะ</p>
             <div class="form-group" style="margin-top: 25px; text-align: left;">
                 <label for="scriptUrlInput">Apps Script Web App URL</label>
                 <input type="url" id="scriptUrlInput" placeholder="https://script.google.com/macros/s/.../exec">
+            </div>
+            <div class="form-group" style="margin-top: 15px; text-align: left;">
+                <label for="spreadsheetIdInput">Google Spreadsheet ID</label>
+                <input type="text" id="spreadsheetIdInput" placeholder="ป้อน ID ของแผ่นงาน Google Sheets (เว้นว่างไว้เพื่อใช้ค่าเริ่มต้น)">
             </div>
             <form id="loginForm" style="margin-top: 15px; width: 100%; text-align: left;">
                 <div class="form-group">
@@ -40,6 +45,84 @@
                 </div>
                 <button type="submit" class="btn btn-primary" style="margin-top: 25px; width: 100%; height: 52px; font-weight: 700;">เข้าสู่ระบบ 🚀</button>
             </form>
+            <div style="margin-top: 20px; text-align: center; border-top: 1px dashed rgba(0,0,0,0.08); padding-top: 15px;">
+                <button type="button" id="btnGoToSetup" style="background:none; border:none; color:var(--primary); font-weight:700; cursor:pointer; text-decoration:underline; font-size:0.9rem;">⚙️ ตั้งค่าระบบ / คัดลอกเทมเพลตครั้งแรก</button>
+            </div>
+        </div>
+
+        <!-- การ์ดตั้งค่าระบบครั้งแรก (Setup Card) -->
+        <div id="setupCard" class="auth-card" style="display: none;">
+            <div class="auth-icon">⚙️</div>
+            <h2>ตั้งค่าระบบครั้งแรก</h2>
+            <p>ระบบจะสร้างโฟลเดอร์และคัดลอกไฟล์เทมเพลตทั้งหมด ไปยังบัญชี Google Drive ของคุณโดยอัตโนมัติ</p>
+            
+            <div class="form-group" style="margin-top: 25px; text-align: left;">
+                <label for="setupScriptUrl">Apps Script Web App URL ของคุณ</label>
+                <input type="url" id="setupScriptUrl" placeholder="https://script.google.com/macros/s/.../exec" required>
+                <span style="font-size: 0.75rem; color: #64748b; margin-top: 4px; display: block;">* วางลิงก์เว็บแอปที่ได้จากการ Deploy ในบัญชีของคุณ</span>
+            </div>
+
+            <div class="form-group" style="margin-top: 15px; text-align: left;">
+                <label for="setupFolderUrl">ลิงก์โฟลเดอร์ Google Drive หรือ ID ปลายทาง</label>
+                <input type="text" id="setupFolderUrl" placeholder="https://drive.google.com/drive/folders/..." required>
+                <span style="font-size: 0.75rem; color: #64748b; margin-top: 4px; display: block;">* วางลิงก์โฟลเดอร์ใน Drive ของคุณเพื่อคัดลอกไฟล์เทมเพลตไปบันทึก</span>
+            </div>
+            
+            <div class="form-group" style="margin-top: 15px; text-align: left;">
+                <label for="setupPassword">รหัสผ่านสำหรับยืนยันการตั้งค่า</label>
+                <input type="password" id="setupPassword" placeholder="กรอกรหัสผ่านเพื่อติดตั้ง (เช่น 1234)" required>
+            </div>
+            
+            <button type="button" id="btnStartSetup" class="btn btn-primary" style="margin-top: 25px; width: 100%; height: 52px; font-weight: 700;">เริ่มตั้งค่าระบบอัตโนมัติ 🚀</button>
+            
+            <div id="setupStatus" style="margin-top: 15px; font-weight: 700; color: var(--primary); display: none; text-align: center;">
+                กำลังเริ่มต้นตั้งค่า...
+            </div>
+
+            <div style="margin-top: 20px; text-align: center; border-top: 1px dashed rgba(0,0,0,0.08); padding-top: 15px; display: flex; flex-direction: column; gap: 10px; align-items: center;">
+                <button type="button" id="btnOpenGuide" style="background:none; border:none; color:var(--primary); font-weight:700; cursor:pointer; text-decoration:underline; font-size:0.9rem;">📖 ดูคู่มือการติดตั้งแบบละเอียด (Step-by-Step)</button>
+                <button type="button" id="btnBackToLogin" style="background:none; border:none; color:#64748b; font-weight:700; cursor:pointer; text-decoration:underline; font-size:0.9rem;">⬅️ ย้อนกลับไปหน้าเข้าสู่ระบบ</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. Modal แสดงคู่มือการติดตั้งระบบ (Setup Guide Modal) -->
+    <div id="guideModal" class="modal-overlay">
+        <div class="modal-box" style="max-width: 800px; text-align: left; max-height: 85vh; overflow-y: auto;">
+            <span class="modal-icon" style="font-size: 2.5rem; display: block; text-align: center; margin-bottom: 10px;">📖</span>
+            <div class="modal-title" style="text-align: center; font-size: 1.5rem; margin-bottom: 20px; font-weight: 700; color: #1e293b;">คู่มือการติดตั้งระบบ Step-by-Step</div>
+            
+            <div class="guide-steps" style="display: flex; flex-direction: column; gap: 20px; color: #475569; font-size: 0.95rem; line-height: 1.6;">
+                <div class="step-item" style="border-bottom: 1px solid rgba(0,0,0,0.05); padding-bottom: 15px;">
+                    <strong style="color: var(--primary); display: block; font-size: 1.05rem; margin-bottom: 5px;">ขั้นตอนที่ 1: สร้าง Google Sheets เปล่า</strong>
+                    <p>สร้าง Google Sheets ใหม่ขึ้นมา 1 ชีตบน Google Drive ของคุณ จากนั้นไปที่เมนูหลักด้านบน เลือก <strong>ส่วนขยาย (Extensions) &gt; Apps Script</strong></p>
+                </div>
+                
+                <div class="step-item" style="border-bottom: 1px solid rgba(0,0,0,0.05); padding-bottom: 15px;">
+                    <strong style="color: var(--primary); display: block; font-size: 1.05rem; margin-bottom: 5px;">ขั้นตอนที่ 2: วางโค้ดหลังบ้านของระบบ</strong>
+                    <p>คัดลอกโค้ดไฟล์ Apps Script ทั้งหมด (กดปุ่มคัดลอกด้านล่างนี้ได้เลย) นำไปวางทดแทนโค้ดว่างเดิมทั้งหมดในหน้า Apps Script แล้วกดปุ่ม <strong>บันทึกโครงการ 💾</strong> (ไอคอนแผ่นดิสก์)</p>
+                    <button type="button" id="btnCopyBackendCode" class="btn btn-outline" style="margin-top: 10px; padding: 8px 15px; font-size: 0.85rem; font-weight: 700;">📋 คัดลอกโค้ดหลังบ้านไปที่คลิปบอร์ด</button>
+                </div>
+                
+                <div class="step-item" style="border-bottom: 1px solid rgba(0,0,0,0.05); padding-bottom: 15px;">
+                    <strong style="color: var(--primary); display: block; font-size: 1.05rem; margin-bottom: 5px;">ขั้นตอนที่ 3: Deploy เป็นเว็บแอป (Web App)</strong>
+                    <p>กดปุ่ม <strong>ทำให้ใช้งานได้ (Deploy) &gt; การทำให้ใช้งานได้ใหม่ (New deployment)</strong> เลือกประเภทเป็น <strong>เว็บแอป (Web app)</strong> และตั้งค่าดังนี้:</p>
+                    <ul style="padding-left: 20px; margin-top: 5px; list-style-type: disc;">
+                        <li><strong>เรียกใช้งานในฐานะ (Execute as):</strong> ฉัน (Me)</li>
+                        <li><strong>ผู้มีสิทธิ์เข้าถึง (Who has access):</strong> ทุกคน (Anyone)</li>
+                    </ul>
+                    <p style="margin-top: 10px;">กดปุ่ม <strong>ทำให้ใช้งานได้ (Deploy)</strong> แล้วกดยืนยันการเข้าถึงสิทธิ์ (หากมีกล่องแจ้งเตือน ให้กด Advanced &gt; Go to Untitled project เพื่อยืนยันสิทธิ์) จากนั้นคัดลอก <strong>URL ของเว็บแอป (Web app URL)</strong> ที่ได้รับมา</p>
+                </div>
+                
+                <div class="step-item">
+                    <strong style="color: var(--primary); display: block; font-size: 1.05rem; margin-bottom: 5px;">ขั้นตอนที่ 4: เชื่อมโยงและติดตั้งระบบ</strong>
+                    <p>นำ URL ที่ได้มาวางลงในช่อง <strong>Apps Script Web App URL</strong> ในหน้าตั้งค่าครั้งแรก ป้อนรหัสผ่านสำหรับการติดตั้ง (ค่าดีฟอลต์: 1234) แล้วกดปุ่ม <strong>เริ่มตั้งค่าระบบอัตโนมัติ 🚀</strong> เพื่อให้ระบบสร้างเทมเพลตทั้งหมดเข้าไดรฟ์ของคุณทันที!</p>
+                </div>
+            </div>
+            
+            <div style="margin-top: 30px; display: flex; justify-content: flex-end; border-top: 1px dashed rgba(0,0,0,0.08); padding-top: 15px;">
+                <button type="button" id="btnCloseGuide" class="btn btn-outline" style="padding: 10px 20px; font-weight: 700;">ปิดหน้าต่าง</button>
+            </div>
         </div>
     </div>
 
@@ -49,7 +132,11 @@
             <header>
                 <div class="header-portal-row">
                     <div class="portal-logo">📂 Document Generator Portal</div>
-                    <button type="button" class="btn-logout" id="btnLogoutPortal">ออกจากระบบ 🚪</button>
+                    <div style="display: flex; gap: 12px; align-items: center;">
+                        <button type="button" class="btn-sync" id="btnOpenAdminSettings">⚙️ ตั้งค่าระบบ (Admin)</button>
+                        <button type="button" class="btn-sync" id="btnSyncSheets">ซิงค์ข้อมูลใหม่ 🔄</button>
+                        <button type="button" class="btn-logout" id="btnLogoutPortal">ออกจากระบบ 🚪</button>
+                    </div>
                 </div>
                 <h1 style="margin-top: 20px;">ระบบจัดการและอนุมัติเอกสารอัจฉริยะ</h1>
                 <p class="subtitle">เลือกแผ่นงานเพื่อบันทึกข้อมูลและสร้างเอกสาร PDF หรือตรวจสอบข้อมูลย้อนหลัง</p>
@@ -156,10 +243,10 @@
             <div id="tableWorkspaceView" class="workspace-view">
                 <div class="dash-search-container" style="margin-bottom: 20px; display: flex; gap: 15px; justify-content: space-between; align-items: center;">
                     <input type="text" id="dashSearch" placeholder="🔍 ค้นหาชื่อรายการ ชื่อผู้ผลิต หรือข้อมูลอื่นๆ..." oninput="filterDashboard()" style="flex: 1; max-width: 450px;">
-                    <div class="dash-tool-btns" id="dashToolBtns" style="display: flex; gap: 10px;">
-                        <button type="button" class="btn-refresh" id="btnRefreshWorkspace">🔄 อัปเดตจาก Sheet</button>
-                        <button type="button" class="btn-pdf-all" style="background:#4ade80;" id="btnDrivePickerWorkspace">🗂️ ดึงไฟล์จาก Drive</button>
-                        <button type="button" class="btn-pdf-all" id="btnPDFAllWorkspace">📄 สร้าง PDF ทั้งหมด</button>
+                    <div class="dash-tool-btns" id="dashToolBtns">
+                        <button type="button" class="btn-icon-round btn-refresh-icon" id="btnRefreshWorkspace" data-tooltip="อัปเดตข้อมูลจาก Google Sheet 🔄">🔄</button>
+                        <button type="button" class="btn-icon-round btn-drive-icon" id="btnDrivePickerWorkspace" data-tooltip="ดึงไฟล์ PDF จาก Google Drive 🗂️">🗂️</button>
+                        <button type="button" class="btn-icon-round btn-pdfall-icon" id="btnPDFAllWorkspace" data-tooltip="สร้างไฟล์ PDF ทั้งหมด 📄">📄</button>
                     </div>
                 </div>
                 <div class="dashboard-table-container">
@@ -190,6 +277,103 @@
             <div id="modalBtns" class="modal-btns">
                 <button id="modalCancel" class="modal-btn btn-cancel">ยกเลิก</button>
                 <button id="modalConfirm" class="modal-btn btn-confirm">ตกลง</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal ตั้งค่าผู้ดูแลระบบ (Admin Settings Modal) -->
+    <div id="adminSettingsModal" class="modal-overlay">
+        <div class="modal-box" style="max-width: 800px; text-align: left; max-height: 90vh; overflow-y: auto;">
+            <span class="modal-icon" style="font-size: 2.5rem; display: block; text-align: center; margin-bottom: 10px;">⚙️</span>
+            <div class="modal-title" style="text-align: center; font-size: 1.5rem; margin-bottom: 20px; font-weight: 700; color: #1e293b;">ตั้งค่าระบบผู้ดูแลระบบ (Admin Config)</div>
+            
+            <form id="adminSettingsForm" style="display: flex; flex-direction: column; gap: 20px;">
+                <div class="form-group">
+                    <label for="adminScriptUrl" style="font-weight: 600;">Google Apps Script Web App URL</label>
+                    <input type="url" id="adminScriptUrl" placeholder="https://script.google.com/macros/s/.../exec" required style="width: 100%;">
+                </div>
+                
+                <div class="form-group">
+                    <label for="adminSpreadsheetId" style="font-weight: 600;">Google Spreadsheet ID</label>
+                    <input type="text" id="adminSpreadsheetId" placeholder="ป้อน ID แผ่นงาน Google Sheets ฐานข้อมูล" required style="width: 100%;">
+                </div>
+                
+                <div style="border-top: 1px dashed rgba(0,0,0,0.08); padding-top: 15px;">
+                    <h4 style="margin-bottom: 10px; color: var(--primary); font-weight: 700;">📂 ตั้งค่าแผ่นงาน เทมเพลต และโฟลเดอร์เก็บเอกสาร PDF</h4>
+                    <div style="overflow-x: auto;">
+                        <table class="admin-config-table" style="width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.9rem;">
+                            <thead>
+                                <tr style="background: var(--primary-light); text-align: left;">
+                                    <th style="padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px 0 0 0; width: 220px;">แบบฟอร์ม</th>
+                                    <th style="padding: 10px; border: 1px solid #cbd5e1;">Google Slides Template ID (สไลด์เทมเพลต)</th>
+                                    <th style="padding: 10px; border: 1px solid #cbd5e1; border-radius: 0 8px 0 0; width: 260px;">Google Drive Folder ID (สำหรับเก็บ PDF)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td style="padding: 10px; border: 1px solid #cbd5e1; font-weight: 600; background: #f8fafc;">FM สท.03-1 (031)</td>
+                                    <td style="padding: 5px; border: 1px solid #cbd5e1;"><input type="text" id="cfg_template_031" required style="width:100%; box-sizing:border-box; border:1px solid #e2e8f0; border-radius:6px; padding:6px; background:#fff;"></td>
+                                    <td style="padding: 5px; border: 1px solid #cbd5e1;"><input type="text" id="cfg_folder_031" required style="width:100%; box-sizing:border-box; border:1px solid #e2e8f0; border-radius:6px; padding:6px; background:#fff;"></td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 10px; border: 1px solid #cbd5e1; font-weight: 600; background: #f8fafc;">FM สท.03-3 (033)</td>
+                                    <td style="padding: 5px; border: 1px solid #cbd5e1;"><input type="text" id="cfg_template_033" required style="width:100%; box-sizing:border-box; border:1px solid #e2e8f0; border-radius:6px; padding:6px; background:#fff;"></td>
+                                    <td style="padding: 5px; border: 1px solid #cbd5e1;"><input type="text" id="cfg_folder_033" required style="width:100%; box-sizing:border-box; border:1px solid #e2e8f0; border-radius:6px; padding:6px; background:#fff;"></td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 10px; border: 1px solid #cbd5e1; font-weight: 600; background: #f8fafc;">FM สท.03-4 (034)</td>
+                                    <td style="padding: 5px; border: 1px solid #cbd5e1;"><input type="text" id="cfg_template_034" required style="width:100%; box-sizing:border-box; border:1px solid #e2e8f0; border-radius:6px; padding:6px; background:#fff;"></td>
+                                    <td style="padding: 5px; border: 1px solid #cbd5e1;"><input type="text" id="cfg_folder_034" required style="width:100%; box-sizing:border-box; border:1px solid #e2e8f0; border-radius:6px; padding:6px; background:#fff;"></td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 10px; border: 1px solid #cbd5e1; font-weight: 600; background: #f8fafc;">FM สท.03-5 (035)</td>
+                                    <td style="padding: 5px; border: 1px solid #cbd5e1;"><input type="text" id="cfg_template_035" required style="width:100%; box-sizing:border-box; border:1px solid #e2e8f0; border-radius:6px; padding:6px; background:#fff;"></td>
+                                    <td style="padding: 5px; border: 1px solid #cbd5e1;"><input type="text" id="cfg_folder_035" required style="width:100%; box-sizing:border-box; border:1px solid #e2e8f0; border-radius:6px; padding:6px; background:#fff;"></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- เพิ่มสวิตช์สำหรับเปิด/ปิดทริกเกอร์ระบบ Auto-Generate -->
+                <div style="border-top: 1px dashed rgba(0,0,0,0.08); padding-top: 15px; display: flex; align-items: center; justify-content: space-between; margin-top: 15px;">
+                    <div>
+                        <h4 style="color: var(--primary); font-weight: 700; margin: 0;">🔄 ระบบสร้าง PDF อัตโนมัติ (Auto-Generate Trigger)</h4>
+                        <p style="font-size: 0.8rem; color: #64748b; margin-top: 4px;">เปิดทริกเกอร์ระบบตรวจหาแถวข้อมูลเพิ่มใหม่เพื่อสร้าง PDF ใน Sheets อัตโนมัติ</p>
+                    </div>
+                    <label style="background: #f8fafc; padding: 10px 18px; border-radius: 12px; border: 1px solid #e2e8f0; display: inline-flex; align-items: center; gap: 8px; cursor: pointer;">
+                        <input type="checkbox" id="adminAutoGenerateTrigger" style="width: 20px; height: 20px; cursor: pointer; accent-color: var(--primary);">
+                        <span style="font-size: 0.9rem; font-weight: 700; color: var(--primary);">เปิดใช้งาน</span>
+                    </label>
+                </div>
+                
+                <div style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 12px; border-top: 1px dashed rgba(0,0,0,0.08); padding-top: 15px;">
+                    <button type="button" id="btnCloseAdminSettings" class="btn btn-outline" style="padding: 10px 20px; font-weight: 700;">ยกเลิก ❌</button>
+                    <button type="submit" class="btn btn-success" style="padding: 10px 20px; font-weight: 700; background: var(--success); color: white;">บันทึกตั้งค่าลงหลังบ้าน 💾</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal แสดงระดับความคืบหน้าการทำงาน (Progress Modal) -->
+    <div id="progressModal" class="modal-overlay">
+        <div class="modal-box" style="max-width: 600px; padding: 40px 30px;">
+            <span class="modal-icon" id="progressIcon" style="font-size: 3rem; display: block; text-align: center; margin-bottom: 15px;">⏳</span>
+            <div class="modal-title" id="progressTitle" style="font-size: 1.4rem; font-weight: 700; margin-bottom: 10px;">กำลังสร้างไฟล์ PDF...</div>
+            <div id="progressDesc" style="font-size: 0.95rem; color: #64748b; margin-bottom: 20px;">กำลังเริ่มกระบวนการจัดทำไฟล์</div>
+            
+            <!-- หลอดระดับความคืบหน้า (Progress Bar) -->
+            <div class="progress-bar-container" style="width: 100%; height: 16px; background: #e2e8f0; border-radius: 10px; overflow: hidden; margin-bottom: 25px;">
+                <div id="progressBarFill" style="width: 0%; height: 100%; background: linear-gradient(90deg, var(--primary) 0%, var(--accent) 100%); border-radius: 10px; transition: width 0.3s ease;"></div>
+            </div>
+            
+            <!-- กล่องประวัติกิจกรรมล็อกย่อย (Log Box) -->
+            <div id="progressLogBox" style="width: 100%; height: 180px; overflow-y: auto; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 15px; font-family: monospace; font-size: 0.85rem; text-align: left; line-height: 1.5; color: #334155; display: flex; flex-direction: column; gap: 6px;">
+                <!-- ล็อกย่อยจะเพิ่มที่นี่ -->
+            </div>
+            
+            <div style="margin-top: 30px; display: none;" id="progressBtnContainer">
+                <button type="button" id="btnConfirmProgress" class="btn btn-primary" style="width: 100%; font-weight: 700;">ตกลง (ทำงานเสร็จสิ้น) 👍</button>
             </div>
         </div>
     </div>

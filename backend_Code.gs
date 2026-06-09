@@ -3,7 +3,7 @@
 // รองรับ Google Slides และ Smart Mapping ภาษาไทย
 // ==========================================================================
 
-const CONFIG = {
+const DEFAULT_CONFIG = {
   SPREADSHEET_ID: '1xAOgwRIoCLmhYYziPQuDTf_YtvDv-VDuCH3WjeIQou4',
   DEBUG_MODE: true,
   FORMS: {
@@ -13,6 +13,20 @@ const CONFIG = {
     '035': { templateId: '11HT5_VmKVB7msoJ6j8oVH2NnLm2VGeGKyCt03SQQj3Y', folderId: '1mWf-fALH6UPl_COPLtk7AmMhsC-sLEHr' }
   }
 };
+
+// ดึงค่าคอนฟิกส่วนบุคคลจากระบบ Script Properties ของแต่ละคน
+function getConfig() {
+  const props = PropertiesService.getScriptProperties();
+  const userConfig = props.getProperty('USER_CONFIG');
+  if (userConfig) {
+    try {
+      return JSON.parse(userConfig);
+    } catch (e) {
+      // ดำเนินการใช้ค่าเริ่มต้นเมื่อเกิดข้อผิดพลาดในการแปลงข้อมูล
+    }
+  }
+  return DEFAULT_CONFIG;
+}
 
 function doGet() {
   return HtmlService.createTemplateFromFile('index').evaluate()
@@ -25,39 +39,49 @@ function doPost(e) {
   try {
     const request = JSON.parse(e.postData.contents);
     const action = request.action;
+    const spreadsheetId = request.spreadsheetId; // ดึงไอดีชีตที่ส่งมาจากหน้าบ้าน
+    
     if (action === 'verifyPassword') return verifyPassword(request.password);
-    if (action === 'getSheets') return getSheets();
-    if (action === 'getSchema') return getSchema(request.formId);
+    if (action === 'setupWorkspace') return setupWorkspace(request.password, request.targetFolderId);
+    if (action === 'getSheets') return getSheets(spreadsheetId);
+    if (action === 'getSchema') return getSchema(request.formId, spreadsheetId);
     if (action === 'generate' || action === 'preview') return handlePDFRequest(request);
-    if (action === 'getRecentData') return getRecentData(request.formId);
+    if (action === 'getRecentData') return getRecentData(request.formId, spreadsheetId);
     if (action === 'updateRow') return updateRow(request);
     if (action === 'deleteProject') return deleteProject(request);
     if (action === 'deleteData') return deleteData(request);
-    if (action === 'getDriveFiles') return getDriveFiles(request.formId);
+    if (action === 'getDriveFiles') return getDriveFiles(request.formId, spreadsheetId, request.folderId); // รองรับโฟลเดอร์ย่อยย่อย
+    if (action === 'createSubFolder') return createSubFolder(request.parentFolderId, request.folderName); // สร้างโฟลเดอร์ย่อยใหม่
+    if (action === 'moveFiles') return moveFiles(request.fileIds, request.targetFolderId); // ย้ายไฟล์ PDF ไปเก็บ
     if (action === 'getFileBytes') return getFileBytes(request.fileId);
+    if (action === 'getConfig') return getBackendConfig(); // เพิ่มดึงค่าคอนฟิก
+    if (action === 'saveConfig') return saveBackendConfig(request.configData); // เพิ่มบันทึกค่าคอนฟิก
+    if (action === 'toggleAutoTrigger') return toggleAutoTrigger(request.enable, spreadsheetId); // เปิด-ปิดทริกเกอร์ออโต้
+    if (action === 'getAutoTriggerStatus') return getAutoTriggerStatus(); // เช็คสถานะทริกเกอร์ออโต้
     return createJsonResponse('error', null, 'Invalid action');
   } catch (err) { return createJsonResponse('error', null, err.toString()); }
 }
 
-function getTargetSheet(formId) {
-  const ss = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
+function getTargetSheet(formId, spreadsheetId) {
+  const config = getConfig();
+  const ssId = spreadsheetId || config.SPREADSHEET_ID;
+  const ss = SpreadsheetApp.openById(ssId);
   const cleanId = formId.toString().replace('.json', '').replace('-', '').trim();
   let sheet = ss.getSheetByName(cleanId) || ss.getSheetByName(formId);
   return { sheet, ss, cleanId };
 }
 
-function getSchema(formId) {
-  const { sheet } = getTargetSheet(formId);
+function getSchema(formId, spreadsheetId) {
+  const { sheet } = getTargetSheet(formId, spreadsheetId);
   if (!sheet) return createJsonResponse('error', null, 'ไม่พบ Sheet');
   const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
   return createJsonResponse('success', { version: "v3.5-Slides-Power", headers });
 }
 
 function handlePDFRequest(request) {
-  const { action, formId, data, rowIndex, tableData, skipSave } = request;
-  // หากมี skipSave เป็น true ให้ทำงานในโหมดไม่บันทึกข้อมูล (เหมือน Preview)
+  const { action, formId, data, rowIndex, tableData, skipSave, spreadsheetId } = request;
   const isPreview = (action === 'preview') || (skipSave === true);
-  const { sheet } = getTargetSheet(formId);
+  const { sheet } = getTargetSheet(formId, spreadsheetId);
   if (!sheet) throw new Error('ไม่พบข้อมูล Sheet: ' + formId);
   
   const sheetName = sheet.getName();
@@ -97,7 +121,7 @@ function createPDF(formConfig, rowData, isPreview, tableData, cleanId) {
       'ชื่อรายการ': 'subject', 'subject': 'ชื่อรายการ', 'ชื่อเรื่อง': 'subject'
     };
 
-    // 1. ดึงข้อมูลจากแถวแรกของตาราง (ถ้ามี) มาใส่ในข้อมูลหลัก เพื่อให้ Tag ในเนื้อหาหลักทำงานได้
+    // 1. ดึงข้อมูลจากแถวแรกของตาราง (ถ้ามี) มาใส่ในข้อมูลหลัก
     if (tableData && Array.isArray(tableData) && tableData.length > 0) {
       const firstRow = tableData[0];
       for (let [tk, tv] of Object.entries(firstRow)) {
@@ -114,12 +138,11 @@ function createPDF(formConfig, rowData, isPreview, tableData, cleanId) {
       }
     }
 
-    // หากเป็น 034 (แบบกลุ่ม) - ปรับปรุงให้ดึงข้อมูลได้ทั้งแบบแยกแถวและรวบแถว
+    // หากเป็น 034 (แบบกลุ่ม)
     if (cleanId === '034') {
       const firstRow = (tableData && tableData.length > 0) ? tableData[0] : {};
       
       for (let idx = 1; idx <= 11; idx++) {
-        // ดึงค่าจากแถวที่ i (ถ้ามี) หรือดึงจากคอลัมน์ที่มีตัวเลขกำกับ (เช่น format1, format2)
         const row = (tableData && tableData[idx-1]) ? tableData[idx-1] : {};
         
         finalData['format' + idx] = row.format || row['รูปแบบสื่อ'] || firstRow['format' + idx] || firstRow['รูปแบบสื่อ' + idx] || "";
@@ -128,31 +151,28 @@ function createPDF(formConfig, rowData, isPreview, tableData, cleanId) {
         finalData['dur' + idx] = row.dur || row['ความยาว'] || firstRow['dur' + idx] || firstRow['ความยาว' + idx] || "";
         
         let dmaVal = row.dma || row['ผลิตแล้วเสร็จวันที่'] || firstRow['dma' + idx] || firstRow['ผลิตแล้วเสร็จวันที่' + idx] || "";
-        // แปลงรูปแบบวันที่
         if (isDate(dmaVal)) {
           const dmaStr = Utilities.formatDate(dmaVal, "GMT+7", "dd/MM/yyyy");
           const p = dmaStr.split('/');
           const year = parseInt(p[2]);
-          // หากปีเป็น พ.ศ. อยู่แล้ว (>= 2400) ไม่ต้องบวก 543 เพิ่มอีก
           dmaVal = `${p[0]}/${p[1]}/${year < 2400 ? year + 543 : year}`;
         }
         finalData['dma' + idx] = dmaVal;
       }
     }
 
-    // จัดการ Checkbox (แบบเรียบง่ายตามรูปที่ 2)
+    // จัดการ Checkbox
     const checkboxKeys = ['cb1', 'cb2', 'cb3', 'cb4', 'cb5', 'cb6'];
     checkboxKeys.forEach(k => {
       const val = finalData[k];
       const isChecked = (val === '✓' || val === true || val === 'true');
-      const symbol = isChecked ? "✓" : ""; // ใช้เครื่องหมายถูกธรรมดา หรือว่างไว้
+      const symbol = isChecked ? "✓" : "";
       presentation.replaceAllText("{{" + k + "}}", symbol);
       presentation.replaceAllText("{{ " + k + " }}", symbol);
-      presentation.replaceAllText("{{" + k.toUpperCase() + "}}", symbol); // เพิ่มตัวพิมพ์ใหญ่ด้วย
+      presentation.replaceAllText("{{" + k.toUpperCase() + "}}", symbol);
     });
 
-    // แทนที่ Tag ทั่วไปแบบ Case-Insensitive 
-    // --- ปรับปรุง V3.6: เรียงลำดับ Key ตามความยาวเพื่อป้องกันการทับซ้อน (เช่น {{ep1}} ทับ {{ep10}}) ---
+    // แทนที่ Tag ทั่วไป
     const sortedKeys = Object.keys(finalData).sort((a, b) => b.length - a.length);
     
     for (let k of sortedKeys) {
@@ -180,7 +200,7 @@ function createPDF(formConfig, rowData, isPreview, tableData, cleanId) {
       }
     }
     
-    // เติมตารางในสไลด์ (ถ้ามี)
+    // เติมตารางในสไลด์
     if (cleanId !== '034' && tableData && Array.isArray(tableData)) {
       fillSlidesTable(presentation, tableData);
     }
@@ -197,16 +217,14 @@ function createPDF(formConfig, rowData, isPreview, tableData, cleanId) {
   return { fileId: pdfFile.getId(), url: pdfFile.getUrl(), name: pdfFile.getName() };
 }
 
-/** เติมข้อมูลลงในตารางของ Google Slides */
 function fillSlidesTable(presentation, tableData) {
   const slides = presentation.getSlides();
   slides.forEach(slide => {
     const tables = slide.getTables();
     tables.forEach(table => {
-      // ค้นหาแถวที่มีตัวแปรตัวอย่าง เช่น {{subject}} หรือ {{format}}
       let templateRowIndex = -1;
       for (let r = 0; r < table.getNumRows(); r++) {
-        for (let c = 0; c < table.getRow(r).getNumCells(); r++) {
+        for (let c = 0; c < table.getRow(r).getNumCells(); c++) {
           const text = table.getCell(r, c).getText().asString();
           if (text.includes('{{')) {
             templateRowIndex = r;
@@ -224,12 +242,10 @@ function fillSlidesTable(presentation, tableData) {
             const templateText = templateCell.getText().asString();
             let cellValue = templateText;
             
-            // แทนที่ตัวแปรในเซลล์
             for (let [k, v] of Object.entries(rowData)) {
               const valStr = (v === null || v === undefined) ? "" : v.toString();
               cellValue = cellValue.replace(new RegExp('{{\\s*' + k + '\\s*}}', 'gi'), valStr);
             }
-            // ล้าง Tag ที่เหลือ
             cellValue = cellValue.replace(/{{\s*[^}]+\s*}}/g, '');
             newRow.getCell(c).getText().setText(cellValue);
           }
@@ -243,7 +259,6 @@ function fillSlidesTable(presentation, tableData) {
 function saveToSheet(sheet, baseData, rowIndex, tableData) {
   const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
   
-  // จัดเตรียมข้อมูลของแถวที่จะเซฟ
   let rows = [];
   if (tableData && Array.isArray(tableData) && tableData.length > 0) {
     rows = tableData.map(item => {
@@ -251,7 +266,6 @@ function saveToSheet(sheet, baseData, rowIndex, tableData) {
       return mapRowToHeaders(headers, merged);
     });
   } else {
-    // หากเป็นฟอร์มเดี่ยวที่ไม่มีข้อมูลตารางย่อย (เช่น 031) ให้บันทึกข้อมูลหลัก 1 แถว
     rows = [mapRowToHeaders(headers, baseData)];
   }
 
@@ -262,7 +276,6 @@ function saveToSheet(sheet, baseData, rowIndex, tableData) {
   }
 }
 
-// ฟังก์ชันสำหรับจัดรูปคอลัมน์ของแถวตามหัวตาราง (Helper)
 function mapRowToHeaders(headers, rowData) {
   return headers.map(h => {
     const key = h.toString().trim();
@@ -272,12 +285,10 @@ function mapRowToHeaders(headers, rowData) {
       val = match ? rowData[match] : "";
     }
     
-    // --- ปรับปรุง: ตรวจสอบและแปลง ISO Date String กลับเป็นวันที่ปกติก่อนลง Sheet ---
     if (typeof val === 'string' && val.includes('T') && val.includes('Z') && val.length > 15) {
       try {
         const d = new Date(val);
         if (!isNaN(d.getTime())) {
-          // ถ้าปี < 1905 มักจะเป็น Duration หรือเวลาเฉยๆ ให้คงไว้ หรือถ้าเป็นวันที่ให้แปลงเป็น dd/MM/yyyy
           val = (d.getFullYear() < 1905) ? Utilities.formatDate(d, "GMT+7", "H:mm") : Utilities.formatDate(d, "GMT+7", "dd/MM/yyyy");
         }
       } catch(e) {}
@@ -292,8 +303,8 @@ function createJsonResponse(status, data, message = "") {
     .setMimeType(ContentService.MimeType.JSON);
 }
 
-function getRecentData(formId) {
-  const { sheet } = getTargetSheet(formId);
+function getRecentData(formId, spreadsheetId) {
+  const { sheet } = getTargetSheet(formId, spreadsheetId);
   if (!sheet) return createJsonResponse('error', null, 'ไม่พบ Sheet');
   const lastRow = sheet.getLastRow();
   if (lastRow <= 1) return createJsonResponse('success', { records: [], headers: [] });
@@ -301,7 +312,6 @@ function getRecentData(formId) {
   const numRows = lastRow - startRow + 1;
   const allHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
 
-  // ดึงทั้งค่าจริง (Values) และค่าที่แสดงผล (DisplayValues)
   const v = sheet.getRange(startRow, 1, numRows, sheet.getLastColumn()).getValues();
   const d = sheet.getRange(startRow, 1, numRows, sheet.getLastColumn()).getDisplayValues();
   
@@ -311,28 +321,23 @@ function getRecentData(formId) {
       const cleanHeader = h ? h.toString().trim() : "";
       if (!cleanHeader) return;
       
-      let val = r[i]; // ค่าที่เห็นในหน้า Sheet (Display Value)
-      let raw = v[idx][i]; // ค่าจริง (Raw Value)
+      let val = r[i];
+      let raw = v[idx][i];
 
-      // ปรับปรุง: ถ้าเป็นวันที่ ให้แปลงเป็นรูปแบบไทยทันทีป้องกัน ISO Format (รวมถึงจัดการชนิดข้อมูลระยะเวลา)
       if (isDate(raw)) {
         if (raw.getFullYear() < 1905) {
-          // จัดการเวลา/Duration
           const hh = raw.getHours();
           const mm = raw.getMinutes();
           const ss = raw.getSeconds();
           val = (hh > 0 ? hh + ":" : "") + (mm < 10 && hh > 0 ? "0" + mm : mm) + ":" + (ss < 10 ? "0" + ss : ss);
         } else {
-          // จัดการวันที่ (พ.ศ.)
           val = Utilities.formatDate(raw, "GMT+7", "dd/MM/yyyy");
           const p = val.split('/');
           const year = parseInt(p[2]);
-          // ปรับปรุง: ตรวจสอบปี หากเป็น พ.ศ. อยู่แล้ว (>= 2400) จะไม่นำไปบวกเพิ่มซ้ำสอง
           val = `${p[0]}/${p[1]}/${year < 2400 ? year + 543 : year}`;
         }
       }
       
-      // ถ้าเป็น 0:00 ให้โชว์เป็นขีด
       if (val === "0:00" || val === "00:00" || val === "0:00:00") val = "-";
       
       obj[cleanHeader] = val;
@@ -343,17 +348,15 @@ function getRecentData(formId) {
   return createJsonResponse('success', { records, headers: cleanHeaders });
 }
 
-
 function updateRow(request) {
-  const { formId, rowIndex, data } = request;
-  const { sheet } = getTargetSheet(formId);
+  const { formId, rowIndex, data, spreadsheetId } = request;
+  const { sheet } = getTargetSheet(formId, spreadsheetId);
   if (!sheet) return createJsonResponse('error', null, 'ไม่พบ Sheet');
   const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
   const rowOutput = headers.map(h => {
     const key = h.toString().trim();
     let val = (data[key] !== undefined) ? data[key] : data[key.toLowerCase()];
     
-    // --- ปรับปรุง: ตรวจสอบและแปลง ISO Date String สำหรับการ Update แถวด้วย ---
     if (typeof val === 'string' && val.includes('T') && val.includes('Z') && val.length > 15) {
       try {
         const d = new Date(val);
@@ -370,8 +373,8 @@ function updateRow(request) {
 }
 
 function deleteProject(request) {
-  const { formId, subject } = request;
-  const { sheet } = getTargetSheet(formId);
+  const { formId, subject, spreadsheetId } = request;
+  const { sheet } = getTargetSheet(formId, spreadsheetId);
   if (!sheet) return createJsonResponse('error', null, 'ไม่พบ Sheet');
   const lastRow = sheet.getLastRow();
   const data = sheet.getRange(1, 1, lastRow, sheet.getLastColumn()).getValues();
@@ -386,44 +389,60 @@ function deleteProject(request) {
 }
 
 function deleteData(request) {
-  const { rowIndex } = request;
-  const { sheet } = getTargetSheet('031'); // Default
+  const { rowIndex, spreadsheetId } = request;
+  const { sheet } = getTargetSheet('031', spreadsheetId);
   if (!sheet) return createJsonResponse('error', null, 'ไม่พบ Sheet');
   sheet.deleteRow(rowIndex);
   return createJsonResponse('success', null, 'ลบข้อมูลลำดับนั้นแล้ว');
 }
 
-function getDriveFiles(formId) {
+function getDriveFiles(formId, spreadsheetId, customFolderId = null) {
   try {
     const config = getFormConfig(formId);
-    if (!config || !config.folderId) return createJsonResponse('error', null, 'ไม่พบโฟลเดอร์สำหรับ: ' + formId);
+    if (!config || !config.folderId) return createJsonResponse('error', null, 'ไม่พบโฟลเดอร์หลักสำหรับ: ' + formId);
 
-    const folder = DriveApp.getFolderById(config.folderId);
+    const rootFolderId = config.folderId;
+    const targetFolderId = customFolderId || rootFolderId;
+    const folder = DriveApp.getFolderById(targetFolderId);
     const folderName = folder.getName();
-    const files = folder.getFilesByType(MimeType.PDF);
-    const result = [];
     
-    while (files.hasNext() && result.length < 50) {
+    // 1. ดึงโฟลเดอร์ย่อยทั้งหมดที่อยู่ภายใต้โฟลเดอร์ปัจจุบัน
+    const subFolders = folder.getFolders();
+    const folderList = [];
+    while (subFolders.hasNext()) {
+      const sub = subFolders.next();
+      folderList.push({
+        id: sub.getId(),
+        name: sub.getName()
+      });
+    }
+
+    // 2. ดึงไฟล์ PDF ทั้งหมดที่อยู่ในโฟลเดอร์ปัจจุบัน
+    const files = folder.getFilesByType(MimeType.PDF);
+    const fileList = [];
+    while (files.hasNext() && fileList.length < 100) {
       const file = files.next();
-      result.push({
+      fileList.push({
         id: file.getId(),
         name: file.getName(),
         date: Utilities.formatDate(file.getDateCreated(), "GMT+7", "dd/MM/yyyy HH:mm")
       });
     }
 
-    if (result.length === 0) {
-      const allFiles = folder.getFiles();
-      const sampleFiles = [];
-      while (allFiles.hasNext() && sampleFiles.length < 5) {
-        const f = allFiles.next();
-        sampleFiles.push(`${f.getName()} (${f.getMimeType()})`);
-      }
-      const debugMsg = sampleFiles.length > 0 ? `พบไฟล์อื่นแต่ไม่ใช่ PDF: ${sampleFiles.join(', ')}` : 'โฟลเดอร์นี้ว่างเปล่าครับ';
-      return createJsonResponse('error', null, `ไม่พบไฟล์ PDF ในโฟลเดอร์ "${folderName}"\n\n[สถานะ: ${debugMsg}]`);
-    }
-    return createJsonResponse('success', result);
-  } catch (e) { return createJsonResponse('error', null, 'เกิดข้อผิดพลาด: ' + e.toString()); }
+    // ทำการเรียงลำดับโฟลเดอร์ย่อยและไฟล์ตามตัวอักษรภาษาไทย
+    folderList.sort((a, b) => a.name.localeCompare(b.name, 'th'));
+    fileList.sort((a, b) => a.name.localeCompare(b.name, 'th'));
+
+    return createJsonResponse('success', {
+      rootFolderId: rootFolderId,
+      currentFolderId: targetFolderId,
+      folderName: folderName,
+      folders: folderList,
+      files: fileList
+    });
+  } catch (e) { 
+    return createJsonResponse('error', null, 'เกิดข้อผิดพลาดในการดึงรายการไฟล์: ' + e.toString()); 
+  }
 }
 
 function getFileBytes(fileId) {
@@ -441,9 +460,10 @@ function authorizeProject() {
   DriveApp.getFileById(pres.getId()).setTrashed(true);
   Logger.log('ยินดีด้วย! คุณอนุญาตสิทธิ์ระบบ Slides เรียบร้อยแล้วครับ');
 }
-function batchUpdateRowsInSheet(formId, updates) {
+
+function batchUpdateRowsInSheet(formId, updates, spreadsheetId) {
   if (!updates || !Array.isArray(updates)) return { status: 'error', message: 'ไม่มีข้อมูลอัปเดต' };
-  const { sheet } = getTargetSheet(formId);
+  const { sheet } = getTargetSheet(formId, spreadsheetId);
   if (!sheet) return { status: 'error', message: 'ไม่พบ Sheet' };
   
   const allHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
@@ -451,39 +471,34 @@ function batchUpdateRowsInSheet(formId, updates) {
   updates.forEach(u => {
     const rowIndex = u.rowIndex;
     const data = u.data;
-    if (!rowIndex || !data) return;
-    
-    const rowRange = sheet.getRange(rowIndex, 1, 1, sheet.getLastColumn());
-    const rowValues = rowRange.getValues()[0];
-    
-    allHeaders.forEach((h, i) => {
-      if (h && data[h] !== undefined) {
-        let val = data[h];
+    if (rowIndex > 0) {
+      const rowOutput = allHeaders.map(h => {
+        const key = h.toString().trim();
+        let val = (data[key] !== undefined) ? data[key] : data[key.toLowerCase()];
+        
         if (typeof val === 'string' && val.includes('T') && val.includes('Z') && val.length > 15) {
-           const d = new Date(val);
-           if (!isNaN(d.getTime())) val = Utilities.formatDate(d, "GMT+7", "dd/MM/yyyy");
+          try {
+            const d = new Date(val);
+            if (!isNaN(d.getTime())) {
+              val = (d.getFullYear() < 1905) ? Utilities.formatDate(d, "GMT+7", "H:mm") : Utilities.formatDate(d, "GMT+7", "dd/MM/yyyy");
+            }
+          } catch(e) {}
         }
-        rowValues[i] = val;
-      }
-    });
-    rowRange.setValues([rowValues]);
+        return Array.isArray(val) ? val.join(', ') : (val || "").toString();
+      });
+      sheet.getRange(rowIndex, 1, 1, allHeaders.length).setValues([rowOutput]);
+    }
   });
-  return { status: 'success', count: updates.length };
+  return { status: 'success', message: 'บันทึกข้อมูลแบบกลุ่มเรียบร้อยแล้ว' };
 }
 
-// ตรวจสอบชนิดข้อมูล Date อย่างแม่นยำ (แก้ปัญหา V8 Engine prototype cross-context)
-function isDate(val) {
-  return val && (val instanceof Date || Object.prototype.toString.call(val) === '[object Date]');
-}
-
-// ยืนยันรหัสผ่านสำหรับเข้าใช้งานระบบ
 function verifyPassword(password) {
   const isCorrect = (password === '1234');
   return createJsonResponse('success', { isCorrect });
 }
 
-// ค้นหาการจับคู่เทมเพลตสำหรับแผ่นงานโดยสแกนเลขแบบฟอร์ม
 function getFormConfig(sheetName) {
+  const config = getConfig();
   const name = sheetName.toString().replace(/[-_\s]/g, '').trim();
   let baseId = '';
   if (name.includes('031')) baseId = '031';
@@ -491,33 +506,325 @@ function getFormConfig(sheetName) {
   else if (name.includes('034')) baseId = '034';
   else if (name.includes('035')) baseId = '035';
   
-  if (baseId && CONFIG.FORMS[baseId]) {
-    return { ...CONFIG.FORMS[baseId], baseId: baseId };
+  if (baseId && config.FORMS[baseId]) {
+    return { ...config.FORMS[baseId], baseId: baseId };
   }
   return null;
 }
 
-// ดึงรายชื่อแผ่นงานทั้งหมดและนับจำนวนข้อมูลเพื่อทำสถิติแบบ Dynamic
-function getSheets() {
+function getSheets(spreadsheetId) {
   try {
-    const ss = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
+    const config = getConfig();
+    const ssId = spreadsheetId || config.SPREADSHEET_ID;
+    const ss = SpreadsheetApp.openById(ssId);
     const sheets = ss.getSheets();
     const result = sheets.map(s => {
       const name = s.getName();
-      const config = getFormConfig(name);
+      const configItem = getFormConfig(name);
       let rowCount = 0;
-      if (config) {
+      if (configItem) {
         rowCount = Math.max(0, s.getLastRow() - 1);
       }
       return {
         name: name,
-        isValid: config !== null,
-        baseFormId: config ? config.baseId : null,
+        isValid: configItem !== null,
+        baseFormId: configItem ? configItem.baseId : null,
         rowCount: rowCount
       };
     }).filter(item => item.isValid);
     return createJsonResponse('success', result);
   } catch(e) {
     return createJsonResponse('error', null, e.toString());
+  }
+}
+
+function setupWorkspace(password, targetFolderId) {
+  if (password !== '1234') {
+    return createJsonResponse('error', null, 'รหัสผ่านสำหรับการติดตั้งไม่ถูกต้อง');
+  }
+
+  try {
+    let mainFolder;
+    
+    // ตรวจสอบและดึงโฟลเดอร์ Google Drive ของผู้ใช้ตามที่ระบุ
+    if (targetFolderId) {
+      try {
+        mainFolder = DriveApp.getFolderById(targetFolderId);
+      } catch (err) {
+        return createJsonResponse('error', null, 'ไม่สามารถเข้าถึงโฟลเดอร์ Google Drive ตาม ID ที่ป้อนมาได้ กรุณาตรวจสอบลิงก์โฟลเดอร์และสิทธิ์การเข้าถึง');
+      }
+    } else {
+      const mainFolderName = "ระบบจัดการเอกสารอัจฉริยะ (Smart Document Generator)";
+      const folders = DriveApp.getFoldersByName(mainFolderName);
+      if (folders.hasNext()) {
+        mainFolder = folders.next();
+      } else {
+        mainFolder = DriveApp.createFolder(mainFolderName);
+      }
+    }
+    
+    // สร้างโฟลเดอร์ย่อย PDF_Outputs สำหรับเก็บผลลัพธ์
+    const pdfFolders = {};
+    const formTypes = ['031', '033', '034', '035'];
+    formTypes.forEach(id => {
+      const folderName = "PDF_Outputs_" + id;
+      const subFolders = mainFolder.getFoldersByName(folderName);
+      if (subFolders.hasNext()) {
+        pdfFolders[id] = subFolders.next();
+      } else {
+        pdfFolders[id] = mainFolder.createFolder(folderName);
+      }
+    });
+
+    // ทำสำเนาฐานข้อมูล Google Sheets ไปยังโฟลเดอร์ปลายทาง
+    const MASTER_SPREADSHEET_ID = '1xAOgwRIoCLmhYYziPQuDTf_YtvDv-VDuCH3WjeIQou4';
+    const timestamp = Utilities.formatDate(new Date(), "GMT+7", "dd/MM/yyyy HH:mm");
+    const masterSheetFile = DriveApp.getFileById(MASTER_SPREADSHEET_ID);
+    const newSheetFile = masterSheetFile.makeCopy("[ฐานข้อมูล] _ ระบบจัดการเอกสาร _ " + timestamp, mainFolder);
+    const newSpreadsheetId = newSheetFile.getId();
+    const newSpreadsheetUrl = newSheetFile.getUrl();
+
+    // ทำสำเนา Google Slides ไปยังโฟลเดอร์ปลายทาง
+    const MASTER_SLIDES = {
+      '031': '1zcM4L5gSnNRLF2vgzpiE5E5a7C3g-o8qHG_BDppAm-A',
+      '033': '1B4o6jYsKBGRKg2dS5qdCDsRHbpJA42GANk55sG_HKlQ',
+      '034': '1CriGH1mgj1-MZcBvdNUfC5TYbMytf063U6Tau312ej0',
+      '035': '11HT5_VmKVB7msoJ6j8oVH2NnLm2VGeGKyCt03SQQj3Y'
+    };
+
+    const newSlides = {};
+    for (let key in MASTER_SLIDES) {
+      const slideFile = DriveApp.getFileById(MASTER_SLIDES[key]);
+      const copiedSlide = slideFile.makeCopy("Template_" + key + "_" + timestamp, mainFolder);
+      newSlides[key] = copiedSlide.getId();
+    }
+
+    // บันทึกคอนฟิกใหม่ลงใน Properties
+    const newConfig = {
+      SPREADSHEET_ID: newSpreadsheetId,
+      DEBUG_MODE: true,
+      FORMS: {
+        '031': { templateId: newSlides['031'], folderId: pdfFolders['031'].getId() },
+        '033': { templateId: newSlides['033'], folderId: pdfFolders['033'].getId() },
+        '034': { templateId: newSlides['034'], folderId: pdfFolders['034'].getId() },
+        '035': { templateId: newSlides['035'], folderId: pdfFolders['035'].getId() }
+      }
+    };
+
+    const props = PropertiesService.getScriptProperties();
+    props.setProperty('USER_CONFIG', JSON.stringify(newConfig));
+
+    return createJsonResponse('success', {
+      spreadsheetUrl: newSpreadsheetUrl,
+      spreadsheetId: newSpreadsheetId,
+      config: newConfig
+    }, 'ติดตั้งระบบและคัดลอกเทมเพลตไปยังโฟลเดอร์ของคุณเรียบร้อยแล้ว!');
+
+  } catch (error) {
+    return createJsonResponse('error', null, 'เกิดข้อผิดพลาดระหว่างติดตั้ง: ' + error.toString());
+  }
+}
+
+// ตรวจสอบความถูกต้องว่าค่าเป็นตัวแปรวันที่หรือไม่
+function isDate(val) {
+  return val instanceof Date && !isNaN(val.valueOf());
+}
+
+// ดึงค่าคอนฟิกปัจจุบันส่งไปหน้าบ้าน
+function getBackendConfig() {
+  try {
+    const config = getConfig();
+    return createJsonResponse('success', config);
+  } catch (e) {
+    return createJsonResponse('error', null, 'เกิดข้อผิดพลาดในการดึงคอนฟิก: ' + e.toString());
+  }
+}
+
+// บันทึกการตั้งค่าโครงสร้างคอนฟิกใหม่ลงใน Properties
+function saveBackendConfig(configData) {
+  try {
+    if (!configData) {
+      return createJsonResponse('error', null, 'ไม่พบข้อมูลการตั้งค่าสำหรับบันทึก');
+    }
+    const props = PropertiesService.getScriptProperties();
+    props.setProperty('USER_CONFIG', JSON.stringify(configData));
+    return createJsonResponse('success', configData, 'บันทึกการตั้งค่าระบบเรียบร้อยแล้ว!');
+  } catch (e) {
+    return createJsonResponse('error', null, 'เกิดข้อผิดพลาดในการบันทึกคอนฟิก: ' + e.toString());
+  }
+}
+
+// สร้างโฟลเดอร์ย่อยใหม่ในโฟลเดอร์ที่กำหนด
+function createSubFolder(parentFolderId, folderName) {
+  try {
+    if (!parentFolderId || !folderName) {
+      return createJsonResponse('error', null, 'ระบุตำแหน่งที่ตั้งหรือชื่อโฟลเดอร์ย่อยไม่ครบถ้วน');
+    }
+    const parentFolder = DriveApp.getFolderById(parentFolderId);
+    const newFolder = parentFolder.createFolder(folderName);
+    return createJsonResponse('success', {
+      id: newFolder.getId(),
+      name: newFolder.getName()
+    }, 'สร้างโฟลเดอร์ย่อย "' + folderName + '" เรียบร้อยแล้ว!');
+  } catch (e) {
+    return createJsonResponse('error', null, 'เกิดข้อผิดพลาดในการสร้างโฟลเดอร์: ' + e.toString());
+  }
+}
+
+// ย้ายไฟล์ PDF ทั้งหมดที่กำหนดไปยังโฟลเดอร์ปลายทาง
+function moveFiles(fileIds, targetFolderId) {
+  try {
+    if (!fileIds || !Array.isArray(fileIds) || !targetFolderId) {
+      return createJsonResponse('error', null, 'ระบุข้อมูลย้ายไฟล์ไม่ครบถ้วน');
+    }
+    const targetFolder = DriveApp.getFolderById(targetFolderId);
+    let successCount = 0;
+    
+    fileIds.forEach(id => {
+      try {
+        const file = DriveApp.getFileById(id);
+        file.moveTo(targetFolder);
+        successCount++;
+      } catch (err) {
+        // ข้ามหากไม่พบบางไฟล์ หรือไม่มีสิทธิ์
+      }
+    });
+    
+    return createJsonResponse('success', null, 'ย้ายไฟล์ย่อยจำนวน ' + successCount + ' รายการเข้าโฟลเดอร์เป้าหมายสำเร็จแล้ว!');
+  } catch (e) {
+    return createJsonResponse('error', null, 'เกิดข้อผิดพลาดในการย้ายไฟล์: ' + e.toString());
+  }
+}
+
+// ตรวจจับและจัดสร้าง PDF ในแถวข้อมูลใหม่โดยอัตโนมัติ
+function autoGenerateNewRows() {
+  const config = getConfig();
+  const ssId = config.SPREADSHEET_ID;
+  if (!ssId) return;
+  
+  try {
+    const ss = SpreadsheetApp.openById(ssId);
+    const formTypes = ['031', '033', '034', '035'];
+    
+    formTypes.forEach(formId => {
+      try {
+        const cleanId = formId.toString().replace(/[-_\s]/g, '');
+        const sheet = ss.getSheetByName(cleanId) || ss.getSheetByName(formId);
+        if (!sheet) return;
+        
+        const lastRow = sheet.getLastRow();
+        if (lastRow <= 1) return; // ไม่มีข้อมูลนอกจากหัวตาราง
+        
+        const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+        
+        // ค้นหาดัชนีของคอลัมน์ PDF_Link หรือ ลิงก์ไฟล์ PDF
+        let pdfLinkColIdx = -1;
+        headers.forEach((h, colIdx) => {
+          const name = h.toString().trim().toLowerCase();
+          if (name === 'pdf_link' || name === 'ลิงก์ไฟล์ pdf' || name === 'pdf link' || name === 'ลิงก์เอกสาร pdf') {
+            pdfLinkColIdx = colIdx;
+          }
+        });
+        
+        let targetColIdx = pdfLinkColIdx + 1;
+        if (pdfLinkColIdx === -1) {
+          // หากไม่มี ให้สร้างคอลัมน์ชื่อ PDF_Link ต่อท้ายตารางฐานข้อมูลโดยอัตโนมัติ
+          targetColIdx = headers.length + 1;
+          sheet.getRange(1, targetColIdx).setValue('PDF_Link');
+          // อัปเดตหัวตาราง
+          headers.push('PDF_Link');
+        }
+        
+        // สแกนแถวข้อมูลย้อนหลังจากแถวสุดท้าย (สแกนสูงสุด 100 แถวเพื่อประสิทธิภาพ)
+        const scanStartRow = Math.max(2, lastRow - 99);
+        const numRows = lastRow - scanStartRow + 1;
+        
+        const dataRange = sheet.getRange(scanStartRow, 1, numRows, headers.length);
+        const values = dataRange.getValues();
+        
+        for (let i = 0; i < values.length; i++) {
+          const rowVal = values[i];
+          const pdfLinkValue = rowVal[targetColIdx - 1];
+          
+          // หากพบคอลัมน์ PDF_Link ว่างอยู่ (แสดงว่ายังไม่ได้ถูกสร้างเอกสาร)
+          if (!pdfLinkValue || pdfLinkValue.toString().trim() === "") {
+            const rowIndexInSheet = scanStartRow + i;
+            
+            // แปลงแถวข้อมูลเป็น Object map กับหัวตาราง
+            const rowData = {};
+            headers.forEach((h, colIdx) => {
+              const cleanHeader = h ? h.toString().trim() : "";
+              if (cleanHeader) {
+                rowData[cleanHeader] = rowVal[colIdx];
+              }
+            });
+            
+            // ดึง Config ของแบบฟอร์มและสร้าง PDF
+            const formConfig = getFormConfig(formId);
+            if (formConfig) {
+              const isPreview = false;
+              let tableData = null;
+              
+              // ดำเนินการสร้างไฟล์ PDF
+              const result = createPDF(formConfig, rowData, isPreview, tableData, formConfig.baseId);
+              
+              // อัปเดตลิงก์ PDF ที่ได้กลับไปบันทึกใน Google Sheets แถวนั้น
+              sheet.getRange(rowIndexInSheet, targetColIdx).setValue(result.url);
+              SpreadsheetApp.flush();
+            }
+          }
+        }
+      } catch (sheetErr) {
+        Logger.log('เกิดข้อผิดพลาดในการตรวจสอบชีต ' + formId + ': ' + sheetErr.toString());
+      }
+    });
+  } catch (err) {
+    Logger.log('เกิดข้อผิดพลาดในการทำงานของระบบสร้างอัตโนมัติ: ' + err.toString());
+  }
+}
+
+// ตรวจสอบและดึงสถานะการทำงานของ Installable Trigger
+function getAutoTriggerStatus() {
+  try {
+    const triggers = ScriptApp.getProjectTriggers();
+    const isActive = triggers.some(t => t.getHandlerFunction() === 'autoGenerateNewRows');
+    return createJsonResponse('success', { isActive });
+  } catch (e) {
+    return createJsonResponse('error', null, 'ไม่สามารถดึงสถานะทริกเกอร์ได้: ' + e.toString());
+  }
+}
+
+// เปิดหรือปิดการทำงานของระบบสร้าง PDF อัตโนมัติ (Trigger)
+function toggleAutoTrigger(enable, spreadsheetId) {
+  try {
+    const config = getConfig();
+    const ssId = spreadsheetId || config.SPREADSHEET_ID;
+    
+    // ค้นหาและลบทริกเกอร์เดิมที่ชื่อฟังก์ชัน autoGenerateNewRows ทั้งหมดก่อนเพื่อรีเซ็ต
+    const triggers = ScriptApp.getProjectTriggers();
+    triggers.forEach(t => {
+      if (t.getHandlerFunction() === 'autoGenerateNewRows') {
+        ScriptApp.deleteTrigger(t);
+      }
+    });
+    
+    if (enable) {
+      // 1. สร้างทริกเกอร์ดักจับเมื่อพบข้อมูลเปลี่ยนแปลง (onChange)
+      const ss = SpreadsheetApp.openById(ssId);
+      ScriptApp.newTrigger('autoGenerateNewRows')
+               .forSpreadsheet(ss)
+               .onChange()
+               .create();
+               
+      // 2. สร้างทริกเกอร์อิงเวลา (Time-driven) ทำงานทุก 15 นาที เพื่อเป็นระบบแบ็คอัพสำรอง
+      ScriptApp.newTrigger('autoGenerateNewRows')
+               .timeBased()
+               .everyMinutes(15)
+               .create();
+    }
+    
+    return createJsonResponse('success', { isActive: enable }, 'ปรับปรุงทริกเกอร์ระบบสร้างเอกสารอัตโนมัติสำเร็จแล้ว!');
+  } catch (e) {
+    return createJsonResponse('error', null, 'ไม่สามารถเปิด/ปิดทริกเกอร์ได้: ' + e.toString());
   }
 }
