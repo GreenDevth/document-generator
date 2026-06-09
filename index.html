@@ -12,17 +12,847 @@
         href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=Sarabun:wght@300;400;600;700&display=swap"
         rel="stylesheet">
     <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
-  <script type="module" crossorigin>var Q=Object.defineProperty;var G=Object.getOwnPropertySymbols;var ee=Object.prototype.hasOwnProperty,te=Object.prototype.propertyIsEnumerable;var U=(s,e,n)=>e in s?Q(s,e,{enumerable:!0,configurable:!0,writable:!0,value:n}):s[e]=n,$=(s,e)=>{for(var n in e||(e={}))ee.call(e,n)&&U(s,n,e[n]);if(G)for(var n of G(e))te.call(e,n)&&U(s,n,e[n]);return s};var w=(s,e,n)=>new Promise((r,t)=>{var o=c=>{try{d(n.next(c))}catch(a){t(a)}},l=c=>{try{d(n.throw(c))}catch(a){t(a)}},d=c=>c.done?r(c.value):Promise.resolve(c.value).then(o,l);d((n=n.apply(s,e)).next())});(function(){const e=document.createElement("link").relList;if(e&&e.supports&&e.supports("modulepreload"))return;for(const t of document.querySelectorAll('link[rel="modulepreload"]'))r(t);new MutationObserver(t=>{for(const o of t)if(o.type==="childList")for(const l of o.addedNodes)l.tagName==="LINK"&&l.rel==="modulepreload"&&r(l)}).observe(document,{childList:!0,subtree:!0});function n(t){const o={};return t.integrity&&(o.integrity=t.integrity),t.referrerPolicy&&(o.referrerPolicy=t.referrerPolicy),t.crossOrigin==="use-credentials"?o.credentials="include":t.crossOrigin==="anonymous"?o.credentials="omit":o.credentials="same-origin",o}function r(t){if(t.ep)return;t.ep=!0;const o=n(t);fetch(t.href,o)}})();let E="",v="",j=[],A=!1,J=0,b=[];const K=["มกราคม","กุมภาพันธ์","มีนาคม","เมษายน","พฤษภาคม","มิถุนายน","กรกฎาคม","สิงหาคม","กันยายน","ตุลาคม","พฤศจิกายน","ธันวาคม"],P={subject:"ชื่อรายการที่ผลิต",owner:"ผู้รับผิดชอบการผลิต",extdocno:"เอกสารเลขที่ (ภายนอก)",extdocdate:"ลงวันที่เอกสาร",activity:"ชื่อกิจกรรม / รายการ",location:"สถานที่จัดกิจกรรม",actdate:"วันที่จัดกิจกรรม",actmouth:"เดือน (จัดงาน)",actac:"พ.ศ. (จัดงาน)",acttime:"เวลา (จัดงาน)",findate:"วันที่กำหนดส่ง",finmouth:"เดือน (กำหนดส่ง)",finac:"พ.ศ. (กำหนดส่ง)",producer:"ผู้รับผิดชอบการผลิต",team:"ทีมงานผลิต",checkbox:"หน่วยงานที่ได้รับมอบหมาย",cb1:"หน่วยจัดและผลิตรายการวิทยุ",cb2:"หน่วยจัดและผลิตรายการโทรทัศน์",cb3:"หน่วยผลิตและพัฒนาสื่อการศึกษา",cb4:"ต้นฉบับ ( ) CD",cb5:"ต้นฉบับ ( ) DVD",cb6:"ต้นฉบับ ( ) อื่นๆ",ep:"ตอน",format:"รูปแบบสื่อ",duration:"ความยาวรายการ (นาที)",second:"ความยาวรายการ (วินาที)",sucdate:"ผลิตแล้วเสร็จวันที่",sucmouth:"เดือน (ที่ผลิตเสร็จ)",sucac:"พ.ศ. (ที่ผลิตเสร็จ)",usedate:"กำหนดออกอากาศ/นำไปใช้วันที่",usemouth:"เดือน (ที่ออกอากาศ)",useac:"พ.ศ. (ที่ออกอากาศ)",more:"หมายเหตุ / รายละเอียดเพิ่มเติม",extdocnoint:"เอกสารเลขที่ (ภายใน)",extdocdateint:"ลงวันที่ (ภายใน)",date:"วันที่",mouth:"เดือน",ac:"พ.ศ.",item:"รายการอุปกรณ์",teach:"วิทยากร/ผู้บรรยาย",dur:"ความยาว",dma:"วันผลิตแล้วเสร็จ",qty:"จำนวน",unit:"หน่วย"},k={checkbox:["หน่วยจัดและผลิตรายการวิทยุ","หน่วยจัดและผลิตรายการโทรทัศน์","หน่วยผลิตและพัฒนาสื่อการศึกษา"]};document.addEventListener("DOMContentLoaded",()=>{const s=sessionStorage.getItem("scriptUrl"),e=sessionStorage.getItem("isLoggedIn"),n=document.getElementById("scriptUrlInput");n&&(n.value=s||"https://script.google.com/macros/s/AKfycbz9oaurUPmKICdUsGV34G_ahDBWhGLK6K5zirAHd2kbTP7Zx2XtniWI2189FszuKaIy/exec"),e==="true"&&s?(E=s,L("portalPage"),q()):L("loginPage"),ne()});function ne(){const s=document.getElementById("loginForm");s&&(s.onsubmit=g=>w(this,null,function*(){g.preventDefault();const p=document.getElementById("authPassword").value,y=document.getElementById("scriptUrlInput").value.trim();if(!y){h("⚠️ คำเตือน","กรุณาระบุ Apps Script Web App URL",!1);return}C("กำลังเข้าสู่ระบบและตรวจสอบสิทธิ์...");try{const S=yield(yield fetch(y,{method:"POST",body:JSON.stringify({action:"verifyPassword",password:p}),headers:{"Content-Type":"text/plain;charset=utf-8"}})).json();if(S.status==="success"&&S.data.isCorrect)E=y,sessionStorage.setItem("scriptUrl",y),sessionStorage.setItem("isLoggedIn","true"),L("portalPage"),q();else throw new Error("รหัสผ่านไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง")}catch(F){h("❌ ข้อผิดพลาด",F.message,!1)}finally{I()}}));const e=document.getElementById("btnLogoutPortal");e&&(e.onclick=()=>{sessionStorage.removeItem("isLoggedIn"),E="",L("loginPage");const g=document.getElementById("authPassword");g&&(g.value="")});const n=document.getElementById("btnBackToPortal");n&&(n.onclick=()=>{L("portalPage"),q()});const r=document.getElementById("tabFormBtn"),t=document.getElementById("tabTableBtn");r&&t&&(r.onclick=()=>N("form"),t.onclick=()=>N("table"));const o=document.getElementById("btnClearFormBtn");o&&(o.onclick=()=>we());const l=document.getElementById("btnCancelEdit");l&&(l.onclick=()=>M());const d=document.getElementById("btnPreview");d&&(d.onclick=()=>Y("preview"));const c=document.getElementById("docForm");c&&(c.onsubmit=g=>w(this,null,function*(){g.preventDefault(),(yield h("💾 ยืนยันการบันทึก","คุณต้องการสร้างไฟล์เอกสาร PDF ใช่หรือไม่?",!0))&&Y("generate")}));const a=document.getElementById("btnRefreshWorkspace");a&&(a.onclick=()=>_(v));const i=document.getElementById("btnDrivePickerWorkspace");i&&(i.onclick=()=>ve());const m=document.getElementById("btnPDFAllWorkspace");m&&(m.onclick=()=>ye());const u=document.getElementById("isRecurring"),f=document.getElementById("recurringControls");u&&(u.onchange=()=>{f&&(u.checked?f.classList.add("active"):f.classList.remove("active"))})}function L(s){document.querySelectorAll(".page-section, .auth-container").forEach(n=>{n.classList.remove("active"),n.style.display=""});const e=document.getElementById(s);e&&e.classList.add("active")}function N(s){document.querySelectorAll(".work-tab").forEach(e=>e.classList.remove("active")),document.querySelectorAll(".workspace-view").forEach(e=>e.classList.remove("active")),s==="form"?(document.getElementById("tabFormBtn").classList.add("active"),document.getElementById("formWorkspaceView").classList.add("active")):s==="table"&&(document.getElementById("tabTableBtn").classList.add("active"),document.getElementById("tableWorkspaceView").classList.add("active"),_(v))}function q(){return w(this,null,function*(){const s=document.getElementById("portalSheetsGrid");if(s)try{const n=yield(yield fetch(E,{method:"POST",body:JSON.stringify({action:"getSheets"}),headers:{"Content-Type":"text/plain;charset=utf-8"}})).json();if(n.status==="success"&&Array.isArray(n.data)){s.innerHTML="";let r=0;n.data.forEach(t=>{r+=t.rowCount;const o=document.createElement("div"),l=t.baseFormId||"031";o.className=`sheet-card form-${l}`,o.innerHTML=`
+  <script type="module" crossorigin>var Ce=Object.defineProperty;var fe=Object.getOwnPropertySymbols;var xe=Object.prototype.hasOwnProperty,Fe=Object.prototype.propertyIsEnumerable;var ge=(s,e,n)=>e in s?Ce(s,e,{enumerable:!0,configurable:!0,writable:!0,value:n}):s[e]=n,_=(s,e)=>{for(var n in e||(e={}))xe.call(e,n)&&ge(s,n,e[n]);if(fe)for(var n of fe(e))Fe.call(e,n)&&ge(s,n,e[n]);return s};var I=(s,e,n)=>new Promise((a,t)=>{var o=i=>{try{c(n.next(i))}catch(r){t(r)}},l=i=>{try{c(n.throw(i))}catch(r){t(r)}},c=i=>i.done?a(i.value):Promise.resolve(i.value).then(o,l);c((n=n.apply(s,e)).next())});(function(){const e=document.createElement("link").relList;if(e&&e.supports&&e.supports("modulepreload"))return;for(const t of document.querySelectorAll('link[rel="modulepreload"]'))a(t);new MutationObserver(t=>{for(const o of t)if(o.type==="childList")for(const l of o.addedNodes)l.tagName==="LINK"&&l.rel==="modulepreload"&&a(l)}).observe(document,{childList:!0,subtree:!0});function n(t){const o={};return t.integrity&&(o.integrity=t.integrity),t.referrerPolicy&&(o.referrerPolicy=t.referrerPolicy),t.crossOrigin==="use-credentials"?o.credentials="include":t.crossOrigin==="anonymous"?o.credentials="omit":o.credentials="same-origin",o}function a(t){if(t.ep)return;t.ep=!0;const o=n(t);fetch(t.href,o)}})();const Be=`// ==========================================================================
+// GOOGLE APPS SCRIPT BACKEND V3.5-SLIDES-EDITION
+// รองรับ Google Slides และ Smart Mapping ภาษาไทย
+// ==========================================================================
+
+const DEFAULT_CONFIG = {
+  SPREADSHEET_ID: '1xAOgwRIoCLmhYYziPQuDTf_YtvDv-VDuCH3WjeIQou4',
+  DEBUG_MODE: true,
+  FORMS: {
+    '031': { templateId: '1zcM4L5gSnNRLF2vgzpiE5E5a7C3g-o8qHG_BDppAm-A', folderId: '1i2szOSdvsEnfYrGbGM-0wALzQ1QPqkbc' },
+    '033': { templateId: '1B4o6jYsKBGRKg2dS5qdCDsRHbpJA42GANk55sG_HKlQ', folderId: '1BYkDyzPahByYGadyLaLc5es9zmpjd_2y' }, 
+    '034': { templateId: '1CriGH1mgj1-MZcBvdNUfC5TYbMytf063U6Tau312ej0', folderId: '1WhGML56hu4IKawJyb1CCr-xM1BMTE1Vv' },
+    '035': { templateId: '11HT5_VmKVB7msoJ6j8oVH2NnLm2VGeGKyCt03SQQj3Y', folderId: '1mWf-fALH6UPl_COPLtk7AmMhsC-sLEHr' }
+  }
+};
+
+// ดึงค่าคอนฟิกส่วนบุคคลจากระบบ Script Properties ของแต่ละคน
+function getConfig() {
+  const props = PropertiesService.getScriptProperties();
+  const userConfig = props.getProperty('USER_CONFIG');
+  if (userConfig) {
+    try {
+      return JSON.parse(userConfig);
+    } catch (e) {
+      // ดำเนินการใช้ค่าเริ่มต้นเมื่อเกิดข้อผิดพลาดในการแปลงข้อมูล
+    }
+  }
+  return DEFAULT_CONFIG;
+}
+
+function doGet() {
+  return HtmlService.createTemplateFromFile('index').evaluate()
+    .setTitle('Smart PDF Generator | ระบบสร้างเอกสารอัจฉริยะ')
+    .addMetaTag('viewport', 'width=device-width, initial-scale=1')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+}
+
+function doPost(e) {
+  try {
+    const request = JSON.parse(e.postData.contents);
+    const action = request.action;
+    const spreadsheetId = request.spreadsheetId; // ดึงไอดีชีตที่ส่งมาจากหน้าบ้าน
+    
+    if (action === 'verifyPassword') return verifyPassword(request.password);
+    if (action === 'setupWorkspace') return setupWorkspace(request.password, request.targetFolderId);
+    if (action === 'getSheets') return getSheets(spreadsheetId);
+    if (action === 'getSchema') return getSchema(request.formId, spreadsheetId);
+    if (action === 'generate' || action === 'preview') return handlePDFRequest(request);
+    if (action === 'getRecentData') return getRecentData(request.formId, spreadsheetId);
+    if (action === 'updateRow') return updateRow(request);
+    if (action === 'deleteProject') return deleteProject(request);
+    if (action === 'deleteData') return deleteData(request);
+    if (action === 'getDriveFiles') return getDriveFiles(request.formId, spreadsheetId, request.folderId); // รองรับโฟลเดอร์ย่อยย่อย
+    if (action === 'createSubFolder') return createSubFolder(request.parentFolderId, request.folderName); // สร้างโฟลเดอร์ย่อยใหม่
+    if (action === 'moveFiles') return moveFiles(request.fileIds, request.targetFolderId); // ย้ายไฟล์ PDF ไปเก็บ
+    if (action === 'getFileBytes') return getFileBytes(request.fileId);
+    if (action === 'getConfig') return getBackendConfig(); // เพิ่มดึงค่าคอนฟิก
+    if (action === 'saveConfig') return saveBackendConfig(request.configData); // เพิ่มบันทึกค่าคอนฟิก
+    if (action === 'toggleAutoTrigger') return toggleAutoTrigger(request.enable, spreadsheetId); // เปิด-ปิดทริกเกอร์ออโต้
+    if (action === 'getAutoTriggerStatus') return getAutoTriggerStatus(); // เช็คสถานะทริกเกอร์ออโต้
+    return createJsonResponse('error', null, 'Invalid action');
+  } catch (err) { return createJsonResponse('error', null, err.toString()); }
+}
+
+function getTargetSheet(formId, spreadsheetId) {
+  const config = getConfig();
+  const ssId = spreadsheetId || config.SPREADSHEET_ID;
+  const ss = SpreadsheetApp.openById(ssId);
+  const cleanId = formId.toString().replace('.json', '').replace('-', '').trim();
+  let sheet = ss.getSheetByName(cleanId) || ss.getSheetByName(formId);
+  return { sheet, ss, cleanId };
+}
+
+function getSchema(formId, spreadsheetId) {
+  const { sheet } = getTargetSheet(formId, spreadsheetId);
+  if (!sheet) return createJsonResponse('error', null, 'ไม่พบ Sheet');
+  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  return createJsonResponse('success', { version: "v3.5-Slides-Power", headers });
+}
+
+function handlePDFRequest(request) {
+  const { action, formId, data, rowIndex, tableData, skipSave, spreadsheetId } = request;
+  const isPreview = (action === 'preview') || (skipSave === true);
+  const { sheet } = getTargetSheet(formId, spreadsheetId);
+  if (!sheet) throw new Error('ไม่พบข้อมูล Sheet: ' + formId);
+  
+  const sheetName = sheet.getName();
+  const formConfig = getFormConfig(sheetName);
+  
+  if (!formConfig) throw new Error('ไม่พบข้อมูล Template สำหรับแผ่นงาน: ' + sheetName);
+  const cleanId = formConfig.baseId;
+
+  const result = createPDF(formConfig, data, isPreview, tableData, cleanId);
+
+  let rowsCount = (tableData && Array.isArray(tableData)) ? tableData.length : 1;
+  if (!isPreview) {
+    saveToSheet(sheet, data, parseInt(rowIndex) || 0, tableData);
+  }
+
+  return createJsonResponse('success', result, \`บันทึกข้อมูลเรียบร้อยแล้ว (ได้รับ \${rowsCount} รายการ)\`);
+}
+
+function createPDF(formConfig, rowData, isPreview, tableData, cleanId) {
+  const templateFile = DriveApp.getFileById(formConfig.templateId);
+  const parentFolder = DriveApp.getFolderById(formConfig.folderId);
+  const timestamp = Utilities.formatDate(new Date(), "GMT+7", "yyyyMMdd_HHmmss");
+  const subject = rowData['subject'] || rowData['ชื่อเรื่อง / วิชา'] || 'DOC';
+  const tempName = (isPreview ? 'PREVIEW_' : '') + '[' + subject + ']_' + timestamp;
+  
+  const tempFile = templateFile.makeCopy(tempName, parentFolder);
+  const presentation = SlidesApp.openById(tempFile.getId());
+  
+  if (presentation) {
+    const finalData = { ...rowData };
+    
+    // --- SMART MAPPING & TABLE MERGE ---
+    const smartMap = {
+      'ตอน': 'ep', 'ep': 'ตอน',
+      'ความยาว': 'duration', 'dur': 'duration', 'duration': 'dur',
+      'ความยาวรายการ': 'duration', 'ความยาวรายการ (นาที)': 'duration',
+      'ชื่อรายการ': 'subject', 'subject': 'ชื่อรายการ', 'ชื่อเรื่อง': 'subject'
+    };
+
+    // 1. ดึงข้อมูลจากแถวแรกของตาราง (ถ้ามี) มาใส่ในข้อมูลหลัก
+    if (tableData && Array.isArray(tableData) && tableData.length > 0) {
+      const firstRow = tableData[0];
+      for (let [tk, tv] of Object.entries(firstRow)) {
+        if (finalData[tk] === undefined || finalData[tk] === "") {
+          finalData[tk] = tv;
+        }
+      }
+    }
+
+    // 2. ทำการ Mapping ชื่อฟิลด์ตาม smartMap
+    for (let [thai, eng] of Object.entries(smartMap)) {
+      if (finalData[thai] !== undefined && finalData[eng] === undefined) {
+        finalData[eng] = finalData[thai];
+      }
+    }
+
+    // หากเป็น 034 (แบบกลุ่ม)
+    if (cleanId === '034') {
+      const firstRow = (tableData && tableData.length > 0) ? tableData[0] : {};
+      
+      for (let idx = 1; idx <= 11; idx++) {
+        const row = (tableData && tableData[idx-1]) ? tableData[idx-1] : {};
+        
+        finalData['format' + idx] = row.format || row['รูปแบบสื่อ'] || firstRow['format' + idx] || firstRow['รูปแบบสื่อ' + idx] || "";
+        finalData['ep' + idx] = row.ep || row['ตอน'] || firstRow['ep' + idx] || firstRow['ตอน' + idx] || "";
+        finalData['teach' + idx] = row.teach || row['วิทยากร'] || firstRow['teach' + idx] || firstRow['วิทยากร' + idx] || "";
+        finalData['dur' + idx] = row.dur || row['ความยาว'] || firstRow['dur' + idx] || firstRow['ความยาว' + idx] || "";
+        
+        let dmaVal = row.dma || row['ผลิตแล้วเสร็จวันที่'] || firstRow['dma' + idx] || firstRow['ผลิตแล้วเสร็จวันที่' + idx] || "";
+        if (isDate(dmaVal)) {
+          const dmaStr = Utilities.formatDate(dmaVal, "GMT+7", "dd/MM/yyyy");
+          const p = dmaStr.split('/');
+          const year = parseInt(p[2]);
+          dmaVal = \`\${p[0]}/\${p[1]}/\${year < 2400 ? year + 543 : year}\`;
+        }
+        finalData['dma' + idx] = dmaVal;
+      }
+    }
+
+    // จัดการ Checkbox
+    const checkboxKeys = ['cb1', 'cb2', 'cb3', 'cb4', 'cb5', 'cb6'];
+    checkboxKeys.forEach(k => {
+      const val = finalData[k];
+      const isChecked = (val === '✓' || val === true || val === 'true');
+      const symbol = isChecked ? "✓" : "";
+      presentation.replaceAllText("{{" + k + "}}", symbol);
+      presentation.replaceAllText("{{ " + k + " }}", symbol);
+      presentation.replaceAllText("{{" + k.toUpperCase() + "}}", symbol);
+    });
+
+    // แทนที่ Tag ทั่วไป
+    const sortedKeys = Object.keys(finalData).sort((a, b) => b.length - a.length);
+    
+    for (let k of sortedKeys) {
+      const v = finalData[k];
+      if (k && v !== undefined) {
+        let valStr = "";
+        
+        if (isDate(v)) {
+          valStr = (v.getFullYear() < 1905) ? Utilities.formatDate(v, "GMT+7", "H:mm") : Utilities.formatDate(v, "GMT+7", "dd/MM/yyyy");
+        } else if (typeof v === 'string' && v.includes('T') && v.includes('Z') && v.length > 15) {
+          try {
+            const d = new Date(v);
+            valStr = (d.getFullYear() < 1905) ? Utilities.formatDate(d, "GMT+7", "H:mm") : Utilities.formatDate(d, "GMT+7", "dd/MM/yyyy");
+          } catch(e) { valStr = v.toString(); }
+        } else {
+          valStr = (v === null) ? "" : v.toString();
+        }
+
+        presentation.replaceAllText("{{" + k + "}}", valStr);
+        presentation.replaceAllText("{{ " + k + " }}", valStr);
+        presentation.replaceAllText("{{" + k.toLowerCase() + "}}", valStr);
+        presentation.replaceAllText("{{ " + k.toLowerCase() + " }}", valStr);
+        presentation.replaceAllText("{{" + k.toUpperCase() + "}}", valStr);
+        presentation.replaceAllText("{{ " + k.toUpperCase() + " }}", valStr);
+      }
+    }
+    
+    // เติมตารางในสไลด์
+    if (cleanId !== '034' && tableData && Array.isArray(tableData)) {
+      fillSlidesTable(presentation, tableData);
+    }
+  }
+
+  presentation.saveAndClose();
+  Utilities.sleep(1500); 
+
+  const pdfBlob = tempFile.getAs(MimeType.PDF);
+  const pdfFile = parentFolder.createFile(pdfBlob).setName(tempName + ".pdf");
+  pdfFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  tempFile.setTrashed(true);
+
+  return { fileId: pdfFile.getId(), url: pdfFile.getUrl(), name: pdfFile.getName() };
+}
+
+function fillSlidesTable(presentation, tableData) {
+  const slides = presentation.getSlides();
+  slides.forEach(slide => {
+    const tables = slide.getTables();
+    tables.forEach(table => {
+      let templateRowIndex = -1;
+      for (let r = 0; r < table.getNumRows(); r++) {
+        for (let c = 0; c < table.getRow(r).getNumCells(); c++) {
+          const text = table.getCell(r, c).getText().asString();
+          if (text.includes('{{')) {
+            templateRowIndex = r;
+            break;
+          }
+        }
+        if (templateRowIndex !== -1) break;
+      }
+
+      if (templateRowIndex !== -1) {
+        tableData.forEach(rowData => {
+          const newRow = table.appendRow();
+          for (let c = 0; c < table.getRow(templateRowIndex).getNumCells(); c++) {
+            const templateCell = table.getCell(templateRowIndex, c);
+            const templateText = templateCell.getText().asString();
+            let cellValue = templateText;
+            
+            for (let [k, v] of Object.entries(rowData)) {
+              const valStr = (v === null || v === undefined) ? "" : v.toString();
+              cellValue = cellValue.replace(new RegExp('{{\\\\s*' + k + '\\\\s*}}', 'gi'), valStr);
+            }
+            cellValue = cellValue.replace(/{{\\s*[^}]+\\s*}}/g, '');
+            newRow.getCell(c).getText().setText(cellValue);
+          }
+        });
+        table.removeRow(templateRowIndex);
+      }
+    });
+  });
+}
+
+function saveToSheet(sheet, baseData, rowIndex, tableData) {
+  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  
+  let rows = [];
+  if (tableData && Array.isArray(tableData) && tableData.length > 0) {
+    rows = tableData.map(item => {
+      const merged = { ...baseData, ...item };
+      return mapRowToHeaders(headers, merged);
+    });
+  } else {
+    rows = [mapRowToHeaders(headers, baseData)];
+  }
+
+  if (rowIndex <= 0) {
+    rows.forEach(r => { sheet.appendRow(r); SpreadsheetApp.flush(); });
+  } else {
+    sheet.getRange(rowIndex, 1, 1, headers.length).setValues([rows[0]]);
+  }
+}
+
+function mapRowToHeaders(headers, rowData) {
+  return headers.map(h => {
+    const key = h.toString().trim();
+    let val = rowData[key] || rowData[key.toLowerCase()];
+    if (val === undefined) {
+      const match = Object.keys(rowData).find(k => k.toLowerCase() === key.toLowerCase());
+      val = match ? rowData[match] : "";
+    }
+    
+    if (typeof val === 'string' && val.includes('T') && val.includes('Z') && val.length > 15) {
+      try {
+        const d = new Date(val);
+        if (!isNaN(d.getTime())) {
+          val = (d.getFullYear() < 1905) ? Utilities.formatDate(d, "GMT+7", "H:mm") : Utilities.formatDate(d, "GMT+7", "dd/MM/yyyy");
+        }
+      } catch(e) {}
+    }
+
+    return Array.isArray(val) ? val.join(', ') : (val || "");
+  });
+}
+
+function createJsonResponse(status, data, message = "") {
+  return ContentService.createTextOutput(JSON.stringify({ status, data, message }))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+function getRecentData(formId, spreadsheetId) {
+  const { sheet } = getTargetSheet(formId, spreadsheetId);
+  if (!sheet) return createJsonResponse('error', null, 'ไม่พบ Sheet');
+  const lastRow = sheet.getLastRow();
+  if (lastRow <= 1) return createJsonResponse('success', { records: [], headers: [] });
+  const startRow = Math.max(2, lastRow - 499);
+  const numRows = lastRow - startRow + 1;
+  const allHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+
+  const v = sheet.getRange(startRow, 1, numRows, sheet.getLastColumn()).getValues();
+  const d = sheet.getRange(startRow, 1, numRows, sheet.getLastColumn()).getDisplayValues();
+  
+  const records = d.map((r, idx) => {
+    const obj = { _rowIndex: startRow + idx };
+    allHeaders.forEach((h, i) => {
+      const cleanHeader = h ? h.toString().trim() : "";
+      if (!cleanHeader) return;
+      
+      let val = r[i];
+      let raw = v[idx][i];
+
+      if (isDate(raw)) {
+        if (raw.getFullYear() < 1905) {
+          const hh = raw.getHours();
+          const mm = raw.getMinutes();
+          const ss = raw.getSeconds();
+          val = (hh > 0 ? hh + ":" : "") + (mm < 10 && hh > 0 ? "0" + mm : mm) + ":" + (ss < 10 ? "0" + ss : ss);
+        } else {
+          val = Utilities.formatDate(raw, "GMT+7", "dd/MM/yyyy");
+          const p = val.split('/');
+          const year = parseInt(p[2]);
+          val = \`\${p[0]}/\${p[1]}/\${year < 2400 ? year + 543 : year}\`;
+        }
+      }
+      
+      if (val === "0:00" || val === "00:00" || val === "0:00:00") val = "-";
+      
+      obj[cleanHeader] = val;
+    });
+    return obj;
+  });
+  const cleanHeaders = allHeaders.filter(h => h && h.toString().trim() !== "").map(h => h.toString().trim());
+  return createJsonResponse('success', { records, headers: cleanHeaders });
+}
+
+function updateRow(request) {
+  const { formId, rowIndex, data, spreadsheetId } = request;
+  const { sheet } = getTargetSheet(formId, spreadsheetId);
+  if (!sheet) return createJsonResponse('error', null, 'ไม่พบ Sheet');
+  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  const rowOutput = headers.map(h => {
+    const key = h.toString().trim();
+    let val = (data[key] !== undefined) ? data[key] : data[key.toLowerCase()];
+    
+    if (typeof val === 'string' && val.includes('T') && val.includes('Z') && val.length > 15) {
+      try {
+        const d = new Date(val);
+        if (!isNaN(d.getTime())) {
+          val = (d.getFullYear() < 1905) ? Utilities.formatDate(d, "GMT+7", "H:mm") : Utilities.formatDate(d, "GMT+7", "dd/MM/yyyy");
+        }
+      } catch(e) {}
+    }
+
+    return Array.isArray(val) ? val.join(', ') : (val || "").toString();
+  });
+  sheet.getRange(rowIndex, 1, 1, headers.length).setValues([rowOutput]);
+  return createJsonResponse('success', null, 'อัปเดตเรียบร้อย');
+}
+
+function deleteProject(request) {
+  const { formId, subject, spreadsheetId } = request;
+  const { sheet } = getTargetSheet(formId, spreadsheetId);
+  if (!sheet) return createJsonResponse('error', null, 'ไม่พบ Sheet');
+  const lastRow = sheet.getLastRow();
+  const data = sheet.getRange(1, 1, lastRow, sheet.getLastColumn()).getValues();
+  const searchSubject = (subject || "").toString().toLowerCase().trim();
+  let count = 0;
+  for (let r = lastRow - 1; r >= 1; r--) {
+    if ((data[r][3] || "").toString().toLowerCase().trim() === searchSubject) {
+      sheet.deleteRow(r + 1); count++;
+    }
+  }
+  return createJsonResponse('success', null, 'ลบแล้ว ' + count + ' แถว');
+}
+
+function deleteData(request) {
+  const { rowIndex, spreadsheetId } = request;
+  const { sheet } = getTargetSheet('031', spreadsheetId);
+  if (!sheet) return createJsonResponse('error', null, 'ไม่พบ Sheet');
+  sheet.deleteRow(rowIndex);
+  return createJsonResponse('success', null, 'ลบข้อมูลลำดับนั้นแล้ว');
+}
+
+function getDriveFiles(formId, spreadsheetId, customFolderId = null) {
+  try {
+    const config = getFormConfig(formId);
+    if (!config || !config.folderId) return createJsonResponse('error', null, 'ไม่พบโฟลเดอร์หลักสำหรับ: ' + formId);
+
+    const rootFolderId = config.folderId;
+    const targetFolderId = customFolderId || rootFolderId;
+    const folder = DriveApp.getFolderById(targetFolderId);
+    const folderName = folder.getName();
+    
+    // 1. ดึงโฟลเดอร์ย่อยทั้งหมดที่อยู่ภายใต้โฟลเดอร์ปัจจุบัน
+    const subFolders = folder.getFolders();
+    const folderList = [];
+    while (subFolders.hasNext()) {
+      const sub = subFolders.next();
+      folderList.push({
+        id: sub.getId(),
+        name: sub.getName()
+      });
+    }
+
+    // 2. ดึงไฟล์ PDF ทั้งหมดที่อยู่ในโฟลเดอร์ปัจจุบัน
+    const files = folder.getFilesByType(MimeType.PDF);
+    const fileList = [];
+    while (files.hasNext() && fileList.length < 100) {
+      const file = files.next();
+      fileList.push({
+        id: file.getId(),
+        name: file.getName(),
+        date: Utilities.formatDate(file.getDateCreated(), "GMT+7", "dd/MM/yyyy HH:mm")
+      });
+    }
+
+    // ทำการเรียงลำดับโฟลเดอร์ย่อยและไฟล์ตามตัวอักษรภาษาไทย
+    folderList.sort((a, b) => a.name.localeCompare(b.name, 'th'));
+    fileList.sort((a, b) => a.name.localeCompare(b.name, 'th'));
+
+    return createJsonResponse('success', {
+      rootFolderId: rootFolderId,
+      currentFolderId: targetFolderId,
+      folderName: folderName,
+      folders: folderList,
+      files: fileList
+    });
+  } catch (e) { 
+    return createJsonResponse('error', null, 'เกิดข้อผิดพลาดในการดึงรายการไฟล์: ' + e.toString()); 
+  }
+}
+
+function getFileBytes(fileId) {
+  try {
+    const file = DriveApp.getFileById(fileId);
+    const base64 = Utilities.base64Encode(file.getBlob().getBytes());
+    return createJsonResponse('success', base64);
+  } catch (e) { return createJsonResponse('error', null, e.toString()); }
+}
+
+function authorizeProject() {
+  const pres = SlidesApp.create('Authorization_Test_Slides');
+  SlidesApp.openById(pres.getId());
+  DriveApp.getRootFolder();
+  DriveApp.getFileById(pres.getId()).setTrashed(true);
+  Logger.log('ยินดีด้วย! คุณอนุญาตสิทธิ์ระบบ Slides เรียบร้อยแล้วครับ');
+}
+
+function batchUpdateRowsInSheet(formId, updates, spreadsheetId) {
+  if (!updates || !Array.isArray(updates)) return { status: 'error', message: 'ไม่มีข้อมูลอัปเดต' };
+  const { sheet } = getTargetSheet(formId, spreadsheetId);
+  if (!sheet) return { status: 'error', message: 'ไม่พบ Sheet' };
+  
+  const allHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  
+  updates.forEach(u => {
+    const rowIndex = u.rowIndex;
+    const data = u.data;
+    if (rowIndex > 0) {
+      const rowOutput = allHeaders.map(h => {
+        const key = h.toString().trim();
+        let val = (data[key] !== undefined) ? data[key] : data[key.toLowerCase()];
+        
+        if (typeof val === 'string' && val.includes('T') && val.includes('Z') && val.length > 15) {
+          try {
+            const d = new Date(val);
+            if (!isNaN(d.getTime())) {
+              val = (d.getFullYear() < 1905) ? Utilities.formatDate(d, "GMT+7", "H:mm") : Utilities.formatDate(d, "GMT+7", "dd/MM/yyyy");
+            }
+          } catch(e) {}
+        }
+        return Array.isArray(val) ? val.join(', ') : (val || "").toString();
+      });
+      sheet.getRange(rowIndex, 1, 1, allHeaders.length).setValues([rowOutput]);
+    }
+  });
+  return { status: 'success', message: 'บันทึกข้อมูลแบบกลุ่มเรียบร้อยแล้ว' };
+}
+
+function verifyPassword(password) {
+  const isCorrect = (password === '1234');
+  return createJsonResponse('success', { isCorrect });
+}
+
+function getFormConfig(sheetName) {
+  const config = getConfig();
+  const name = sheetName.toString().replace(/[-_\\s]/g, '').trim();
+  let baseId = '';
+  if (name.includes('031')) baseId = '031';
+  else if (name.includes('033')) baseId = '033';
+  else if (name.includes('034')) baseId = '034';
+  else if (name.includes('035')) baseId = '035';
+  
+  if (baseId && config.FORMS[baseId]) {
+    return { ...config.FORMS[baseId], baseId: baseId };
+  }
+  return null;
+}
+
+function getSheets(spreadsheetId) {
+  try {
+    const config = getConfig();
+    const ssId = spreadsheetId || config.SPREADSHEET_ID;
+    const ss = SpreadsheetApp.openById(ssId);
+    const sheets = ss.getSheets();
+    const result = sheets.map(s => {
+      const name = s.getName();
+      const configItem = getFormConfig(name);
+      let rowCount = 0;
+      if (configItem) {
+        rowCount = Math.max(0, s.getLastRow() - 1);
+      }
+      return {
+        name: name,
+        isValid: configItem !== null,
+        baseFormId: configItem ? configItem.baseId : null,
+        rowCount: rowCount
+      };
+    }).filter(item => item.isValid);
+    return createJsonResponse('success', result);
+  } catch(e) {
+    return createJsonResponse('error', null, e.toString());
+  }
+}
+
+function setupWorkspace(password, targetFolderId) {
+  if (password !== '1234') {
+    return createJsonResponse('error', null, 'รหัสผ่านสำหรับการติดตั้งไม่ถูกต้อง');
+  }
+
+  try {
+    let mainFolder;
+    
+    // ตรวจสอบและดึงโฟลเดอร์ Google Drive ของผู้ใช้ตามที่ระบุ
+    if (targetFolderId) {
+      try {
+        mainFolder = DriveApp.getFolderById(targetFolderId);
+      } catch (err) {
+        return createJsonResponse('error', null, 'ไม่สามารถเข้าถึงโฟลเดอร์ Google Drive ตาม ID ที่ป้อนมาได้ กรุณาตรวจสอบลิงก์โฟลเดอร์และสิทธิ์การเข้าถึง');
+      }
+    } else {
+      const mainFolderName = "ระบบจัดการเอกสารอัจฉริยะ (Smart Document Generator)";
+      const folders = DriveApp.getFoldersByName(mainFolderName);
+      if (folders.hasNext()) {
+        mainFolder = folders.next();
+      } else {
+        mainFolder = DriveApp.createFolder(mainFolderName);
+      }
+    }
+    
+    // สร้างโฟลเดอร์ย่อย PDF_Outputs สำหรับเก็บผลลัพธ์
+    const pdfFolders = {};
+    const formTypes = ['031', '033', '034', '035'];
+    formTypes.forEach(id => {
+      const folderName = "PDF_Outputs_" + id;
+      const subFolders = mainFolder.getFoldersByName(folderName);
+      if (subFolders.hasNext()) {
+        pdfFolders[id] = subFolders.next();
+      } else {
+        pdfFolders[id] = mainFolder.createFolder(folderName);
+      }
+    });
+
+    // ทำสำเนาฐานข้อมูล Google Sheets ไปยังโฟลเดอร์ปลายทาง
+    const MASTER_SPREADSHEET_ID = '1xAOgwRIoCLmhYYziPQuDTf_YtvDv-VDuCH3WjeIQou4';
+    const timestamp = Utilities.formatDate(new Date(), "GMT+7", "dd/MM/yyyy HH:mm");
+    const masterSheetFile = DriveApp.getFileById(MASTER_SPREADSHEET_ID);
+    const newSheetFile = masterSheetFile.makeCopy("[ฐานข้อมูล] _ ระบบจัดการเอกสาร _ " + timestamp, mainFolder);
+    const newSpreadsheetId = newSheetFile.getId();
+    const newSpreadsheetUrl = newSheetFile.getUrl();
+
+    // ทำสำเนา Google Slides ไปยังโฟลเดอร์ปลายทาง
+    const MASTER_SLIDES = {
+      '031': '1zcM4L5gSnNRLF2vgzpiE5E5a7C3g-o8qHG_BDppAm-A',
+      '033': '1B4o6jYsKBGRKg2dS5qdCDsRHbpJA42GANk55sG_HKlQ',
+      '034': '1CriGH1mgj1-MZcBvdNUfC5TYbMytf063U6Tau312ej0',
+      '035': '11HT5_VmKVB7msoJ6j8oVH2NnLm2VGeGKyCt03SQQj3Y'
+    };
+
+    const newSlides = {};
+    for (let key in MASTER_SLIDES) {
+      const slideFile = DriveApp.getFileById(MASTER_SLIDES[key]);
+      const copiedSlide = slideFile.makeCopy("Template_" + key + "_" + timestamp, mainFolder);
+      newSlides[key] = copiedSlide.getId();
+    }
+
+    // บันทึกคอนฟิกใหม่ลงใน Properties
+    const newConfig = {
+      SPREADSHEET_ID: newSpreadsheetId,
+      DEBUG_MODE: true,
+      FORMS: {
+        '031': { templateId: newSlides['031'], folderId: pdfFolders['031'].getId() },
+        '033': { templateId: newSlides['033'], folderId: pdfFolders['033'].getId() },
+        '034': { templateId: newSlides['034'], folderId: pdfFolders['034'].getId() },
+        '035': { templateId: newSlides['035'], folderId: pdfFolders['035'].getId() }
+      }
+    };
+
+    const props = PropertiesService.getScriptProperties();
+    props.setProperty('USER_CONFIG', JSON.stringify(newConfig));
+
+    return createJsonResponse('success', {
+      spreadsheetUrl: newSpreadsheetUrl,
+      spreadsheetId: newSpreadsheetId,
+      config: newConfig
+    }, 'ติดตั้งระบบและคัดลอกเทมเพลตไปยังโฟลเดอร์ของคุณเรียบร้อยแล้ว!');
+
+  } catch (error) {
+    return createJsonResponse('error', null, 'เกิดข้อผิดพลาดระหว่างติดตั้ง: ' + error.toString());
+  }
+}
+
+// ตรวจสอบความถูกต้องว่าค่าเป็นตัวแปรวันที่หรือไม่
+function isDate(val) {
+  return val instanceof Date && !isNaN(val.valueOf());
+}
+
+// ดึงค่าคอนฟิกปัจจุบันส่งไปหน้าบ้าน
+function getBackendConfig() {
+  try {
+    const config = getConfig();
+    return createJsonResponse('success', config);
+  } catch (e) {
+    return createJsonResponse('error', null, 'เกิดข้อผิดพลาดในการดึงคอนฟิก: ' + e.toString());
+  }
+}
+
+// บันทึกการตั้งค่าโครงสร้างคอนฟิกใหม่ลงใน Properties
+function saveBackendConfig(configData) {
+  try {
+    if (!configData) {
+      return createJsonResponse('error', null, 'ไม่พบข้อมูลการตั้งค่าสำหรับบันทึก');
+    }
+    const props = PropertiesService.getScriptProperties();
+    props.setProperty('USER_CONFIG', JSON.stringify(configData));
+    return createJsonResponse('success', configData, 'บันทึกการตั้งค่าระบบเรียบร้อยแล้ว!');
+  } catch (e) {
+    return createJsonResponse('error', null, 'เกิดข้อผิดพลาดในการบันทึกคอนฟิก: ' + e.toString());
+  }
+}
+
+// สร้างโฟลเดอร์ย่อยใหม่ในโฟลเดอร์ที่กำหนด
+function createSubFolder(parentFolderId, folderName) {
+  try {
+    if (!parentFolderId || !folderName) {
+      return createJsonResponse('error', null, 'ระบุตำแหน่งที่ตั้งหรือชื่อโฟลเดอร์ย่อยไม่ครบถ้วน');
+    }
+    const parentFolder = DriveApp.getFolderById(parentFolderId);
+    const newFolder = parentFolder.createFolder(folderName);
+    return createJsonResponse('success', {
+      id: newFolder.getId(),
+      name: newFolder.getName()
+    }, 'สร้างโฟลเดอร์ย่อย "' + folderName + '" เรียบร้อยแล้ว!');
+  } catch (e) {
+    return createJsonResponse('error', null, 'เกิดข้อผิดพลาดในการสร้างโฟลเดอร์: ' + e.toString());
+  }
+}
+
+// ย้ายไฟล์ PDF ทั้งหมดที่กำหนดไปยังโฟลเดอร์ปลายทาง
+function moveFiles(fileIds, targetFolderId) {
+  try {
+    if (!fileIds || !Array.isArray(fileIds) || !targetFolderId) {
+      return createJsonResponse('error', null, 'ระบุข้อมูลย้ายไฟล์ไม่ครบถ้วน');
+    }
+    const targetFolder = DriveApp.getFolderById(targetFolderId);
+    let successCount = 0;
+    
+    fileIds.forEach(id => {
+      try {
+        const file = DriveApp.getFileById(id);
+        file.moveTo(targetFolder);
+        successCount++;
+      } catch (err) {
+        // ข้ามหากไม่พบบางไฟล์ หรือไม่มีสิทธิ์
+      }
+    });
+    
+    return createJsonResponse('success', null, 'ย้ายไฟล์ย่อยจำนวน ' + successCount + ' รายการเข้าโฟลเดอร์เป้าหมายสำเร็จแล้ว!');
+  } catch (e) {
+    return createJsonResponse('error', null, 'เกิดข้อผิดพลาดในการย้ายไฟล์: ' + e.toString());
+  }
+}
+
+// ตรวจจับและจัดสร้าง PDF ในแถวข้อมูลใหม่โดยอัตโนมัติ
+function autoGenerateNewRows() {
+  const config = getConfig();
+  const ssId = config.SPREADSHEET_ID;
+  if (!ssId) return;
+  
+  try {
+    const ss = SpreadsheetApp.openById(ssId);
+    const formTypes = ['031', '033', '034', '035'];
+    
+    formTypes.forEach(formId => {
+      try {
+        const cleanId = formId.toString().replace(/[-_\\s]/g, '');
+        const sheet = ss.getSheetByName(cleanId) || ss.getSheetByName(formId);
+        if (!sheet) return;
+        
+        const lastRow = sheet.getLastRow();
+        if (lastRow <= 1) return; // ไม่มีข้อมูลนอกจากหัวตาราง
+        
+        const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+        
+        // ค้นหาดัชนีของคอลัมน์ PDF_Link หรือ ลิงก์ไฟล์ PDF
+        let pdfLinkColIdx = -1;
+        headers.forEach((h, colIdx) => {
+          const name = h.toString().trim().toLowerCase();
+          if (name === 'pdf_link' || name === 'ลิงก์ไฟล์ pdf' || name === 'pdf link' || name === 'ลิงก์เอกสาร pdf') {
+            pdfLinkColIdx = colIdx;
+          }
+        });
+        
+        let targetColIdx = pdfLinkColIdx + 1;
+        if (pdfLinkColIdx === -1) {
+          // หากไม่มี ให้สร้างคอลัมน์ชื่อ PDF_Link ต่อท้ายตารางฐานข้อมูลโดยอัตโนมัติ
+          targetColIdx = headers.length + 1;
+          sheet.getRange(1, targetColIdx).setValue('PDF_Link');
+          // อัปเดตหัวตาราง
+          headers.push('PDF_Link');
+        }
+        
+        // สแกนแถวข้อมูลย้อนหลังจากแถวสุดท้าย (สแกนสูงสุด 100 แถวเพื่อประสิทธิภาพ)
+        const scanStartRow = Math.max(2, lastRow - 99);
+        const numRows = lastRow - scanStartRow + 1;
+        
+        const dataRange = sheet.getRange(scanStartRow, 1, numRows, headers.length);
+        const values = dataRange.getValues();
+        
+        for (let i = 0; i < values.length; i++) {
+          const rowVal = values[i];
+          const pdfLinkValue = rowVal[targetColIdx - 1];
+          
+          // หากพบคอลัมน์ PDF_Link ว่างอยู่ (แสดงว่ายังไม่ได้ถูกสร้างเอกสาร)
+          if (!pdfLinkValue || pdfLinkValue.toString().trim() === "") {
+            const rowIndexInSheet = scanStartRow + i;
+            
+            // แปลงแถวข้อมูลเป็น Object map กับหัวตาราง
+            const rowData = {};
+            headers.forEach((h, colIdx) => {
+              const cleanHeader = h ? h.toString().trim() : "";
+              if (cleanHeader) {
+                rowData[cleanHeader] = rowVal[colIdx];
+              }
+            });
+            
+            // ดึง Config ของแบบฟอร์มและสร้าง PDF
+            const formConfig = getFormConfig(formId);
+            if (formConfig) {
+              const isPreview = false;
+              let tableData = null;
+              
+              // ดำเนินการสร้างไฟล์ PDF
+              const result = createPDF(formConfig, rowData, isPreview, tableData, formConfig.baseId);
+              
+              // อัปเดตลิงก์ PDF ที่ได้กลับไปบันทึกใน Google Sheets แถวนั้น
+              sheet.getRange(rowIndexInSheet, targetColIdx).setValue(result.url);
+              SpreadsheetApp.flush();
+            }
+          }
+        }
+      } catch (sheetErr) {
+        Logger.log('เกิดข้อผิดพลาดในการตรวจสอบชีต ' + formId + ': ' + sheetErr.toString());
+      }
+    });
+  } catch (err) {
+    Logger.log('เกิดข้อผิดพลาดในการทำงานของระบบสร้างอัตโนมัติ: ' + err.toString());
+  }
+}
+
+// ตรวจสอบและดึงสถานะการทำงานของ Installable Trigger
+function getAutoTriggerStatus() {
+  try {
+    const triggers = ScriptApp.getProjectTriggers();
+    const isActive = triggers.some(t => t.getHandlerFunction() === 'autoGenerateNewRows');
+    return createJsonResponse('success', { isActive });
+  } catch (e) {
+    return createJsonResponse('error', null, 'ไม่สามารถดึงสถานะทริกเกอร์ได้: ' + e.toString());
+  }
+}
+
+// เปิดหรือปิดการทำงานของระบบสร้าง PDF อัตโนมัติ (Trigger)
+function toggleAutoTrigger(enable, spreadsheetId) {
+  try {
+    const config = getConfig();
+    const ssId = spreadsheetId || config.SPREADSHEET_ID;
+    
+    // ค้นหาและลบทริกเกอร์เดิมที่ชื่อฟังก์ชัน autoGenerateNewRows ทั้งหมดก่อนเพื่อรีเซ็ต
+    const triggers = ScriptApp.getProjectTriggers();
+    triggers.forEach(t => {
+      if (t.getHandlerFunction() === 'autoGenerateNewRows') {
+        ScriptApp.deleteTrigger(t);
+      }
+    });
+    
+    if (enable) {
+      // 1. สร้างทริกเกอร์ดักจับเมื่อพบข้อมูลเปลี่ยนแปลง (onChange)
+      const ss = SpreadsheetApp.openById(ssId);
+      ScriptApp.newTrigger('autoGenerateNewRows')
+               .forSpreadsheet(ss)
+               .onChange()
+               .create();
+               
+      // 2. สร้างทริกเกอร์อิงเวลา (Time-driven) ทำงานทุก 15 นาที เพื่อเป็นระบบแบ็คอัพสำรอง
+      ScriptApp.newTrigger('autoGenerateNewRows')
+               .timeBased()
+               .everyMinutes(15)
+               .create();
+    }
+    
+    return createJsonResponse('success', { isActive: enable }, 'ปรับปรุงทริกเกอร์ระบบสร้างเอกสารอัตโนมัติสำเร็จแล้ว!');
+  } catch (e) {
+    return createJsonResponse('error', null, 'ไม่สามารถเปิด/ปิดทริกเกอร์ได้: ' + e.toString());
+  }
+}
+`;let D="",B="",ne=[],J=!1,le=0,E=[],Z="",q="",$=[];const he=["มกราคม","กุมภาพันธ์","มีนาคม","เมษายน","พฤษภาคม","มิถุนายน","กรกฎาคม","สิงหาคม","กันยายน","ตุลาคม","พฤศจิกายน","ธันวาคม"],Y={subject:"ชื่อรายการที่ผลิต",owner:"ผู้รับผิดชอบการผลิต",extdocno:"เอกสารเลขที่ (ภายนอก)",extdocdate:"ลงวันที่เอกสาร",activity:"ชื่อกิจกรรม / รายการ",location:"สถานที่จัดกิจกรรม",actdate:"วันที่จัดกิจกรรม",actmouth:"เดือน (จัดงาน)",actac:"พ.ศ. (จัดงาน)",acttime:"เวลา (จัดงาน)",findate:"วันที่กำหนดส่ง",finmouth:"เดือน (กำหนดส่ง)",finac:"พ.ศ. (กำหนดส่ง)",producer:"ผู้รับผิดชอบการผลิต",team:"ทีมงานผลิต",checkbox:"หน่วยงานที่ได้รับมอบหมาย",cb1:"หน่วยจัดและผลิตรายการวิทยุ",cb2:"หน่วยจัดและผลิตรายการโทรทัศน์",cb3:"หน่วยผลิตและพัฒนาสื่อการศึกษา",cb4:"ต้นฉบับ ( ) CD",cb5:"ต้นฉบับ ( ) DVD",cb6:"ต้นฉบับ ( ) อื่นๆ",ep:"ตอน",format:"รูปแบบสื่อ",duration:"ความยาวรายการ (นาที)",second:"ความยาวรายการ (วินาที)",sucdate:"ผลิตแล้วเสร็จวันที่",sucmouth:"เดือน (ที่ผลิตเสร็จ)",sucac:"พ.ศ. (ที่ผลิตเสร็จ)",usedate:"กำหนดออกอากาศ/นำไปใช้วันที่",usemouth:"เดือน (ที่ออกอากาศ)",useac:"พ.ศ. (ที่ออกอากาศ)",more:"หมายเหตุ / รายละเอียดเพิ่มเติม",extdocnoint:"เอกสารเลขที่ (ภายใน)",extdocdateint:"ลงวันที่ (ภายใน)",date:"วันที่",mouth:"เดือน",ac:"พ.ศ.",item:"รายการอุปกรณ์",teach:"วิทยากร/ผู้บรรยาย",dur:"ความยาว",dma:"วันผลิตแล้วเสร็จ",qty:"จำนวน",unit:"หน่วย"},H={checkbox:["หน่วยจัดและผลิตรายการวิทยุ","หน่วยจัดและผลิตรายการโทรทัศน์","หน่วยผลิตและพัฒนาสื่อการศึกษา"]};document.addEventListener("DOMContentLoaded",()=>{const s=localStorage.getItem("scriptUrl")||sessionStorage.getItem("scriptUrl"),e=localStorage.getItem("spreadsheetId")||sessionStorage.getItem("spreadsheetId"),n=sessionStorage.getItem("isLoggedIn"),a=document.getElementById("scriptUrlInput");a&&(a.value=s||"https://script.google.com/macros/s/AKfycbydeCn_wKywlK6l9aRbcUZcjEbLfV1LweCCt7cfdk0Uwpx-ytDoIwiD5BUD2j7pjYXZ/exec");const t=document.getElementById("spreadsheetIdInput");t&&e&&(t.value=e),n==="true"&&s?(D=s,O("portalPage"),V()):O("loginPage"),Te()});function Te(){const s=document.getElementById("loginForm");s&&(s.onsubmit=T=>I(this,null,function*(){T.preventDefault();const L=document.getElementById("authPassword").value,P=document.getElementById("scriptUrlInput").value.trim(),A=document.getElementById("spreadsheetIdInput"),N=A?A.value.trim():"";if(!P){h("⚠️ คำเตือน","กรุณาระบุ Apps Script Web App URL",!1);return}x("กำลังเข้าสู่ระบบและตรวจสอบสิทธิ์...");try{const G=yield(yield fetch(P,{method:"POST",body:JSON.stringify({action:"verifyPassword",password:L}),headers:{"Content-Type":"text/plain;charset=utf-8"}})).json();if(G.status==="success"&&G.data.isCorrect)D=P,localStorage.setItem("scriptUrl",P),sessionStorage.setItem("scriptUrl",P),N?(localStorage.setItem("spreadsheetId",N),sessionStorage.setItem("spreadsheetId",N)):(localStorage.removeItem("spreadsheetId"),sessionStorage.removeItem("spreadsheetId")),sessionStorage.setItem("isLoggedIn","true"),O("portalPage"),V();else throw new Error("รหัสผ่านไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง")}catch(Q){h("❌ ข้อผิดพลาด",Q.message,!1)}finally{w()}}));const e=document.getElementById("btnGoToSetup"),n=document.getElementById("loginCard"),a=document.getElementById("setupCard");e&&n&&a&&(e.onclick=()=>{n.style.display="none",a.style.display="block";const T=document.getElementById("setupScriptUrl"),L=localStorage.getItem("scriptUrl")||sessionStorage.getItem("scriptUrl");T&&L&&(T.value=L)});const t=document.getElementById("btnBackToLogin");t&&n&&a&&(t.onclick=()=>{a.style.display="none",n.style.display="block"});const o=document.getElementById("btnStartSetup");o&&(o.onclick=()=>I(this,null,function*(){const T=document.getElementById("setupScriptUrl").value.trim(),L=document.getElementById("setupFolderUrl").value.trim(),P=document.getElementById("setupPassword").value,A=document.getElementById("setupStatus");if(!T){h("⚠️ คำเตือน","กรุณาระบุ Apps Script Web App URL",!1);return}if(!L){h("⚠️ คำเตือน","กรุณาระบุลิงก์โฟลเดอร์ Google Drive สำหรับจัดเก็บไฟล์",!1);return}if(!P){h("⚠️ คำเตือน","กรุณากรอกรหัสผ่านติดตั้งโครงการ",!1);return}const N=L.match(/[-\w]{25,}/),Q=N?N[0]:L;A&&(A.textContent="⏳ กำลังคัดลอกแบบฟอร์มและจัดโครงสร้างไฟล์... (ใช้เวลาประมาณ 10-15 วินาที)",A.style.display="block"),o.disabled=!0,x("ระบบกำลังเชื่อมโยงและสำเนาเทมเพลตลงใน Google Drive ของคุณ...");try{const M=yield(yield fetch(T,{method:"POST",body:JSON.stringify({action:"setupWorkspace",password:P,targetFolderId:Q}),headers:{"Content-Type":"text/plain;charset=utf-8"}})).json();if(M.status==="success"){const De='<a href="'+M.data.spreadsheetUrl+'" target="_blank" style="color:var(--primary); font-weight:700; text-decoration:underline;">คลิกเปิดแผ่นงาน Google Sheets ใหม่ของคุณ</a>';if(h("✅ ติดตั้งโครงการสำเร็จ!","ระบบคัดลอกโฟลเดอร์ไฟล์เอกสาร แผ่นงานฐานข้อมูล และสไลด์เทมเพลตไปยัง Drive ของคุณเรียบร้อยแล้ว<br><br>"+De+"<br><br>สามารถกรอกรหัสผ่านปกติเพื่อเริ่มต้นใช้งานได้เลยครับ",!1),localStorage.setItem("scriptUrl",T),sessionStorage.setItem("scriptUrl",T),M.data.spreadsheetId){localStorage.setItem("spreadsheetId",M.data.spreadsheetId),sessionStorage.setItem("spreadsheetId",M.data.spreadsheetId);const pe=document.getElementById("spreadsheetIdInput");pe&&(pe.value=M.data.spreadsheetId)}const me=document.getElementById("scriptUrlInput");me&&(me.value=T),a&&n&&(a.style.display="none",n.style.display="block")}else throw new Error(M.message||"การคัดลอกระบบล้มเหลว")}catch(G){h("❌ ผิดพลาดการตั้งค่า",G.message,!1)}finally{w(),o.disabled=!1,A&&(A.style.display="none")}}));const l=document.getElementById("btnLogoutPortal");l&&(l.onclick=()=>{sessionStorage.removeItem("isLoggedIn"),D="",O("loginPage");const T=document.getElementById("authPassword");T&&(T.value="")});const c=document.getElementById("btnSyncSheets");c&&(c.onclick=()=>{V()});const i=document.getElementById("btnOpenGuide"),r=document.getElementById("btnCloseGuide"),u=document.getElementById("guideModal");i&&u&&(i.onclick=()=>{u.classList.add("active")}),r&&u&&(r.onclick=()=>{u.classList.remove("active")});const f=document.getElementById("btnCopyBackendCode");f&&(f.onclick=()=>I(this,null,function*(){try{yield navigator.clipboard.writeText(Be),h("📋 คัดลอกสำเร็จ","ระบบได้บันทึกโค้ด Apps Script ลงในคลิปบอร์ดของคุณแล้ว สามารถนำไปเปิดวาง (Paste) ในหน้าจอ Apps Script ของ Google Sheets ได้ทันทีครับ",!1)}catch(T){h("❌ คัดลอกไม่สำเร็จ","ไม่สามารถคัดลอกอัตโนมัติได้เนื่องจากสิทธิ์ความปลอดภัยของบราวเซอร์ กรุณาเปิดคัดลอกโค้ดโดยตรงจากในโฟลเดอร์โครงการครับ",!1)}}));const d=document.getElementById("btnBackToPortal");d&&(d.onclick=()=>{O("portalPage"),V()});const m=document.getElementById("tabFormBtn"),y=document.getElementById("tabTableBtn");m&&y&&(m.onclick=()=>X("form"),y.onclick=()=>X("table"));const g=document.getElementById("btnClearFormBtn");g&&(g.onclick=()=>Ve());const S=document.getElementById("btnCancelEdit");S&&(S.onclick=()=>z());const p=document.getElementById("btnPreview");p&&(p.onclick=()=>ye("preview"));const b=document.getElementById("docForm");b&&(b.onsubmit=T=>I(this,null,function*(){T.preventDefault(),(yield h("💾 ยืนยันการบันทึก","คุณต้องการสร้างไฟล์เอกสาร PDF ใช่หรือไม่?",!0))&&ye("generate")}));const C=document.getElementById("btnRefreshWorkspace");C&&(C.onclick=()=>K(B));const v=document.getElementById("btnDrivePickerWorkspace");v&&(v.onclick=()=>ve());const F=document.getElementById("btnPDFAllWorkspace");F&&(F.onclick=()=>Je());const U=document.getElementById("isRecurring"),oe=document.getElementById("recurringControls");U&&(U.onchange=()=>{oe&&(U.checked?oe.classList.add("active"):oe.classList.remove("active"))});const ie=document.getElementById("btnOpenAdminSettings"),ce=document.getElementById("btnCloseAdminSettings"),de=document.getElementById("adminSettingsModal"),ue=document.getElementById("adminSettingsForm");ie&&(ie.onclick=()=>tt()),ce&&de&&(ce.onclick=()=>de.classList.remove("active")),ue&&(ue.onsubmit=T=>{T.preventDefault(),nt()})}function O(s){document.querySelectorAll(".page-section, .auth-container").forEach(n=>{n.classList.remove("active"),n.style.display=""});const e=document.getElementById(s);e&&e.classList.add("active")}function X(s){document.querySelectorAll(".work-tab").forEach(e=>e.classList.remove("active")),document.querySelectorAll(".workspace-view").forEach(e=>e.classList.remove("active")),s==="form"?(document.getElementById("tabFormBtn").classList.add("active"),document.getElementById("formWorkspaceView").classList.add("active")):s==="table"&&(document.getElementById("tabTableBtn").classList.add("active"),document.getElementById("tableWorkspaceView").classList.add("active"),K(B))}function V(){return I(this,null,function*(){const s=document.getElementById("portalSheetsGrid");if(s)try{const e=localStorage.getItem("spreadsheetId")||"",a=yield(yield fetch(D,{method:"POST",body:JSON.stringify({action:"getSheets",spreadsheetId:e}),headers:{"Content-Type":"text/plain;charset=utf-8"}})).json();if(a.status==="success"&&Array.isArray(a.data)){s.innerHTML="";let t=0;a.data.forEach(o=>{t+=o.rowCount;const l=document.createElement("div"),c=o.baseFormId||"031";l.className=`sheet-card form-${c}`,l.innerHTML=`
                     <div class="sheet-card-info">
-                        <h3>FM สท.03-${l.substring(2)}</h3>
-                        <p>ชื่อแผ่นงาน: <strong>${t.name}</strong></p>
-                        <div class="sheet-stat">📊 มีข้อมูลทั้งหมด: ${t.rowCount} รายการ</div>
+                        <h3>FM สท.03-${c.substring(2)}</h3>
+                        <p>ชื่อแผ่นงาน: <strong>${o.name}</strong></p>
+                        <div class="sheet-stat">📊 มีข้อมูลทั้งหมด: ${o.rowCount} รายการ</div>
                     </div>
                     <div class="sheet-card-actions">
                         <button type="button" class="btn btn-primary btn-goto-form">📝 ลงทะเบียนฟอร์ม</button>
                         <button type="button" class="btn btn-outline btn-goto-table">📊 ดูตารางข้อมูล</button>
                     </div>
-                `,o.querySelector(".btn-goto-form").onclick=d=>{d.stopPropagation(),R(t.name,"form")},o.querySelector(".btn-goto-table").onclick=d=>{d.stopPropagation(),R(t.name,"table")},o.onclick=()=>{R(t.name,"form")},s.appendChild(o)}),oe(n.data.length,r)}else throw new Error(n.message||"ไม่สามารถโหลดรายชื่อแผ่นงานได้")}catch(e){s.innerHTML=`<div style="grid-column:span 3;color:var(--error);text-align:center;padding:20px;">⚠️ โหลดข้อมูลล้มเหลว: ${e.message}</div>`}})}function oe(s,e){const n=document.querySelector(".portal-stat-grid");n&&n.remove();const r=document.querySelector("#portalPage header"),t=document.createElement("div");t.className="portal-stat-grid",t.style.display="grid",t.style.gridTemplateColumns="repeat(auto-fit, minmax(240px, 1fr))",t.style.gap="20px",t.style.margin="20px 0 35px 0",t.innerHTML=`
+                `,l.querySelector(".btn-goto-form").onclick=i=>{i.stopPropagation(),ae(o.name,"form")},l.querySelector(".btn-goto-table").onclick=i=>{i.stopPropagation(),ae(o.name,"table")},l.onclick=()=>{ae(o.name,"form")},s.appendChild(l)}),Re(a.data.length,t)}else throw new Error(a.message||"ไม่สามารถโหลดรายชื่อแผ่นงานได้")}catch(e){s.innerHTML=`<div style="grid-column:span 3;color:var(--error);text-align:center;padding:20px;">⚠️ โหลดข้อมูลล้มเหลว: ${e.message}</div>`}})}function Re(s,e){const n=document.querySelector(".portal-stat-grid");n&&n.remove();const a=document.querySelector("#portalPage header"),t=document.createElement("div");t.className="portal-stat-grid",t.style.display="grid",t.style.gridTemplateColumns="repeat(auto-fit, minmax(240px, 1fr))",t.style.gap="20px",t.style.margin="20px 0 35px 0",t.innerHTML=`
         <div class="stat-card">
             <div class="stat-icon">📂</div>
             <div class="stat-info">
@@ -44,7 +874,7 @@
                 <p>Dynamic 100%</p>
             </div>
         </div>
-    `,r.parentNode.insertBefore(t,r.nextSibling)}function R(s,e="form"){return w(this,null,function*(){v=s;const n=document.getElementById("activeSheetName");n&&(n.textContent=s),L("appWorkspace"),M(),(yield ae(s))&&N(e)})}function ae(s){return w(this,null,function*(){if(!E||!s)return!1;C("กำลังวิเคราะห์โครงสร้างแผ่นงาน...");try{const n=yield(yield fetch(E,{method:"POST",body:JSON.stringify({action:"getSchema",formId:s}),headers:{"Content-Type":"text/plain;charset=utf-8"}})).json();if(n.status==="success")return se(n.data.headers,s),I(),!0;throw new Error(n.message)}catch(e){return I(),h("❌ ผิดพลาด","ไม่สามารถเชื่อมโยงแบบฟอร์มได้: "+e.message,!1),!1}})}function se(s,e){var m;j=s;const n=document.getElementById("fieldsContainer");n.innerHTML="";const r=e.toString().replace(/[-_\s]/g,"");let t="031";if(r.includes("031")?t="031":r.includes("033")?t="033":r.includes("034")?t="034":r.includes("035")&&(t="035"),t==="034"){ce(s);return}const o=["ep","format","teach","dur","dma","item","qty","ตอน","รูปแบบสื่อ","วิทยากร","ความยาว","ผลิตแล้วเสร็จ"],l=s.filter(u=>o.some(f=>u.toLowerCase().includes(f))),d=s.filter(u=>!l.includes(u)),c=d.filter(u=>u.toLowerCase().startsWith("cb")||k[u]),a=d.filter(u=>!c.includes(u));if(c.length>0){const u=document.createElement("div");u.className="form-group full-width",u.style.background="rgba(79, 70, 229, 0.04)",u.style.padding="20px",u.style.borderRadius="15px",u.style.border="1px solid var(--primary-light)";const f=document.createElement("label");f.textContent="หน่วยงานที่ได้รับมอบหมาย / หัวข้อเลือก",u.appendChild(f);const g=document.createElement("div");g.style.display="grid",g.style.gridTemplateColumns="repeat(auto-fit, minmax(280px, 1fr))",g.style.gap="10px",c.forEach(p=>{k[p]?k[p].forEach(y=>O(g,p,y,y)):O(g,p,P[p.toLowerCase()]||p,"✓")}),u.appendChild(g),n.appendChild(u)}let i=0;for(;i<a.length;){const u=a[i],f=u.toLowerCase();if(f.startsWith("act")||f.startsWith("fin")||f.startsWith("suc")||f.startsWith("use")||f==="date"&&((m=a[i+1])==null?void 0:m.toLowerCase())==="mouth"){const p=f.substring(0,3),y=document.createElement("div");for(y.className="date-row";i<a.length&&(a[i].toLowerCase().startsWith(p)||p==="dat"&&["date","mouth","ac"].includes(a[i].toLowerCase()));)W(y,a[i]),i++;n.appendChild(y)}else{const p=document.createElement("div");p.className="form-group",(f.includes("detail")||f.includes("remark")||f.includes("note")||f.includes("team"))&&p.classList.add("full-width"),W(p,u),n.appendChild(p),i++}}l.length>0&&re(l)}function ce(s){const e=["ep","teach","dur","dma","format","ตอน","วิทยากร","ความยาว","ผลิตแล้วเสร็จ","รูปแบบสื่อ"],n=s.filter(c=>!e.some(a=>c.toLowerCase().includes(a))),r=n.filter(c=>c.toLowerCase().startsWith("cb")||k[c]),t=n.filter(c=>!r.includes(c)),o=document.getElementById("fieldsContainer");if(r.length>0){const c=document.createElement("div");c.className="form-group full-width",c.style.background="rgba(79, 70, 229, 0.04)",c.style.padding="20px",c.style.borderRadius="15px",c.style.border="1px solid var(--primary-light)",c.innerHTML='<label style="font-weight:700; color:var(--primary); margin-bottom:15px; display:block;">🔹 หน่วยงานที่เกี่ยวข้อง / รูปแบบการจัดส่ง</label>';const a=document.createElement("div");a.style.display="grid",a.style.gridTemplateColumns="repeat(auto-fit, minmax(280px, 1fr))",a.style.gap="10px",r.forEach(i=>{const m=i.toLowerCase();if(k[i])k[i].forEach(u=>O(a,i,u,u));else{const u=P[m]||i;O(a,i,u,"✓")}}),c.appendChild(a),o.appendChild(c)}t.forEach(c=>{const a=document.createElement("div");a.className="form-group",c.toLowerCase().includes("subject")&&a.classList.add("full-width"),W(a,c),o.appendChild(a)});const l=document.createElement("div");l.className="table-batch-container",l.innerHTML=`
+    `,a.parentNode.insertBefore(t,a.nextSibling)}function ae(s,e="form"){return I(this,null,function*(){B=s;const n=document.getElementById("activeSheetName");n&&(n.textContent=s),O("appWorkspace"),z(),(yield ke(s))&&X(e)})}function ke(s){return I(this,null,function*(){if(!D||!s)return!1;x("กำลังวิเคราะห์โครงสร้างแผ่นงาน...");try{const e=localStorage.getItem("spreadsheetId")||"",a=yield(yield fetch(D,{method:"POST",body:JSON.stringify({action:"getSchema",formId:s,spreadsheetId:e}),headers:{"Content-Type":"text/plain;charset=utf-8"}})).json();if(a.status==="success")return Le(a.data.headers,s),w(),!0;throw new Error(a.message)}catch(e){return w(),h("❌ ผิดพลาด","ไม่สามารถเชื่อมโยงแบบฟอร์มได้: "+e.message,!1),!1}})}function Le(s,e){var f;ne=s;const n=document.getElementById("fieldsContainer");n.innerHTML="";const a=e.toString().replace(/[-_\s]/g,"");let t="031";if(a.includes("031")?t="031":a.includes("033")?t="033":a.includes("034")?t="034":a.includes("035")&&(t="035"),t==="034"){Pe(s);return}const o=["ep","format","teach","dur","dma","item","qty","ตอน","รูปแบบสื่อ","วิทยากร","ความยาว","ผลิตแล้วเสร็จ"],l=s.filter(d=>o.some(m=>d.toLowerCase().includes(m))),c=s.filter(d=>!l.includes(d)),i=c.filter(d=>d.toLowerCase().startsWith("cb")||H[d]),r=c.filter(d=>!i.includes(d));if(i.length>0){const d=document.createElement("div");d.className="form-group full-width",d.style.background="rgba(79, 70, 229, 0.04)",d.style.padding="20px",d.style.borderRadius="15px",d.style.border="1px solid var(--primary-light)";const m=document.createElement("label");m.textContent="หน่วยงานที่ได้รับมอบหมาย / หัวข้อเลือก",d.appendChild(m);const y=document.createElement("div");y.style.display="grid",y.style.gridTemplateColumns="repeat(auto-fit, minmax(280px, 1fr))",y.style.gap="10px",i.forEach(g=>{H[g]?H[g].forEach(S=>ee(y,g,S,S)):ee(y,g,Y[g.toLowerCase()]||g,"✓")}),d.appendChild(y),n.appendChild(d)}let u=0;for(;u<r.length;){const d=r[u],m=d.toLowerCase();if(m.startsWith("act")||m.startsWith("fin")||m.startsWith("suc")||m.startsWith("use")||m==="date"&&((f=r[u+1])==null?void 0:f.toLowerCase())==="mouth"){const g=m.substring(0,3),S=document.createElement("div");for(S.className="date-row";u<r.length&&(r[u].toLowerCase().startsWith(g)||g==="dat"&&["date","mouth","ac"].includes(r[u].toLowerCase()));)re(S,r[u]),u++;n.appendChild(S)}else{const g=document.createElement("div");g.className="form-group",(m.includes("detail")||m.includes("remark")||m.includes("note")||m.includes("team"))&&g.classList.add("full-width"),re(g,d),n.appendChild(g),u++}}l.length>0&&Ae(l)}function Pe(s){const e=["ep","teach","dur","dma","format","ตอน","วิทยากร","ความยาว","ผลิตแล้วเสร็จ","รูปแบบสื่อ"],n=s.filter(i=>!e.some(r=>i.toLowerCase().includes(r))),a=n.filter(i=>i.toLowerCase().startsWith("cb")||H[i]),t=n.filter(i=>!a.includes(i)),o=document.getElementById("fieldsContainer");if(a.length>0){const i=document.createElement("div");i.className="form-group full-width",i.style.background="rgba(79, 70, 229, 0.04)",i.style.padding="20px",i.style.borderRadius="15px",i.style.border="1px solid var(--primary-light)",i.innerHTML='<label style="font-weight:700; color:var(--primary); margin-bottom:15px; display:block;">🔹 หน่วยงานที่เกี่ยวข้อง / รูปแบบการจัดส่ง</label>';const r=document.createElement("div");r.style.display="grid",r.style.gridTemplateColumns="repeat(auto-fit, minmax(280px, 1fr))",r.style.gap="10px",a.forEach(u=>{const f=u.toLowerCase();if(H[u])H[u].forEach(d=>ee(r,u,d,d));else{const d=Y[f]||u;ee(r,u,d,"✓")}}),i.appendChild(r),o.appendChild(i)}t.forEach(i=>{const r=document.createElement("div");r.className="form-group",i.toLowerCase().includes("subject")&&r.classList.add("full-width"),re(r,i),o.appendChild(r)});const l=document.createElement("div");l.className="table-batch-container",l.innerHTML=`
         <h3 class="batch-title">📝 รายการที่ผลิต (11 แถวแบบฟอร์มสรุปรวมกลุ่ม)</h3>
         <div class="batch-table-wrapper" style="margin-top: 15px;">
             <table class="batch-table">
@@ -60,13 +890,13 @@
                 <tbody id="grid034Body"></tbody>
             </table>
         </div>
-    `,o.appendChild(l);const d=l.querySelector("#grid034Body");for(let c=1;c<=11;c++){const a=document.createElement("tr");a.innerHTML=`
-            <td><input type="text" id="input_format${c}"></td>
-            <td><input type="text" id="input_ep${c}"></td>
-            <td><input type="text" id="input_teach${c}"></td>
-            <td><input type="text" id="input_dur${c}"></td>
-            <td><input type="text" id="input_dma${c}"></td>
-        `,d.appendChild(a)}}function re(s){const e=document.getElementById("fieldsContainer"),n=document.createElement("div");n.className="table-batch-container",n.innerHTML=`
+    `,o.appendChild(l);const c=l.querySelector("#grid034Body");for(let i=1;i<=11;i++){const r=document.createElement("tr");r.innerHTML=`
+            <td><input type="text" id="input_format${i}"></td>
+            <td><input type="text" id="input_ep${i}"></td>
+            <td><input type="text" id="input_teach${i}"></td>
+            <td><input type="text" id="input_dur${i}"></td>
+            <td><input type="text" id="input_dma${i}"></td>
+        `,c.appendChild(r)}}function Ae(s){const e=document.getElementById("fieldsContainer"),n=document.createElement("div");n.className="table-batch-container",n.innerHTML=`
         <div class="batch-header">
             <div class="batch-title">📜 รายการรายละเอียดเพิ่มเติม (${s.length} คอลัมน์)</div>
             <button type="button" class="btn-add" id="btnAddRow">➕ เพิ่มรายการใหม่</button>
@@ -75,43 +905,140 @@
             <table class="batch-table">
                 <thead>
                     <tr>
-                        ${s.map(r=>`<th>${P[r.toLowerCase()]||r}</th>`).join("")}
+                        ${s.map(a=>`<th>${Y[a.toLowerCase()]||a}</th>`).join("")}
                         <th style="width:70px;text-align:center;">ลบ</th>
                     </tr>
                 </thead>
                 <tbody id="batchTableBody"></tbody>
             </table>
         </div>
-    `,e.appendChild(n),n.querySelector("#btnAddRow").onclick=()=>T(s),T(s)}function T(s,e=null){const n=document.getElementById("batchTableBody");if(!n)return;const r=n.children.length,t=document.createElement("tr");t.className="batch-row",s.forEach(l=>{const d=document.createElement("td"),c=l.toLowerCase();let a;if(c==="dur"||c==="ความยาว"){const i=document.createElement("div");i.className="unit-input-group",a=document.createElement("input"),a.type="text",a.dataset.key=l,a.placeholder="0.00";const m=document.createElement("select");if(m.className="unit-select",m.dataset.unitFor=l,["ชม.","น."].forEach(u=>{const f=document.createElement("option");f.value=u,f.textContent=u,m.appendChild(f)}),i.appendChild(a),i.appendChild(m),e&&e[l]){const u=e[l].toString().match(/^([\d.]+)\s*(.*)$/);u?(a.value=u[1],m.value=u[2]||"ชม."):a.value=e[l]}d.appendChild(i)}else{if(a=document.createElement("input"),a.type="text",a.dataset.key=l,a.placeholder=P[c]||l,e&&e[l])a.value=e[l];else if(c==="ep"&&!e)a.value=`EP${r+1}`;else if(!e&&r>0){const m=n.children[r-1].querySelector(`input[data-key="${l}"]`);m&&(c.includes("format")||c.includes("teach")||c.includes("dma")||c.includes("สื่อ")||c.includes("วิทยากร"))&&(a.value=m.value)}d.appendChild(a)}t.appendChild(d)});const o=document.createElement("td");o.style.textAlign="center",o.innerHTML='<button type="button" class="btn-remove">🗑️</button>',o.querySelector("button").onclick=()=>t.remove(),t.appendChild(o),n.appendChild(t)}function le(){const s=v.toString().replace(/[-_\s]/g,"");let e="031";if(s.includes("031")?e="031":s.includes("033")?e="033":s.includes("034")?e="034":s.includes("035")&&(e="035"),e==="034"){const t={};for(let o=1;o<=11;o++){let l=document.getElementById(`input_format${o}`).value,d=document.getElementById(`input_ep${o}`).value,c=document.getElementById(`input_teach${o}`).value,a=document.getElementById(`input_dur${o}`).value,i=document.getElementById(`input_dma${o}`).value;a&&!a.includes("ชม.")&&(a=`${a} ชม.`),t[`format${o}`]=l,t[`ep${o}`]=d,t[`teach${o}`]=c,t[`dur${o}`]=a,t[`dma${o}`]=i,o===1&&(t.format=l,t.ep=d,t.teach=c,t.dur=a,t.dma=i)}return[t]}const n=document.querySelectorAll(".batch-row"),r=[];return n.forEach(t=>{const o={};t.querySelectorAll("input[data-key]").forEach(l=>{let d=l.value;const c=t.querySelector(`select[data-unit-for="${l.dataset.key}"]`);c&&d&&(d=`${d} ${c.value}`),o[l.dataset.key]=d}),r.push(o)}),r.length>0?r:null}function Y(s){return w(this,null,function*(){if(A)return;const n=document.getElementById("isRecurring").checked&&s==="generate"&&parseInt(document.getElementById("recurringCount").value)||1;A=!0;const r=document.getElementById("resultBox"),t=document.getElementById("linksContainer");r.style.display="none",t.innerHTML="",C("กำลังเริ่มประมวลผลข้อมูล...");try{const o={};j.forEach(a=>{const i=document.querySelectorAll(`input[name="${a}"]`);if(i.length>0){const m=Array.from(i).filter(u=>u.checked).map(u=>u.value);o[a]=m.length>1?m:m.length===1?m[0]:""}else{const m=document.getElementById(`input_${a}`);m&&(o[a]=m.value)}});const l=le(),d=parseInt(document.getElementById("intervalDays").value)||7,c=o.subject||o.ชื่อรายการที่ผลิต||"ไม่ระบุชื่อ";x("🚀 เริ่มส่งข้อมูล",`กำลังจัดทำ PDF สำหรับโครงการ: ${c}`,"info"),setTimeout(()=>I(),800);for(let a=0;a<n;a++){const i=$({},o);a>0&&Object.keys(i).forEach(m=>{const u=m.toLowerCase();if(u.endsWith("date")){const f=u.substring(0,u.length-4),g=Object.keys(i).find(y=>y.toLowerCase()===f+"mouth"),p=Object.keys(i).find(y=>y.toLowerCase()===f+"ac");if(g&&p&&i[m]&&i[g]&&i[p]){const y=be(i[m],i[g],i[p],a*d);i[m]=y.day,i[g]=y.month,i[p]=y.year}}}),fetch(E,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({action:s,formId:v,data:i,tableData:l,rowIndex:J})}).then(m=>m.json()).then(m=>{m.status==="success"?(xe(m.data.url,m.data.name),x("✅ สร้างสำเร็จ",`สร้าง PDF: ${m.data.name} เรียบร้อยแล้ว`,"success"),r.style.display="block",n===1&&M()):x("❌ ผิดพลาด",m.message,"error")}).catch(m=>{x("❌ เกิดข้อผิดพลาด",m.message,"error")}).finally(()=>{a===n-1&&(A=!1)})}x("💡 ส่งคำขอแล้ว","คุณสามารถสลับหน้าจอหรือรอระบบแจ้งการสร้าง PDF สำเร็จได้ครับ","info",8e3)}catch(o){I(),A=!1,h("❌ ข้อผิดพลาด",o.message,!1)}})}function _(s){return w(this,null,function*(){if(!(!E||!s)){C(`กำลังดึงประวัติข้อมูลแผ่นงาน ${s}...`);try{const n=yield(yield fetch(E,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({action:"getRecentData",formId:s,limit:100})})).json();if(n.status==="success")b=n.data.records,Z(b,n.data.headers);else throw new Error(n.message)}catch(e){h("❌ ผิดพลาด","ไม่สามารถอ่านประวัติข้อมูลได้: "+e.message,!1)}finally{I()}}})}function Z(s,e=[]){const n=document.getElementById("dashBody"),r=document.getElementById("dashHeaderRow");n.innerHTML="";let t=e&&e.length>0?[...e]:[];s.length>0&&s.forEach(l=>{const d=l.tableData||l.tableBody||l._tableData;if(d)try{const c=typeof d=="string"?JSON.parse(d):d;Array.isArray(c)&&c.length>0&&Object.keys(c[0]).forEach(a=>{!t.includes(a)&&a.toLowerCase()!=="id"&&t.push(a)})}catch(c){}}),t.length===0&&s.length>0&&(t=Object.keys(s[0]).filter(l=>l!=="_rowIndex"));const o=["tabledata","tablebody","_tabledata","id","createdat"];if(t=t.filter(l=>l&&l.toString().trim()!==""&&!o.includes(l.toLowerCase())).slice(0,100),r.innerHTML="<th>ลำดับ</th>",t.forEach(l=>{r.innerHTML+=`<th>${l}</th>`}),r.innerHTML+='<th style="width: 200px; position: sticky; right: 0; background: var(--primary-light); z-index: 10;">การทำงาน</th>',s.length===0){n.innerHTML=`<tr><td colspan="${t.length+2}" style="text-align:center;padding:50px;">📭 ไม่พบรายการบันทึกข้อมูลย้อนหลังในชีตนี้</td></tr>`;return}s.forEach((l,d)=>{const c=document.createElement("tr");c.dataset.rowIndex=l._rowIndex;let a=`<td>${d+1}</td>`;t.forEach(i=>{const m=i.toString();let u=l[m]||"";if(typeof u=="string"&&u.includes("T")&&u.endsWith("Z"))try{const S=new Date(u);if(!isNaN(S.getTime()))if(S.getFullYear()<1905){const H=S.getHours(),D=S.getMinutes(),B=S.getSeconds();u=H+":"+(D<10?"0"+D:D)+(B>0?":"+(B<10?"0"+B:B):"")}else{const H=S.getDate().toString().padStart(2,"0"),D=(S.getMonth()+1).toString().padStart(2,"0"),B=S.getFullYear(),X=B<2400?B+543:B;u=`${H}/${D}/${X}`}}catch(S){}const f=m.toLowerCase();(f.includes("dur")||f.includes("ความยาว"))&&u.toString().startsWith("0:")&&(u=u.toString().substring(2)),(u==="0:00"||u==="00:00")&&(u="-");const g=Math.max(m.length,u.toString().length);let p=g*11+30;p=Math.min(Math.max(p,60),450);const y=p+"px",F=g<=3?"center":"left";a+=`<td><input type="text" class="dash-inline-input" data-field="${i}" value="${u}" style="width: ${y}; min-width: ${y}; text-align: ${F};"></td>`}),a+=`
+    `,e.appendChild(n),n.querySelector("#btnAddRow").onclick=()=>W(s),W(s)}function W(s,e=null){const n=document.getElementById("batchTableBody");if(!n)return;const a=n.children.length,t=document.createElement("tr");t.className="batch-row",s.forEach(l=>{const c=document.createElement("td"),i=l.toLowerCase();let r;if(i==="dur"||i==="ความยาว"){const u=document.createElement("div");u.className="unit-input-group",r=document.createElement("input"),r.type="text",r.dataset.key=l,r.placeholder="0.00";const f=document.createElement("select");if(f.className="unit-select",f.dataset.unitFor=l,["ชม.","น."].forEach(d=>{const m=document.createElement("option");m.value=d,m.textContent=d,f.appendChild(m)}),u.appendChild(r),u.appendChild(f),e&&e[l]){const d=e[l].toString().match(/^([\d.]+)\s*(.*)$/);d?(r.value=d[1],f.value=d[2]||"ชม."):r.value=e[l]}c.appendChild(u)}else{if(r=document.createElement("input"),r.type="text",r.dataset.key=l,r.placeholder=Y[i]||l,e&&e[l])r.value=e[l];else if(i==="ep"&&!e)r.value=`EP${a+1}`;else if(!e&&a>0){const f=n.children[a-1].querySelector(`input[data-key="${l}"]`);f&&(i.includes("format")||i.includes("teach")||i.includes("dma")||i.includes("สื่อ")||i.includes("วิทยากร"))&&(r.value=f.value)}c.appendChild(r)}t.appendChild(c)});const o=document.createElement("td");o.style.textAlign="center",o.innerHTML='<button type="button" class="btn-remove">🗑️</button>',o.querySelector("button").onclick=()=>t.remove(),t.appendChild(o),n.appendChild(t)}function Me(){const s=B.toString().replace(/[-_\s]/g,"");let e="031";if(s.includes("031")?e="031":s.includes("033")?e="033":s.includes("034")?e="034":s.includes("035")&&(e="035"),e==="034"){const t={};for(let o=1;o<=11;o++){let l=document.getElementById(`input_format${o}`).value,c=document.getElementById(`input_ep${o}`).value,i=document.getElementById(`input_teach${o}`).value,r=document.getElementById(`input_dur${o}`).value,u=document.getElementById(`input_dma${o}`).value;r&&!r.includes("ชม.")&&(r=`${r} ชม.`),t[`format${o}`]=l,t[`ep${o}`]=c,t[`teach${o}`]=i,t[`dur${o}`]=r,t[`dma${o}`]=u,o===1&&(t.format=l,t.ep=c,t.teach=i,t.dur=r,t.dma=u)}return[t]}const n=document.querySelectorAll(".batch-row"),a=[];return n.forEach(t=>{const o={};t.querySelectorAll("input[data-key]").forEach(l=>{let c=l.value;const i=t.querySelector(`select[data-unit-for="${l.dataset.key}"]`);i&&c&&(c=`${c} ${i.value}`),o[l.dataset.key]=c}),a.push(o)}),a.length>0?a:null}function ye(s){return I(this,null,function*(){if(J)return;const n=document.getElementById("isRecurring").checked&&s==="generate"&&parseInt(document.getElementById("recurringCount").value)||1;J=!0;const a=document.getElementById("resultBox"),t=document.getElementById("linksContainer");a.style.display="none",t.innerHTML="";const o={};ne.forEach(d=>{const m=document.querySelectorAll(`input[name="${d}"]`);if(m.length>0){const y=Array.from(m).filter(g=>g.checked).map(g=>g.value);o[d]=y.length>1?y:y.length===1?y[0]:""}else{const y=document.getElementById(`input_${d}`);y&&(o[d]=y.value)}});const l=Me(),c=parseInt(document.getElementById("intervalDays").value)||7,i=o.subject||o.ชื่อรายการที่ผลิต||"ไม่ระบุชื่อ",r=n>1;r?Ee("🔄 กำลังสร้างไฟล์ PDF ต่อเนื่อง",n):x("กำลังเริ่มต้นประมวลผลข้อมูล...");let u=0,f=0;try{for(let d=0;d<n;d++){const m=_({},o);d>0&&Object.keys(m).forEach(S=>{const p=S.toLowerCase();if(p.endsWith("date")){const b=p.substring(0,p.length-4),C=Object.keys(m).find(F=>F.toLowerCase()===b+"mouth"),v=Object.keys(m).find(F=>F.toLowerCase()===b+"ac");if(C&&v&&m[S]&&m[C]&&m[v]){const F=qe(m[S],m[C],m[v],d*c);m[S]=F.day,m[C]=F.month,m[v]=F.year}}});const y=localStorage.getItem("spreadsheetId")||"",g=m.subject||m.ชื่อรายการที่ผลิต||i;r&&j(d,n,`กำลังประมวลผลรายการที่ ${d+1}: ${g}`);try{const p=yield(yield fetch(D,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({action:s,formId:B,data:m,tableData:l,rowIndex:le,spreadsheetId:y})})).json();p.status==="success"?(u++,et(p.data.url,p.data.name),a.style.display="block",r?k(`✅ [สำเร็จ] สร้างไฟล์: ${p.data.name}`):(R("✅ สร้างสำเร็จ",`สร้าง PDF: ${p.data.name} เรียบร้อยแล้ว`,"success"),z())):(f++,r?k(`❌ [ล้มเหลว] รายการที่ ${d+1}: ${p.message}`):R("❌ ผิดพลาด",p.message,"error"))}catch(S){f++,r?k(`❌ [ผิดพลาด] รายการที่ ${d+1}: ${S.message}`):R("❌ เกิดข้อผิดพลาด",S.message,"error")}}r?(j(n,n,"🏁 สร้างเสร็จสิ้นครบถ้วน!"),k(`🎉 การประมวลผลเรียบร้อย: สำเร็จ ${u} รายการ, ล้มเหลว ${f} รายการ`),te()):w()}catch(d){r?(j(n,n,"❌ เกิดข้อผิดพลาดร้ายแรง"),k(`❌ เกิดข้อผิดพลาด: ${d.message}`),te()):(w(),h("❌ ข้อผิดพลาด",d.message,!1))}finally{J=!1}})}function K(s){return I(this,null,function*(){if(!(!D||!s)){x(`กำลังดึงประวัติข้อมูลแผ่นงาน ${s}...`);try{const e=localStorage.getItem("spreadsheetId")||"",a=yield(yield fetch(D,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({action:"getRecentData",formId:s,limit:100,spreadsheetId:e})})).json();if(a.status==="success")E=a.data.records,we(E,a.data.headers);else throw new Error(a.message)}catch(e){h("❌ ผิดพลาด","ไม่สามารถอ่านประวัติข้อมูลได้: "+e.message,!1)}finally{w()}}})}function we(s,e=[]){const n=document.getElementById("dashBody"),a=document.getElementById("dashHeaderRow");n.innerHTML="";let t=e&&e.length>0?[...e]:[];s.length>0&&s.forEach(l=>{const c=l.tableData||l.tableBody||l._tableData;if(c)try{const i=typeof c=="string"?JSON.parse(c):c;Array.isArray(i)&&i.length>0&&Object.keys(i[0]).forEach(r=>{!t.includes(r)&&r.toLowerCase()!=="id"&&t.push(r)})}catch(i){}}),t.length===0&&s.length>0&&(t=Object.keys(s[0]).filter(l=>l!=="_rowIndex"));const o=["tabledata","tablebody","_tabledata","id","createdat"];if(t=t.filter(l=>l&&l.toString().trim()!==""&&!o.includes(l.toLowerCase())).slice(0,100),a.innerHTML="<th>ลำดับ</th>",t.forEach(l=>{a.innerHTML+=`<th>${l}</th>`}),a.innerHTML+='<th style="width: 200px; position: sticky; right: 0; background: var(--primary-light); z-index: 10;">การทำงาน</th>',s.length===0){n.innerHTML=`<tr><td colspan="${t.length+2}" style="text-align:center;padding:50px;">📭 ไม่พบรายการบันทึกข้อมูลย้อนหลังในชีตนี้</td></tr>`;return}s.forEach((l,c)=>{const i=document.createElement("tr");i.dataset.rowIndex=l._rowIndex;let r=`<td>${c+1}</td>`;t.forEach(u=>{const f=u.toString();let d=l[f]||"";if(typeof d=="string"&&d.includes("T")&&d.endsWith("Z"))try{const b=new Date(d);if(!isNaN(b.getTime()))if(b.getFullYear()<1905){const C=b.getHours(),v=b.getMinutes(),F=b.getSeconds();d=C+":"+(v<10?"0"+v:v)+(F>0?":"+(F<10?"0"+F:F):"")}else{const C=b.getDate().toString().padStart(2,"0"),v=(b.getMonth()+1).toString().padStart(2,"0"),F=b.getFullYear(),U=F<2400?F+543:F;d=`${C}/${v}/${U}`}}catch(b){}const m=f.toLowerCase();(m.includes("dur")||m.includes("ความยาว"))&&d.toString().startsWith("0:")&&(d=d.toString().substring(2)),(d==="0:00"||d==="00:00")&&(d="-");const y=Math.max(f.length,d.toString().length);let g=y*11+30;g=Math.min(Math.max(g,60),450);const S=g+"px",p=y<=3?"center":"left";r+=`<td><input type="text" class="dash-inline-input" data-field="${u}" value="${d}" style="width: ${S}; min-width: ${S}; text-align: ${p};"></td>`}),r+=`
             <td style="position: sticky; right: 0; background: #fff; box-shadow: -5px 0 10px rgba(0,0,0,0.05);">
                 <div class="action-btns">
-                    <button type="button" class="btn-action btn-save" onclick="window.saveRecordInline(${d})" title="บันทึกแก้ไขแถวนี้ลงชีต">💾</button>
-                    <button type="button" class="btn-action btn-edit" onclick="window.editRecord(${d})" title="ดึงข้อมูลกลับมาแก้ไขบนฟอร์ม">✍️</button>
-                    <button type="button" class="btn-action btn-pdf" onclick="window.generateRecordPDF(${d})" title="สร้าง PDF รายการเดียว">📄</button>
-                    <button type="button" class="btn-action btn-del" onclick="window.deleteRecord(${d})" title="ลบข้อมูล">🗑️</button>
+                    <button type="button" class="btn-action btn-save" onclick="window.saveRecordInline(${c})" title="บันทึกแก้ไขแถวนี้ลงชีต">💾</button>
+                    <button type="button" class="btn-action btn-edit" onclick="window.editRecord(${c})" title="ดึงข้อมูลกลับมาแก้ไขบนฟอร์ม">✍️</button>
+                    <button type="button" class="btn-action btn-pdf" onclick="window.generateRecordPDF(${c})" title="สร้าง PDF รายการเดียว">📄</button>
+                    <button type="button" class="btn-action btn-del" onclick="window.deleteRecord(${c})" title="ลบข้อมูล">🗑️</button>
                 </div>
             </td>
-        `,c.innerHTML=a,n.appendChild(c)}),ie()}function ie(){const s=document.getElementById("dashToolBtns");if(!s)return;["btnSaveAllWorkspace","btnGlobalPDFWorkspace"].forEach(r=>{const t=document.getElementById(r);t&&t.remove()});const e=document.createElement("button");if(e.type="button",e.id="btnSaveAllWorkspace",e.className="btn-save-all",e.style.backgroundColor="#8b5cf6",e.style.color="white",e.innerHTML="💾 บันทึกทั้งหมด",e.onclick=()=>ue(),s.appendChild(e),v.toString().replace(/[-_\s]/g,"").includes("034")){const r=document.createElement("button");r.type="button",r.id="btnGlobalPDFWorkspace",r.className="btn-pdf-all",r.style.backgroundColor="#f59e0b",r.innerHTML="📄 สร้าง PDF รวบยอด",r.onclick=()=>he(),s.appendChild(r)}}function de(s){return w(this,null,function*(){const e=b[s],r=document.querySelector(`#dashBody tr:nth-child(${s+1})`).querySelectorAll(".dash-inline-input"),t=$({},e);r.forEach(o=>{const l=o.dataset.field;t[l]=o.value,l==="subject"&&(t.ชื่อรายการที่ผลิต=o.value),l==="ep"&&(t.ตอน=o.value),l==="teach"&&(t["วิทยากร/ผู้บรรยาย"]=o.value),l==="dma"&&(t.วันผลิตแล้วเสร็จ=o.value)}),C("กำลังแก้ไขข้อมูลลงแผ่นงาน...");try{const l=yield(yield fetch(E,{method:"POST",body:JSON.stringify({action:"updateRow",formId:v,rowIndex:e._rowIndex,data:t})})).json();if(l.status==="success")b[s]=t,h("✅ สำเร็จ",`ปรับปรุงข้อมูลแถวที่ ${s+1} เรียบร้อยแล้ว`,!1);else throw new Error(l.message)}catch(o){h("❌ ผิดพลาด",o.message,!1)}finally{I()}})}function ue(){return w(this,null,function*(){const s=document.querySelectorAll("#dashBody tr"),e=[];if(s.forEach((n,r)=>{const t=n.querySelectorAll(".dash-inline-input");if(t.length===0)return;const o=b[r],l=$({},o);let d=!1;t.forEach(c=>{const a=c.dataset.field;l[a]!==c.value&&(l[a]=c.value,d=!0,a==="subject"&&(l.ชื่อรายการที่ผลิต=c.value),a==="ep"&&(l.ตอน=c.value),a==="teach"&&(l["วิทยากร/ผู้บรรยาย"]=c.value),a==="dma"&&(l.วันผลิตแล้วเสร็จ=c.value))}),d&&e.push({rowIndex:o._rowIndex,data:l,localIndex:r})}),e.length===0){h("ℹ️ แจ้งเตือน","ไม่พบการเปลี่ยนแปลงใดๆ ในตาราง",!1);return}if(yield h("💾 บันทึกทั้งหมด",`คุณต้องการเซฟข้อมูลที่แก้ไขทั้ง ${e.length} รายการใช่หรือไม่?`,!0)){C(`กำลังอัปเดตข้อมูล ${e.length} รายการ...`);try{const r=yield(yield fetch(E,{method:"POST",body:JSON.stringify({action:"batchUpdateRowsInSheet",formId:v,updates:e})})).json();if(r.status==="success")e.forEach(t=>{b[t.localIndex]=t.data}),h("✅ บันทึกสำเร็จ",`ปรับปรุงข้อมูลครบถ้วน ${e.length} แถวเรียบร้อยแล้ว`,!1),_(v);else throw new Error(r.message)}catch(n){h("❌ ผิดพลาด",n.message,!1)}finally{I()}}})}function me(s){return w(this,null,function*(){const e=b[s];J=e._rowIndex;const n=document.getElementById("editModeBanner"),r=document.getElementById("editRowNumber");n&&r&&(n.style.display="flex",r.textContent=e._rowIndex);const t=d=>{if(!d)return"";if(typeof d=="string"&&d.includes("T")&&d.includes("Z")&&d.length>15)try{const c=new Date(d);if(!isNaN(c.getTime())){if(c.getFullYear()<1905){const f=c.getHours(),g=c.getMinutes(),p=c.getSeconds();return f+":"+(g<10?"0"+g:g)+(p>0?":"+(p<10?"0"+p:p):"")}const a=c.getDate().toString().padStart(2,"0"),i=(c.getMonth()+1).toString().padStart(2,"0"),m=c.getFullYear(),u=m<2400?m+543:m;return`${a}/${i}/${u}`}}catch(c){}return d};fe(e,t);const o=v.toString().replace(/[-_\s]/g,"");let l="031";if(o.includes("031")?l="031":o.includes("033")?l="033":o.includes("034")?l="034":o.includes("035")&&(l="035"),l==="034"){const d=(e.subject||e.ชื่อรายการที่ผลิต||"").toString().toLowerCase().trim(),c=b.filter(a=>(a.subject||a.ชื่อรายการที่ผลิต||"").toString().toLowerCase().trim()===d&&d!=="").sort((a,i)=>{const m=parseInt((a.ep||a.ตอน||"0").toString().replace(/\D/g,""))||0,u=parseInt((i.ep||i.ตอน||"0").toString().replace(/\D/g,""))||0;return m-u});for(let a=1;a<=11;a++){const i=c[a-1]||{},m=document.getElementById(`input_format${a}`),u=document.getElementById(`input_ep${a}`),f=document.getElementById(`input_teach${a}`),g=document.getElementById(`input_dur${a}`),p=document.getElementById(`input_dma${a}`);m&&(m.value=t(i.format||i.รูปแบบสื่อ||a[`format${a}`]||a[`รูปแบบสื่อ${a}`])),u&&(u.value=t(i.ep||i.ตอน||a[`ep${a}`]||a[`ตอน${a}`])),f&&(f.value=t(i.teach||i["วิทยากร/ผู้บรรยาย"]||i.วิทยากร||a[`teach${a}`]||a[`วิทยากร${a}`])),g&&(g.value=t(i.dur||i.ความยาว||i["ความยาวรายการ (นาที)"]||a[`dur${a}`]||a[`ความยาว${a}`]).toString().replace(" ชม.","")),p&&(p.value=t(i.dma||i.sucdate||i.วันผลิตแล้วเสร็จ||i.ผลิตแล้วเสร็จวันที่||a[`dma${a}`]||a[`sucdate${a}`]||a[`วันผลิตแล้วเสร็จ${a}`]||a[`ผลิตแล้วเสร็จวันที่${a}`]))}}else{const d=["ep","format","teach","dur","dma","item","qty","ตอน","รูปแบบสื่อ","วิทยากร","ความยาว","ผลิตแล้วเสร็จ"],c=j.filter(a=>d.some(i=>a.toLowerCase().includes(i)));if(c.length>0){const a=document.getElementById("batchTableBody");if(a)if(a.innerHTML="",e.tableData||e.tableBody||e._tableData)try{JSON.parse(e.tableData||e.tableBody||e._tableData).forEach(m=>T(c,m))}catch(i){T(c,e)}else T(c,e)}}N("form"),x("✏️ โหมดแก้ไข",`ดึงข้อมูลของโครงการ "${e.subject||"ไม่ระบุชื่อ"}" เข้าสู่ฟอร์มเรียบร้อยแล้ว`,"info")})}function fe(s,e=null){j.forEach(n=>{let r=s[n]||"";e&&(r=e(r));const t=document.querySelectorAll(`input[name="${n}"]`);if(t.length>0)t.forEach(o=>{o.checked=Array.isArray(r)?r.includes(o.value):r===o.value||r==="✓"});else{const o=document.getElementById(`input_${n}`);o&&(o.value=r)}})}function pe(s){return w(this,null,function*(){const e=b[s];if(yield h("🗑️ ยืนยันการลบ","คุณต้องการลบรายการข้อมูลนี้ออกจากแผ่นงานใช่หรือไม่?",!0)){C("กำลังลบข้อมูลออกจาก Sheet...");try{const r=yield(yield fetch(E,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({action:"deleteData",rowIndex:e._rowIndex})})).json();if(r.status==="success")x("✅ ลบข้อมูลแล้ว","ลบแถวข้อมูลเรียบร้อยแล้วครับ","success"),_(v);else throw new Error(r.message)}catch(n){h("❌ ผิดพลาด",n.message,!1)}finally{I()}}})}function ge(s){return w(this,null,function*(){const e=b[s];let n=null,r=$({},e);if(v.toString().replace(/[-_\s]/g,"").includes("034")){C("กำลังดึงแถวรวบยอดข้อมูลโครงการ...");const o=(e.subject||e.ชื่อรายการที่ผลิต||"").toString().toLowerCase().trim();n=b.filter(l=>(l.subject||l.ชื่อรายการที่ผลิต||"").toString().toLowerCase().trim()===o&&o!==""),n.sort((l,d)=>{const c=parseInt((l.ep||l.ตอน||"0").toString().replace(/\D/g,""))||0,a=parseInt((d.ep||d.ตอน||"0").toString().replace(/\D/g,""))||0;return c-a}),n.length===0&&(n=[e])}C("กำลังประมวลผลการสร้างเอกสาร PDF...");try{const l=yield(yield fetch(E,{method:"POST",body:JSON.stringify({action:"generate",formId:v,data:r,tableData:n,rowIndex:e._rowIndex,skipSave:!0})})).json();if(l.status==="success")h("📜 สร้างไฟล์สำเร็จ",`สร้าง PDF แผ่นงาน ${v} เรียบร้อยแล้วครับ<br><br><a href="${l.data.url}" target="_blank" style="display:inline-block; padding:12px 24px; background:#4f46e5; color:white; border-radius:10px; text-decoration:none; font-weight:bold; box-shadow:0 4px 10px rgba(79,70,229,0.2);">🌐 เปิดดูไฟล์เอกสาร PDF</a>`,!1);else throw new Error(l.message)}catch(o){h("❌ ผิดพลาด",o.message,!1)}finally{I()}})}function he(){return w(this,null,function*(){try{const s=document.querySelectorAll("#dashBody tr"),e=[];if(s.forEach(t=>{const o=t.querySelectorAll(".dash-inline-input");if(o.length===0)return;const l={};o.forEach(d=>{let c=d.value;d.dataset.field==="dur"&&c&&!c.includes("ชม.")&&(c=`${c} ชม.`),l[d.dataset.field]=c}),e.push(l)}),e.length===0){h("⚠️ คำเตือน","ไม่พบข้อมูลในตารางสำหรับรวมยอด PDF",!1);return}C(`กำลังสร้าง PDF สรุปรวมแบบกลุ่ม (${e.length} รายการ)...`);const r=yield(yield fetch(E,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({action:"generate",formId:v,data:e[0],tableData:e,rowIndex:0,skipSave:!0})})).json();if(r.status==="success")h("📜 สร้างสรุปสำเร็จ","เสร็จเรียบร้อยแล้ว",!1,"📄",()=>{r.data.url&&window.open(r.data.url,"_blank")}),r.data.url&&window.open(r.data.url,"_blank");else throw new Error(r.message)}catch(s){h("❌ ผิดพลาด",s.message,!1)}finally{I()}})}function ye(){return w(this,null,function*(){if(!b||b.length===0){h("⚠️ คำเตือน","ไม่มีข้อมูลให้สร้างไฟล์ PDF",!1);return}(yield h("📄 ยืนยันสร้างทั้งหมด",`คุณต้องการเริ่มคำสั่งสร้าง PDF จากรายการข้อมูลทั้งหมด ${b.length} รายการในหน้านี้ใช่หรือไม่? (ระบบจะประมวลผลเบื้องหลัง)`,!0))&&(x("🚀 เริ่มสร้าง PDF ทั้งหมด",`ระบบกำลังทยอยทำ PDF ทั้งหมด ${b.length} รายการ...`,"info",8e3),w(this,null,function*(){let e=0,n=0;for(let r=0;r<b.length;r++){const t=b[r];try{let o=[];if(t.tableData||t.tableBody||t._tableData)try{o=JSON.parse(t.tableData||t.tableBody||t._tableData)}catch(c){o=[t]}else o=[t];(yield(yield fetch(E,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({action:"generate",formId:v,data:t,tableData:o,rowIndex:t._rowIndex,skipSave:!0})})).json()).status==="success"?(e++,(e%5===0||r===b.length-1)&&x("⏳ ความคืบหน้า",`บันทึกเสร็จแล้ว ${e}/${b.length} รายการ`,"info")):n++}catch(o){n++}}x("🏁 ดำเนินการสร้างครบแล้ว",`สร้างสำเร็จ ${e} ไฟล์ ${n>0?`(ผิดพลาด ${n} รายการ)`:""}`,e>0?"success":"error",15e3)}))})}function be(s,e,n,r){const t=V(s.toString()),o=V(n.toString()),l=K.indexOf(e.trim());if(l===-1)return{day:s,month:e,year:n};const d=parseInt(o)-543,c=new Date(d,l,parseInt(t));c.setDate(c.getDate()+r);const a=/[๐-๙]/.test(s.toString())||/[๐-๙]/.test(n.toString());return{day:a?z(c.getDate()):c.getDate(),month:K[c.getMonth()],year:a?z(c.getFullYear()+543):c.getFullYear()+543}}function z(s){return s.toString().replace(/[0-9]/g,e=>"๐๑๒๓๔๕๖๗๘๙"[e])}function V(s){return s.toString().replace(/[๐-๙]/g,e=>"๐๑๒๓๔๕๖๗๘๙".indexOf(e))}function M(){J=0;const s=document.getElementById("editModeBanner");s&&(s.style.display="none")}function we(){const s=document.getElementById("fieldsContainer");s.querySelectorAll('input[type="text"], input[type="number"], textarea').forEach(t=>t.value=""),s.querySelectorAll('input[type="checkbox"]').forEach(t=>t.checked=!1);const r=document.getElementById("batchTableBody");r&&(r.innerHTML=""),M(),document.getElementById("resultBox").style.display="none",x("✨ ล้างข้อมูลฟอร์ม","ล้างข้อมูลหน้าแบบฟอร์มเดิมเรียบร้อยแล้ว","success")}window.filterDashboard=function(){const s=document.getElementById("dashSearch").value.toLowerCase(),e=b.filter(n=>{const r=(n.subject||n.ชื่อรายการที่ผลิต||n.activity||"").toLowerCase(),t=(n.owner||n.ผู้รับผิดชอบการผลิต||"").toLowerCase();return r.includes(s)||t.includes(s)});Z(e)};function ve(){return w(this,null,function*(){C("กำลังเชื่อมต่อเพื่ออ่านรายการไฟล์บน Drive...");try{const e=yield(yield fetch(E,{method:"POST",body:JSON.stringify({action:"getDriveFiles",formId:v})})).json();if(I(),e.status==="success"&&e.data.length>0){let n='<div class="drive-list-container">';n+=`
-                <div class="select-all-header">
-                    <input type="checkbox" id="driveSelectAll">
-                    <label for="driveSelectAll" style="cursor:pointer;margin-left:8px;">เลือกทั้งหมด (${e.data.length} ไฟล์)</label>
-                </div>
-            `,e.data.forEach(o=>{n+=`
-                <label class="drive-file-item">
-                    <input type="checkbox" class="drive-file-cb" value="${o.id}" data-name="${o.name}"> 
-                    <div style="margin-left:12px;">
-                        <div style="font-weight:600; color:#1e293b;">${o.name}</div>
-                        <div style="font-size:0.75rem; color:#64748b;">สร้างเมื่อ: ${o.date}</div>
+        `,i.innerHTML=r,n.appendChild(i)}),$e()}function $e(){const s=document.getElementById("dashToolBtns");if(!s)return;["btnSaveAllWorkspace","btnGlobalPDFWorkspace"].forEach(a=>{const t=document.getElementById(a);t&&t.remove()});const e=document.createElement("button");if(e.type="button",e.id="btnSaveAllWorkspace",e.className="btn-icon-round btn-saveall-icon",e.setAttribute("data-tooltip","บันทึกแก้ไขข้อมูลทั้งหมดลง Google Sheet 💾"),e.innerHTML="💾",e.onclick=()=>_e(),s.appendChild(e),B.toString().replace(/[-_\s]/g,"").includes("034")){const a=document.createElement("button");a.type="button",a.id="btnGlobalPDFWorkspace",a.className="btn-icon-round btn-globalpdf-icon",a.setAttribute("data-tooltip","สร้างไฟล์ PDF สรุปรวมยอดกลุ่ม 📊"),a.innerHTML="📊",a.onclick=()=>Ge(),s.appendChild(a)}}function Ne(s){return I(this,null,function*(){const e=E[s],a=document.querySelector(`#dashBody tr:nth-child(${s+1})`).querySelectorAll(".dash-inline-input"),t=_({},e);a.forEach(o=>{const l=o.dataset.field;t[l]=o.value,l==="subject"&&(t.ชื่อรายการที่ผลิต=o.value),l==="ep"&&(t.ตอน=o.value),l==="teach"&&(t["วิทยากร/ผู้บรรยาย"]=o.value),l==="dma"&&(t.วันผลิตแล้วเสร็จ=o.value)}),x("กำลังแก้ไขข้อมูลลงแผ่นงาน...");try{const o=localStorage.getItem("spreadsheetId")||"",c=yield(yield fetch(D,{method:"POST",body:JSON.stringify({action:"updateRow",formId:B,rowIndex:e._rowIndex,data:t,spreadsheetId:o})})).json();if(c.status==="success")E[s]=t,h("✅ สำเร็จ",`ปรับปรุงข้อมูลแถวที่ ${s+1} เรียบร้อยแล้ว`,!1);else throw new Error(c.message)}catch(o){h("❌ ผิดพลาด",o.message,!1)}finally{w()}})}function _e(){return I(this,null,function*(){const s=document.querySelectorAll("#dashBody tr"),e=[];if(s.forEach((n,a)=>{const t=n.querySelectorAll(".dash-inline-input");if(t.length===0)return;const o=E[a],l=_({},o);let c=!1;t.forEach(i=>{const r=i.dataset.field;l[r]!==i.value&&(l[r]=i.value,c=!0,r==="subject"&&(l.ชื่อรายการที่ผลิต=i.value),r==="ep"&&(l.ตอน=i.value),r==="teach"&&(l["วิทยากร/ผู้บรรยาย"]=i.value),r==="dma"&&(l.วันผลิตแล้วเสร็จ=i.value))}),c&&e.push({rowIndex:o._rowIndex,data:l,localIndex:a})}),e.length===0){h("ℹ️ แจ้งเตือน","ไม่พบการเปลี่ยนแปลงใดๆ ในตาราง",!1);return}if(yield h("💾 บันทึกทั้งหมด",`คุณต้องการเซฟข้อมูลที่แก้ไขทั้ง ${e.length} รายการใช่หรือไม่?`,!0)){x(`กำลังอัปเดตข้อมูล ${e.length} รายการ...`);try{const n=localStorage.getItem("spreadsheetId")||"",t=yield(yield fetch(D,{method:"POST",body:JSON.stringify({action:"batchUpdateRowsInSheet",formId:B,updates:e,spreadsheetId:n})})).json();if(t.status==="success")e.forEach(o=>{E[o.localIndex]=o.data}),h("✅ บันทึกสำเร็จ",`ปรับปรุงข้อมูลครบถ้วน ${e.length} แถวเรียบร้อยแล้ว`,!1),K(B);else throw new Error(t.message)}catch(n){h("❌ ผิดพลาด",n.message,!1)}finally{w()}}})}function He(s){return I(this,null,function*(){const e=E[s];le=e._rowIndex;const n=document.getElementById("editModeBanner"),a=document.getElementById("editRowNumber");n&&a&&(n.style.display="flex",a.textContent=e._rowIndex);const t=c=>{if(!c)return"";if(typeof c=="string"&&c.includes("T")&&c.includes("Z")&&c.length>15)try{const i=new Date(c);if(!isNaN(i.getTime())){if(i.getFullYear()<1905){const m=i.getHours(),y=i.getMinutes(),g=i.getSeconds();return m+":"+(y<10?"0"+y:y)+(g>0?":"+(g<10?"0"+g:g):"")}const r=i.getDate().toString().padStart(2,"0"),u=(i.getMonth()+1).toString().padStart(2,"0"),f=i.getFullYear(),d=f<2400?f+543:f;return`${r}/${u}/${d}`}}catch(i){}return c};Oe(e,t);const o=B.toString().replace(/[-_\s]/g,"");let l="031";if(o.includes("031")?l="031":o.includes("033")?l="033":o.includes("034")?l="034":o.includes("035")&&(l="035"),l==="034"){const c=(e.subject||e.ชื่อรายการที่ผลิต||"").toString().toLowerCase().trim(),i=E.filter(r=>(r.subject||r.ชื่อรายการที่ผลิต||"").toString().toLowerCase().trim()===c&&c!=="").sort((r,u)=>{const f=parseInt((r.ep||r.ตอน||"0").toString().replace(/\D/g,""))||0,d=parseInt((u.ep||u.ตอน||"0").toString().replace(/\D/g,""))||0;return f-d});for(let r=1;r<=11;r++){const u=i[r-1]||{},f=document.getElementById(`input_format${r}`),d=document.getElementById(`input_ep${r}`),m=document.getElementById(`input_teach${r}`),y=document.getElementById(`input_dur${r}`),g=document.getElementById(`input_dma${r}`);f&&(f.value=t(u.format||u.รูปแบบสื่อ||r[`format${r}`]||r[`รูปแบบสื่อ${r}`])),d&&(d.value=t(u.ep||u.ตอน||r[`ep${r}`]||r[`ตอน${r}`])),m&&(m.value=t(u.teach||u["วิทยากร/ผู้บรรยาย"]||u.วิทยากร||r[`teach${r}`]||r[`วิทยากร${r}`])),y&&(y.value=t(u.dur||u.ความยาว||u["ความยาวรายการ (นาที)"]||r[`dur${r}`]||r[`ความยาว${r}`]).toString().replace(" ชม.","")),g&&(g.value=t(u.dma||u.sucdate||u.วันผลิตแล้วเสร็จ||u.ผลิตแล้วเสร็จวันที่||r[`dma${r}`]||r[`sucdate${r}`]||r[`วันผลิตแล้วเสร็จ${r}`]||r[`ผลิตแล้วเสร็จวันที่${r}`]))}}else{const c=["ep","format","teach","dur","dma","item","qty","ตอน","รูปแบบสื่อ","วิทยากร","ความยาว","ผลิตแล้วเสร็จ"],i=ne.filter(r=>c.some(u=>r.toLowerCase().includes(u)));if(i.length>0){const r=document.getElementById("batchTableBody");if(r)if(r.innerHTML="",e.tableData||e.tableBody||e._tableData)try{JSON.parse(e.tableData||e.tableBody||e._tableData).forEach(f=>W(i,f))}catch(u){W(i,e)}else W(i,e)}}X("form"),R("✏️ โหมดแก้ไข",`ดึงข้อมูลของโครงการ "${e.subject||"ไม่ระบุชื่อ"}" เข้าสู่ฟอร์มเรียบร้อยแล้ว`,"info")})}function Oe(s,e=null){ne.forEach(n=>{let a=s[n]||"";e&&(a=e(a));const t=document.querySelectorAll(`input[name="${n}"]`);if(t.length>0)t.forEach(o=>{o.checked=Array.isArray(a)?a.includes(o.value):a===o.value||a==="✓"});else{const o=document.getElementById(`input_${n}`);o&&(o.value=a)}})}function je(s){return I(this,null,function*(){const e=E[s];if(yield h("🗑️ ยืนยันการลบ","คุณต้องการลบรายการข้อมูลนี้ออกจากแผ่นงานใช่หรือไม่?",!0)){x("กำลังลบข้อมูลออกจาก Sheet...");try{const n=localStorage.getItem("spreadsheetId")||"",t=yield(yield fetch(D,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({action:"deleteData",rowIndex:e._rowIndex,spreadsheetId:n})})).json();if(t.status==="success")R("✅ ลบข้อมูลแล้ว","ลบแถวข้อมูลเรียบร้อยแล้วครับ","success"),K(B);else throw new Error(t.message)}catch(n){h("❌ ผิดพลาด",n.message,!1)}finally{w()}}})}function Ue(s){return I(this,null,function*(){const e=E[s];let n=null,a=_({},e);if(B.toString().replace(/[-_\s]/g,"").includes("034")){x("กำลังดึงแถวรวบยอดข้อมูลโครงการ...");const o=(e.subject||e.ชื่อรายการที่ผลิต||"").toString().toLowerCase().trim();n=E.filter(l=>(l.subject||l.ชื่อรายการที่ผลิต||"").toString().toLowerCase().trim()===o&&o!==""),n.sort((l,c)=>{const i=parseInt((l.ep||l.ตอน||"0").toString().replace(/\D/g,""))||0,r=parseInt((c.ep||c.ตอน||"0").toString().replace(/\D/g,""))||0;return i-r}),n.length===0&&(n=[e])}x("กำลังประมวลผลการสร้างเอกสาร PDF...");try{const o=localStorage.getItem("spreadsheetId")||"",c=yield(yield fetch(D,{method:"POST",body:JSON.stringify({action:"generate",formId:B,data:a,tableData:n,rowIndex:e._rowIndex,skipSave:!0,spreadsheetId:o})})).json();if(c.status==="success")h("📜 สร้างไฟล์สำเร็จ",`สร้าง PDF แผ่นงาน ${B} เรียบร้อยแล้วครับ<br><br><a href="${c.data.url}" target="_blank" style="display:inline-block; padding:12px 24px; background:#4f46e5; color:white; border-radius:10px; text-decoration:none; font-weight:bold; box-shadow:0 4px 10px rgba(79,70,229,0.2);">🌐 เปิดดูไฟล์เอกสาร PDF</a>`,!1);else throw new Error(c.message)}catch(o){h("❌ ผิดพลาด",o.message,!1)}finally{w()}})}function Ge(){return I(this,null,function*(){try{const s=document.querySelectorAll("#dashBody tr"),e=[];if(s.forEach(o=>{const l=o.querySelectorAll(".dash-inline-input");if(l.length===0)return;const c={};l.forEach(i=>{let r=i.value;i.dataset.field==="dur"&&r&&!r.includes("ชม.")&&(r=`${r} ชม.`),c[i.dataset.field]=r}),e.push(c)}),e.length===0){h("⚠️ คำเตือน","ไม่พบข้อมูลในตารางสำหรับรวมยอด PDF",!1);return}x(`กำลังสร้าง PDF สรุปรวมแบบกลุ่ม (${e.length} รายการ)...`);const n=localStorage.getItem("spreadsheetId")||"",t=yield(yield fetch(D,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({action:"generate",formId:B,data:e[0],tableData:e,rowIndex:0,skipSave:!0,spreadsheetId:n})})).json();if(t.status==="success")h("📜 สร้างสรุปสำเร็จ","เสร็จเรียบร้อยแล้ว",!1,"📄",()=>{t.data.url&&window.open(t.data.url,"_blank")}),t.data.url&&window.open(t.data.url,"_blank");else throw new Error(t.message)}catch(s){h("❌ ผิดพลาด",s.message,!1)}finally{w()}})}function Je(){return I(this,null,function*(){if(!E||E.length===0){h("⚠️ คำเตือน","ไม่มีข้อมูลให้สร้างไฟล์ PDF",!1);return}if(!(yield h("📄 ยืนยันสร้างทั้งหมด",`คุณต้องการเริ่มคำสั่งสร้าง PDF จากรายการข้อมูลทั้งหมด ${E.length} รายการในหน้านี้ใช่หรือไม่?`,!0)))return;J=!0,Ee("📄 กำลังสร้างไฟล์ PDF ทั้งหมดย้อนหลัง",E.length);let e=0,n=0;try{for(let a=0;a<E.length;a++){const t=E[a],o=t.subject||t.ชื่อรายการที่ผลิต||`แถวที่ ${t._rowIndex}`;j(a,E.length,`กำลังทำ PDF รายการที่ ${a+1}/${E.length}: ${o}`);try{let l=[];if(t.tableData||t.tableBody||t._tableData)try{l=JSON.parse(t.tableData||t.tableBody||t._tableData)}catch(u){l=[t]}else l=[t];const c=localStorage.getItem("spreadsheetId")||"",r=yield(yield fetch(D,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({action:"generate",formId:B,data:t,tableData:l,rowIndex:t._rowIndex,skipSave:!0,spreadsheetId:c})})).json();r.status==="success"?(e++,k(`✅ [สำเร็จ] รายการที่ ${a+1}: ${r.data.name}`)):(n++,k(`❌ [ล้มเหลว] รายการที่ ${a+1}: ${r.message}`))}catch(l){n++,k(`❌ [ผิดพลาด] รายการที่ ${a+1}: ${l.message}`)}}j(E.length,E.length,"🏁 การประมวลผลจัดสร้างครบถ้วนแล้ว!"),k(`🎉 สร้างสำเร็จ ${e} รายการ, ล้มเหลว ${n} รายการ`),te()}catch(a){j(E.length,E.length,"❌ เกิดข้อผิดพลาดในการรันแบตช์"),k(`❌ เกิดข้อผิดพลาดร้ายแรง: ${a.message}`),te()}finally{J=!1}})}function qe(s,e,n,a){const t=Ie(s.toString()),o=Ie(n.toString()),l=he.indexOf(e.trim());if(l===-1)return{day:s,month:e,year:n};const c=parseInt(o)-543,i=new Date(c,l,parseInt(t));i.setDate(i.getDate()+a);const r=/[๐-๙]/.test(s.toString())||/[๐-๙]/.test(n.toString());return{day:r?be(i.getDate()):i.getDate(),month:he[i.getMonth()],year:r?be(i.getFullYear()+543):i.getFullYear()+543}}function be(s){return s.toString().replace(/[0-9]/g,e=>"๐๑๒๓๔๕๖๗๘๙"[e])}function Ie(s){return s.toString().replace(/[๐-๙]/g,e=>"๐๑๒๓๔๕๖๗๘๙".indexOf(e))}function z(){le=0;const s=document.getElementById("editModeBanner");s&&(s.style.display="none")}function Ve(){const s=document.getElementById("fieldsContainer");s.querySelectorAll('input[type="text"], input[type="number"], textarea').forEach(t=>t.value=""),s.querySelectorAll('input[type="checkbox"]').forEach(t=>t.checked=!1);const a=document.getElementById("batchTableBody");a&&(a.innerHTML=""),z(),document.getElementById("resultBox").style.display="none",R("✨ ล้างข้อมูลฟอร์ม","ล้างข้อมูลหน้าแบบฟอร์มเดิมเรียบร้อยแล้ว","success")}window.filterDashboard=function(){const s=document.getElementById("dashSearch").value.toLowerCase(),e=E.filter(n=>{const a=(n.subject||n.ชื่อรายการที่ผลิต||n.activity||"").toLowerCase(),t=(n.owner||n.ผู้รับผิดชอบการผลิต||"").toLowerCase();return a.includes(s)||t.includes(s)});we(e)};function ve(s=null){return I(this,null,function*(){x("กำลังเชื่อมต่อเพื่ออ่านรายการไฟล์บน Drive...");try{const e=localStorage.getItem("spreadsheetId")||"",a=yield(yield fetch(D,{method:"POST",body:JSON.stringify({action:"getDriveFiles",formId:B,spreadsheetId:e,folderId:s})})).json();if(w(),a.status==="success"){const t=a.data;if(q=t.rootFolderId,Z=t.currentFolderId,!s||s===q)$=[{id:q,name:"หน้าแรก"}];else{const l=$.findIndex(c=>c.id===s);l!==-1?$=$.slice(0,l+1):$.push({id:s,name:t.folderName})}const o=yield We("🗂️ จัดการเอกสาร PDF บน Google Drive",t);o.action==="merge"&&o.fileIds.length>0?Qe(o.fileIds):o.action==="print"&&o.fileIds.length>0?ze(o.fileIds):o.action==="navigate"&&ve(o.targetFolderId)}else h("📁 แจ้งเตือน",a.message||"ไม่พบไฟล์ PDF ในโฟลเดอร์สำหรับแผ่นงานนี้ครับ",!1)}catch(e){w(),h("❌ ผิดพลาด",e.message,!1)}})}function We(s,e){return new Promise(n=>{const a=document.getElementById("modalOverlay");document.getElementById("modalIcon").textContent="🗂️",document.getElementById("modalTitle").textContent=s;const t=document.getElementById("modalDesc");t.innerHTML="";const o=document.createElement("div");o.className="drive-breadcrumb-container",$.forEach((p,b)=>{if(b>0){const v=document.createElement("span");v.textContent=" / ",v.style.color="#94a3b8",o.appendChild(v)}const C=document.createElement("span");C.className="drive-breadcrumb-link",C.textContent=p.name,b===$.length-1?C.classList.add("active"):C.onclick=()=>n({action:"navigate",targetFolderId:p.id}),o.appendChild(C)}),t.appendChild(o);const l=document.createElement("div");l.className="drive-toolbar",l.style.display="flex",l.style.justifyContent="space-between",l.style.alignItems="center",l.style.margin="15px 0 10px 0",l.style.gap="10px";const c=document.createElement("button");c.type="button",c.className="btn btn-outline",c.style.padding="8px 14px",c.style.fontSize="0.85rem",c.style.borderRadius="10px",c.innerHTML="📁 สร้างโฟลเดอร์ย่อย",c.onclick=()=>Ze(Z,()=>{n({action:"navigate",targetFolderId:Z})});const i=document.createElement("button");i.type="button",i.id="btnMoveSelected",i.className="btn btn-outline",i.style.padding="8px 14px",i.style.fontSize="0.85rem",i.style.borderRadius="10px",i.style.borderColor="#d97706",i.style.color="#d97706",i.style.display="none",i.innerHTML="📦 ย้ายไฟล์ไปเก็บ",i.onclick=()=>{const p=Array.from(r.querySelectorAll(".drive-file-cb:checked")).map(b=>b.value);p.length>0&&Xe(p,()=>{n({action:"navigate",targetFolderId:Z})})},l.appendChild(c),l.appendChild(i),t.appendChild(l);const r=document.createElement("div");r.className="drive-list-container";const u=e.files&&e.files.length>0;if(r.innerHTML=`
+            <div class="drive-select-all-row" style="display:flex; align-items:center; padding:12px 18px; background:#f8fafc; border-radius:12px; border:1px solid #e2e8f0; font-weight:700; color:#334155; margin-bottom:5px; font-size:0.95rem;">
+                <input type="checkbox" id="driveSelectAll" ${u?"":"disabled"}>
+                <label for="driveSelectAll" style="cursor:pointer;margin-left:8px;">เลือกทั้งหมด (${e.files.length} ไฟล์)</label>
+            </div>
+        `,e.folders&&e.folders.length>0&&e.folders.forEach(p=>{const b=document.createElement("div");b.className="drive-file-item drive-folder-item",b.innerHTML=`
+                    <div class="drive-file-content">
+                        <span style="font-size:1.4rem; cursor:pointer;">📁</span>
+                        <div class="drive-file-info" style="margin-left:14px;">
+                            <div class="drive-file-name" style="font-weight:700;" title="${p.name}">${p.name}</div>
+                        </div>
                     </div>
-                </label>`}),n+="</div>";const r=yield h("🗂️ เลือกเอกสารบน Drive เพื่อนำมารวมไฟล์",n,!0),t=document.getElementById("driveSelectAll");if(t&&(t.onchange=()=>{document.querySelectorAll(".drive-file-cb").forEach(o=>o.checked=t.checked)}),r){const o=Array.from(document.querySelectorAll(".drive-file-cb:checked")).map(l=>l.value);o.length>0?Ee(o):x("⚠️ คำเตือน","ไม่ได้เลือกไฟล์ใด ๆ","info")}}else h("📁 แจ้งเตือน",e.message||"ไม่พบไฟล์ PDF ในโฟลเดอร์สำหรับแผ่นงานนี้ครับ",!1)}catch(s){I(),h("❌ ผิดพลาด",s.message,!1)}})}function Ee(s){return w(this,null,function*(){C("กำลังเริ่มดาวน์โหลดและรวมไฟล์ PDF ทั้งหมด... (กรุณารอสักครู่)");try{const{PDFDocument:e}=window.PDFLib,n=yield e.create();for(let l=0;l<s.length;l++){Se(`กำลังรวมไฟล์รายการที่ ${l+1}/${s.length}...`);const d=yield Ie("getFileBytes",{fileId:s[l]}),c=Uint8Array.from(atob(d),m=>m.charCodeAt(0)).buffer,a=yield e.load(c);(yield n.copyPages(a,a.getPageIndices())).forEach(m=>n.addPage(m))}const r=yield n.save(),t=new Blob([r],{type:"application/pdf"}),o=document.createElement("a");o.href=URL.createObjectURL(t),o.download=`Combined_Documents_${new Date().getTime()}.pdf`,o.click(),h("✨ รวมไฟล์สำเร็จ","ระบบได้ทำการดาวน์โหลดไฟล์ PDF รวมรายการของท่านเรียบร้อยแล้ว",!1)}catch(e){h("❌ เกิดข้อผิดพลาด","ล้มเหลวในการรวมไฟล์ PDF: "+e.message,!1)}finally{I()}})}function Ie(s,e){return w(this,null,function*(){const r=yield(yield fetch(E,{method:"POST",body:JSON.stringify($({action:s},e))})).json();if(r.status==="success")return r.data;throw new Error(r.message)})}function Se(s){const e=document.getElementById("loadingText");e&&(e.innerText=s)}function h(s,e,n=!1,r="🔔",t=null){return new Promise(o=>{const l=document.getElementById("modalOverlay");document.getElementById("modalIcon").textContent=r,document.getElementById("modalTitle").textContent=s;const d=document.getElementById("modalDesc");typeof e=="string"?d.innerHTML=e:(d.innerHTML="",d.appendChild(e));const c=document.getElementById("modalCancel"),a=document.getElementById("modalConfirm");c.style.display=n?"block":"none",a.textContent=n?"ยืนยัน":"ตกลง",l.classList.add("active"),a.onclick=()=>{l.classList.remove("active"),t&&t(),o(!0)},c.onclick=()=>{l.classList.remove("active"),o(!1)}})}function C(s){document.getElementById("loadingOverlay").classList.add("active"),document.getElementById("loadingText").textContent=s}function I(){document.getElementById("loadingOverlay").classList.remove("active")}function x(s,e,n="info",r=5e3){const t=document.getElementById("toastContainer"),o=document.createElement("div");o.className=`toast ${n}`;let l="🔔";n==="success"&&(l="✅"),n==="error"&&(l="❌"),n==="info"&&(l="ℹ️"),o.innerHTML=`
+                `,b.onclick=()=>n({action:"navigate",targetFolderId:p.id}),r.appendChild(b)}),u&&e.files.forEach(p=>{const b=document.createElement("div");b.className="drive-file-item",b.innerHTML=`
+                    <div class="drive-file-content">
+                        <input type="checkbox" class="drive-file-cb" value="${p.id}" data-name="${p.name}">
+                        <div class="drive-file-info">
+                            <div class="drive-file-name" title="${p.name}">${p.name}</div>
+                            <div class="drive-file-date">สร้างเมื่อ: ${p.date}</div>
+                        </div>
+                    </div>
+                    <div class="drive-file-actions">
+                        <button type="button" class="btn-file-action btn-download-file" data-tooltip="ดาวน์โหลดไฟล์นี้ 📥">📥</button>
+                        <button type="button" class="btn-file-action btn-print-file" data-tooltip="สั่งพิมพ์ไฟล์นี้ 🖨️">🖨️</button>
+                    </div>
+                `,b.querySelector(".btn-download-file").onclick=v=>{v.stopPropagation(),Ye(p.id,p.name)},b.querySelector(".btn-print-file").onclick=v=>{v.stopPropagation(),Ke(p.id,p.name)};const C=b.querySelector(".drive-file-cb");C.onchange=()=>{const v=r.querySelectorAll(".drive-file-cb:checked").length;i.style.display=v>0?"block":"none"},b.onclick=v=>{v.target.tagName!=="INPUT"&&v.target.tagName!=="BUTTON"&&(C.checked=!C.checked,C.dispatchEvent(new Event("change")))},r.appendChild(b)}),(!e.folders||e.folders.length===0)&&(!e.files||e.files.length===0)){const p=document.createElement("div");p.style.textAlign="center",p.style.padding="40px 10px",p.style.color="#64748b",p.innerHTML="📂 โฟลเดอร์นี้ไม่มีไฟล์ PDF หรือโฟลเดอร์ย่อยครับ",r.appendChild(p)}t.appendChild(r);const f=r.querySelector("#driveSelectAll");f&&(f.onchange=()=>{r.querySelectorAll(".drive-file-cb").forEach(p=>{p.checked=f.checked,p.dispatchEvent(new Event("change"))})});const d=document.getElementById("modalBtns");d.innerHTML="";const m=document.createElement("button");m.className="modal-btn",m.style.backgroundColor="var(--primary)",m.style.color="white",m.style.fontWeight="700",m.innerHTML="รวมและดาวน์โหลด 📥",u||(m.disabled=!0);const y=document.createElement("button");y.className="modal-btn",y.style.backgroundColor="var(--success)",y.style.color="white",y.style.fontWeight="700",y.innerHTML="พิมพ์เอกสาร 🖨️",u||(y.disabled=!0);const g=document.createElement("button");g.className="modal-btn",g.style.backgroundColor="#f1f5f9",g.style.color="#64748b",g.style.fontWeight="700",g.innerHTML="ปิดหน้าต่าง ❌",d.appendChild(m),d.appendChild(y),d.appendChild(g),a.classList.add("active");const S=()=>{d.innerHTML=`
+                <button id="modalCancel" class="modal-btn btn-cancel">ยกเลิก</button>
+                <button id="modalConfirm" class="modal-btn btn-confirm">ตกลง</button>
+            `};m.onclick=()=>{const p=Array.from(r.querySelectorAll(".drive-file-cb:checked")).map(b=>b.value);p.length>0?(a.classList.remove("active"),S(),n({action:"merge",fileIds:p})):R("⚠️ คำเตือน","กรุณาเลือกไฟล์ PDF ที่ต้องการรวมและดาวน์โหลด","info")},y.onclick=()=>{const p=Array.from(r.querySelectorAll(".drive-file-cb:checked")).map(b=>b.value);p.length>0?(a.classList.remove("active"),S(),n({action:"print",fileIds:p})):R("⚠️ คำเตือน","กรุณาเลือกไฟล์ PDF ที่ต้องการสั่งพิมพ์","info")},g.onclick=()=>{a.classList.remove("active"),S(),n({action:"close"})}})}function Ye(s,e){return I(this,null,function*(){x("กำลังดาวน์โหลดไฟล์...");try{const n=yield se("getFileBytes",{fileId:s}),a=Uint8Array.from(atob(n),l=>l.charCodeAt(0)),t=new Blob([a],{type:"application/pdf"}),o=document.createElement("a");o.href=URL.createObjectURL(t),o.download=e.endsWith(".pdf")?e:e+".pdf",o.click(),R("✅ ดาวน์โหลดสำเร็จ",`ดาวน์โหลดไฟล์ ${e} เรียบร้อยแล้ว`,"success")}catch(n){h("❌ ผิดพลาด","ไม่สามารถดาวน์โหลดไฟล์ได้: "+n.message,!1)}finally{w()}})}function Ke(s,e){return I(this,null,function*(){const n=window.open("","_blank");n&&(n.document.write(`
+            <html>
+            <head>
+                <title>กำลังเตรียมพิมพ์ - ${e}</title>
+                <style>
+                    body { font-family: sans-serif; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; background: #f8fafc; color: #475569; margin: 0; }
+                    .loader { border: 4px solid #cbd5e1; border-top: 4px solid #4f46e5; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin-bottom: 20px; }
+                    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+                </style>
+            </head>
+            <body>
+                <div class="loader"></div>
+                <h2>⏳ กำลังดาวน์โหลดและเตรียมเอกสารเพื่อสั่งพิมพ์...</h2>
+                <p>กรุณารอสักครู่ ระบบจะเปิดหน้าต่างสั่งพิมพ์ให้ท่านโดยอัตโนมัติ</p>
+            </body>
+            </html>
+        `),n.document.close()),x("กำลังเตรียมพิมพ์ไฟล์...");try{const a=yield se("getFileBytes",{fileId:s}),t=Uint8Array.from(atob(a),c=>c.charCodeAt(0)),o=new Blob([t],{type:"application/pdf"}),l=URL.createObjectURL(o);n&&(n.document.body.innerHTML="",n.document.title=`พิมพ์เอกสาร PDF - ${e}`,n.document.write(`
+                <html>
+                <head>
+                    <title>พิมพ์เอกสาร PDF - ${e}</title>
+                    <style>
+                        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; }
+                        iframe { width: 100%; height: 100%; border: none; }
+                    </style>
+                </head>
+                <body>
+                    <iframe id="pdfFrame" src="${l}"></iframe>
+                    <script>
+                        const frame = document.getElementById('pdfFrame');
+                        frame.onload = function() {
+                            setTimeout(() => {
+                                frame.contentWindow.focus();
+                                frame.contentWindow.print();
+                            }, 500);
+                        };
+                    <\/script>
+                </body>
+                </html>
+            `),n.document.close())}catch(a){n&&(n.document.body.innerHTML=`<h2 style="color:#ef4444;text-align:center;margin-top:100px;">❌ ไม่สามารถดาวน์โหลดไฟล์ได้: ${a.message}</h2>`),h("❌ ผิดพลาด","ไม่สามารถสั่งพิมพ์ไฟล์ได้: "+a.message,!1)}finally{w()}})}function ze(s){return I(this,null,function*(){const e=window.open("","_blank");e&&(e.document.write(`
+            <html>
+            <head>
+                <title>กำลังเตรียมพิมพ์เอกสารรวม</title>
+                <style>
+                    body { font-family: sans-serif; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; background: #f8fafc; color: #475569; margin: 0; }
+                    .loader { border: 4px solid #cbd5e1; border-top: 4px solid #4f46e5; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin-bottom: 20px; }
+                    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+                </style>
+            </head>
+            <body>
+                <div class="loader"></div>
+                <h2>⏳ กำลังโหลดและรวมเอกสารเพื่อสั่งพิมพ์...</h2>
+                <p id="statusMsg">กรุณารอสักครู่ ระบบจะเปิดหน้าต่างสั่งพิมพ์ให้อัตโนมัติ</p>
+            </body>
+            </html>
+        `),e.document.close()),x("กำลังดาวน์โหลดและรวมเอกสารเพื่อสั่งพิมพ์... (กรุณารอสักครู่)");try{const{PDFDocument:n}=window.PDFLib,a=yield n.create();for(let c=0;c<s.length;c++){const i=`กำลังรวมไฟล์รายการที่ ${c+1}/${s.length}...`;if(Se(i),e){const m=e.document.getElementById("statusMsg");m&&(m.textContent=i)}const r=yield se("getFileBytes",{fileId:s[c]}),u=Uint8Array.from(atob(r),m=>m.charCodeAt(0)).buffer,f=yield n.load(u);(yield a.copyPages(f,f.getPageIndices())).forEach(m=>a.addPage(m))}const t=yield a.save(),o=new Blob([t],{type:"application/pdf"}),l=URL.createObjectURL(o);e&&(e.document.body.innerHTML="",e.document.title="พิมพ์เอกสารรวม PDF",e.document.write(`
+                <html>
+                <head>
+                    <title>พิมพ์เอกสารรวม PDF</title>
+                    <style>
+                        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; }
+                        iframe { width: 100%; height: 100%; border: none; }
+                    </style>
+                </head>
+                <body>
+                    <iframe id="pdfFrame" src="${l}"></iframe>
+                    <script>
+                        const frame = document.getElementById('pdfFrame');
+                        frame.onload = function() {
+                            setTimeout(() => {
+                                frame.contentWindow.focus();
+                                frame.contentWindow.print();
+                            }, 500);
+                        };
+                    <\/script>
+                </body>
+                </html>
+            `),e.document.close())}catch(n){e&&(e.document.body.innerHTML=`<h2 style="color:#ef4444;text-align:center;margin-top:100px;">❌ ล้มเหลวในการรวมไฟล์เพื่อสั่งพิมพ์: ${n.message}</h2>`),h("❌ เกิดข้อผิดพลาด","ล้มเหลวในการรวมและสั่งพิมพ์ PDF: "+n.message,!1)}finally{w()}})}function Qe(s){return I(this,null,function*(){x("กำลังเริ่มดาวน์โหลดและรวมไฟล์ PDF ทั้งหมด... (กรุณารอสักครู่)");try{const{PDFDocument:e}=window.PDFLib,n=yield e.create();for(let l=0;l<s.length;l++){Se(`กำลังรวมไฟล์รายการที่ ${l+1}/${s.length}...`);const c=yield se("getFileBytes",{fileId:s[l]}),i=Uint8Array.from(atob(c),f=>f.charCodeAt(0)).buffer,r=yield e.load(i);(yield n.copyPages(r,r.getPageIndices())).forEach(f=>n.addPage(f))}const a=yield n.save(),t=new Blob([a],{type:"application/pdf"}),o=document.createElement("a");o.href=URL.createObjectURL(t),o.download=`Combined_Documents_${new Date().getTime()}.pdf`,o.click(),h("✨ รวมไฟล์สำเร็จ","ระบบได้ทำการดาวน์โหลดไฟล์ PDF รวมรายการของท่านเรียบร้อยแล้ว",!1)}catch(e){h("❌ เกิดข้อผิดพลาด","ล้มเหลวในการรวมไฟล์ PDF: "+e.message,!1)}finally{w()}})}function Ze(s,e){return I(this,null,function*(){const n=prompt("📂 กรุณาระบุชื่อโฟลเดอร์ย่อยใหม่:");if(!(!n||!n.trim())){x("กำลังสร้างโฟลเดอร์ย่อยใหม่บน Drive...");try{const a=localStorage.getItem("spreadsheetId")||"",o=yield(yield fetch(D,{method:"POST",body:JSON.stringify({action:"createSubFolder",parentFolderId:s,folderName:n.trim(),spreadsheetId:a})})).json();if(w(),o.status==="success")R("✅ สร้างโฟลเดอร์สำเร็จ",`สร้างโฟลเดอร์ "${n}" เรียบร้อยแล้ว`,"success"),e&&e();else throw new Error(o.message)}catch(a){w(),h("❌ ผิดพลาด",a.message,!1)}}})}function Xe(s,e){return I(this,null,function*(){x("กำลังโหลดรายการโฟลเดอร์ปลายทาง...");try{const n=localStorage.getItem("spreadsheetId")||"",t=yield(yield fetch(D,{method:"POST",body:JSON.stringify({action:"getDriveFiles",formId:B,spreadsheetId:n,folderId:q})})).json();if(w(),t.status==="success"){const o=t.data.folders||[],l=document.createElement("div");if(l.style.textAlign="left",l.innerHTML=`
+                <p style="margin-bottom:12px; font-weight:600;">กรุณาเลือกโฟลเดอร์ปลายทางเพื่อย้ายไฟล์จำนวน ${s.length} รายการ:</p>
+                <select id="moveFolderSelect" style="width:100%; padding:12px 18px; border-radius:12px; border:2px solid #e2e8f0;">
+                    <option value="${q}">📂 หน้าแรก (โฟลเดอร์หลัก)</option>
+                    ${o.map(i=>`<option value="${i.id}">📁 ${i.name}</option>`).join("")}
+                </select>
+            `,yield h("📦 ย้ายไฟล์เอกสาร PDF",l,!0,"📦")){const i=document.getElementById("moveFolderSelect").value;x("กำลังย้ายไฟล์ย่อยบน Google Drive...");const u=yield(yield fetch(D,{method:"POST",body:JSON.stringify({action:"moveFiles",fileIds:s,targetFolderId:i,spreadsheetId:n})})).json();if(w(),u.status==="success")R("✅ ย้ายไฟล์สำเร็จ",u.message,"success"),e&&e();else throw new Error(u.message)}}else throw new Error(t.message)}catch(n){w(),h("❌ ผิดพลาด",n.message,!1)}})}function se(s,e){return I(this,null,function*(){const n=localStorage.getItem("spreadsheetId")||"",t=yield(yield fetch(D,{method:"POST",body:JSON.stringify(_({action:s,spreadsheetId:n},e))})).json();if(t.status==="success")return t.data;throw new Error(t.message)})}function Se(s){const e=document.getElementById("loadingText");e&&(e.innerText=s)}function h(s,e,n=!1,a="🔔",t=null){return new Promise(o=>{const l=document.getElementById("modalOverlay");document.getElementById("modalIcon").textContent=a,document.getElementById("modalTitle").textContent=s;const c=document.getElementById("modalDesc");typeof e=="string"?c.innerHTML=e:(c.innerHTML="",c.appendChild(e));const i=document.getElementById("modalCancel"),r=document.getElementById("modalConfirm");i.style.display=n?"block":"none",r.textContent=n?"ยืนยัน":"ตกลง",l.classList.add("active"),r.onclick=()=>{l.classList.remove("active"),t&&t(),o(!0)},i.onclick=()=>{l.classList.remove("active"),o(!1)}})}function x(s){document.getElementById("loadingOverlay").classList.add("active"),document.getElementById("loadingText").textContent=s}function w(){document.getElementById("loadingOverlay").classList.remove("active")}function R(s,e,n="info",a=5e3){const t=document.getElementById("toastContainer"),o=document.createElement("div");o.className=`toast ${n}`;let l="🔔";n==="success"&&(l="✅"),n==="error"&&(l="❌"),n==="info"&&(l="ℹ️"),o.innerHTML=`
         <div class="toast-icon" style="font-size: 1.3rem;">${l}</div>
         <div class="toast-content" style="margin-left: 10px;">
             <div class="toast-title">${s}</div>
             <div class="toast-msg">${e}</div>
         </div>
         <div class="toast-close" onclick="this.parentElement.remove()">×</div>
-    `,t.appendChild(o),setTimeout(()=>{o.classList.add("fade-out"),setTimeout(()=>o.remove(),400)},r)}function W(s,e){const n=e.toLowerCase(),r=document.createElement("div");r.className="form-group";const t=document.createElement("label");t.textContent=P[n]||e;const o=document.createElement("input");o.id=`input_${e}`,o.placeholder=t.textContent,s.appendChild(t),s.appendChild(o)}function O(s,e,n,r){const t=document.createElement("label");t.style.display="flex",t.style.alignItems="center",t.style.gap="10px",t.style.cursor="pointer",t.style.padding="8px 12px",t.style.background="white",t.style.borderRadius="10px",t.style.border="1px solid #e2e8f0";const o=document.createElement("input");o.type="checkbox",o.name=e,o.value=r,o.style.width="18px",o.style.height="18px",o.style.accentColor="var(--primary)",t.appendChild(o),t.appendChild(document.createTextNode(n)),s.appendChild(t)}function xe(s,e){const n=document.getElementById("linksContainer"),r=document.createElement("div");r.className="batch-link",r.innerHTML=`<a href="${s}" target="_blank" style="text-decoration:none;color:inherit;display:block;width:100%;">📄 เปิดดูไฟล์เอกสาร: ${e}</a>`,n.appendChild(r)}window.saveRecordInline=de;window.editRecord=me;window.generateRecordPDF=ge;window.deleteRecord=pe;</script>
-  <style rel="stylesheet" crossorigin>:root{--h: 230;--primary: hsl(var(--h), 85%, 60%);--primary-light: hsl(var(--h), 85%, 95%);--primary-dark: hsl(var(--h), 85%, 45%);--accent: hsl(280, 80%, 65%);--success: hsl(150, 80%, 40%);--warning: hsl(45, 90%, 50%);--error: hsl(0, 80%, 60%);--bg-gradient: linear-gradient(135deg, hsl(var(--h), 30%, 96%) 0%, hsl(280, 20%, 92%) 100%);--glass: rgba(255, 255, 255, .85);--glass-border: rgba(255, 255, 255, .6);--shadow-lg: 0 20px 50px rgba(0, 0, 0, .08);--shadow-sm: 0 5px 15px rgba(0, 0, 0, .04)}*{margin:0;padding:0;box-sizing:border-box;font-family:Outfit,Sarabun,sans-serif;transition:all .3s cubic-bezier(.4,0,.2,1)}body{min-height:100vh;background:var(--bg-gradient);background-attachment:fixed;display:flex;justify-content:center;align-items:center;padding:30px 20px;color:#2c3e50;overflow-x:hidden}.bg-blobs{position:fixed;top:0;left:0;width:100%;height:100%;z-index:-1;overflow:hidden}.blob{position:absolute;width:450px;height:450px;background:radial-gradient(circle,var(--primary-light) 0%,transparent 70%);border-radius:50%;opacity:.6}.main-container{width:100%;max-width:1450px;background:var(--glass);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid var(--glass-border);border-radius:30px;box-shadow:var(--shadow-lg);padding:45px;position:relative;animation:slideUp .5s ease}header{margin-bottom:35px}h1{font-size:2.5rem;font-weight:700;background:linear-gradient(to right,var(--primary),var(--accent));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:8px}.subtitle{font-size:1.05rem;color:#64748b;font-weight:400}.page-section{display:none;width:100%;justify-content:center}.page-section.active{display:flex}.auth-container{display:none;width:100%;justify-content:center;align-items:center;min-height:80vh}.auth-container.active{display:flex}.auth-card{background:#fffc;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.5);padding:50px 40px;border-radius:28px;box-shadow:var(--shadow-lg);max-width:480px;width:100%;text-align:center;animation:slideUp .5s cubic-bezier(.34,1.56,.64,1)}.auth-icon{font-size:3.5rem;margin-bottom:20px;display:inline-block;animation:float 3s ease-in-out infinite}.auth-card h2{font-size:1.8rem;font-weight:700;color:#1e293b;margin-bottom:8px}.auth-card p{color:#64748b;font-size:.95rem;margin-bottom:15px}.header-portal-row{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(0,0,0,.05);padding-bottom:20px;margin-bottom:15px}.portal-logo{font-weight:700;font-size:1.25rem;color:var(--primary-dark)}.btn-logout{background:#fef2f2;color:#ef4444;border:1px solid #fee2e2;padding:10px 18px;border-radius:12px;font-weight:700;font-size:.9rem;cursor:pointer}.btn-logout:hover{background:#ef4444;color:#fff}.portal-sheets-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(350px,1fr));gap:25px;margin-top:35px}.sheet-card{background:#fff;border:1px solid #e2e8f0;border-radius:20px;padding:30px;position:relative;overflow:hidden;cursor:pointer;box-shadow:var(--shadow-sm);display:flex;flex-direction:column;justify-content:space-between;height:250px}.sheet-card:hover{transform:translateY(-8px);border-color:var(--primary);box-shadow:0 15px 30px #4f46e51f}.sheet-card:before{content:"";position:absolute;top:0;left:0;width:6px;height:100%;background:var(--primary)}.sheet-card.form-033:before{background:#8b5cf6}.sheet-card.form-034:before{background:#f59e0b}.sheet-card.form-035:before{background:#ec4899}.sheet-card-info h3{font-size:1.35rem;font-weight:700;color:#1e293b;margin-bottom:8px}.sheet-card-info p{color:#64748b;font-size:.9rem;margin-bottom:15px}.sheet-stat{display:flex;align-items:center;gap:8px;background:#f8fafc;padding:8px 14px;border-radius:10px;width:fit-content;font-size:.85rem;font-weight:700;color:#475569}.sheet-card-actions{display:flex;gap:12px;margin-top:20px}.sheet-card-actions .btn{padding:10px 15px;font-size:.85rem;border-radius:10px}.workspace-nav{display:flex;justify-content:space-between;align-items:center;background:#fffc;border-bottom:2px solid #f1f5f9;padding:15px 25px;border-radius:20px 20px 0 0;margin:-45px -45px 35px}.btn-nav-back{background:#f1f5f9;border:1px solid #e2e8f0;color:#475569;padding:10px 16px;border-radius:12px;font-weight:700;font-size:.9rem;cursor:pointer}.btn-nav-back:hover{background:#e2e8f0;color:#1e293b}.workspace-title-area{display:flex;align-items:center;gap:10px}.active-sheet-badge{background:var(--primary-light);color:var(--primary-dark);font-size:.75rem;font-weight:700;padding:4px 10px;border-radius:8px;text-transform:uppercase}#activeSheetName{font-size:1.35rem;font-weight:700;color:#1e293b}.workspace-tabs{display:flex;gap:5px;background:#f1f5f9;padding:4px;border-radius:12px}.work-tab{padding:10px 16px;border:none;background:transparent;font-weight:700;font-size:.85rem;color:#64748b;border-radius:8px;cursor:pointer}.work-tab.active{background:#fff;color:var(--primary);box-shadow:var(--shadow-sm)}.workspace-view{display:none}.workspace-view.active{display:block;animation:fadeIn .4s ease}.form-group{display:flex;flex-direction:column;gap:8px}label{font-size:.85rem;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.5px;padding-left:5px}input,select,textarea{padding:14px 18px;border-radius:14px;border:2px solid transparent;background:#fff;box-shadow:var(--shadow-sm);font-size:1rem;outline:none}input:focus,select:focus,textarea:focus{border-color:var(--primary);box-shadow:0 0 0 5px var(--primary-light)}.dynamic-section{display:block}.grid-layout{display:grid;grid-template-columns:repeat(2,1fr);gap:25px}.date-row{grid-column:span 2;display:grid;grid-template-columns:repeat(4,1fr);gap:15px;background:#00000005;padding:15px;border-radius:15px}.full-width{grid-column:span 2}.button-row{margin-top:40px;display:flex;gap:15px}.btn{flex:1;padding:16px 25px;border-radius:15px;border:none;font-weight:700;font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:var(--shadow-sm)}.btn-primary{background:var(--primary);color:#fff}.btn-primary:hover{background:var(--primary-dark);transform:translateY(-3px);box-shadow:0 10px 20px #4f46e533}.btn-outline{background:#fff;color:#475569;border:2px solid #e2e8f0}.btn-outline:hover{border-color:var(--primary);color:var(--primary)}.btn-success{background:var(--success);color:#fff}.btn-success:hover{filter:brightness(1.1);transform:translateY(-3px);box-shadow:0 10px 20px #10b98133}.recurring-row{grid-column:span 2;background:#4f46e50d;border:1px solid rgba(79,70,229,.15);padding:20px;border-radius:20px;margin-bottom:25px;display:flex;flex-direction:column;gap:15px}.switch-label{display:flex;align-items:center;gap:12px;cursor:pointer;user-select:none}.switch-text{font-weight:700;color:var(--primary);font-size:1rem}.recurring-controls{display:grid;grid-template-columns:1fr 1fr;gap:20px;padding-top:15px;border-top:1px dashed rgba(0,0,0,.1);display:none}.recurring-controls.active{display:grid;animation:fadeIn .4s ease}.modal-overlay{position:fixed;inset:0;background:#ffffffb3;backdrop-filter:blur(15px);-webkit-backdrop-filter:blur(15px);z-index:10000;display:none;justify-content:center;align-items:center;opacity:0;transition:opacity .4s ease}.modal-overlay.active{display:flex;opacity:1}.modal-box{background:#ffffffd9;border:1px solid rgba(255,255,255,.5);max-width:600px;width:95%;border-radius:24px;padding:35px;text-align:center;box-shadow:0 40px 100px #0003;transform:scale(.9);transition:transform .4s cubic-bezier(.34,1.56,.64,1)}.modal-overlay.active .modal-box{transform:scale(1)}.modal-icon{font-size:3.5rem;margin-bottom:20px;display:inline-block}.modal-title{font-size:1.5rem;font-weight:700;color:#1e293b;margin-bottom:12px}.modal-desc{font-size:1rem;color:#64748b;line-height:1.6;margin-bottom:30px}.modal-btns{display:flex;gap:12px}.modal-btn{flex:1;padding:12px 20px;border-radius:12px;font-weight:700;cursor:pointer;border:none}.btn-confirm{background:var(--primary);color:#fff}.btn-cancel{background:#f1f5f9;color:#64748b}.result-box{display:none;margin-top:30px;padding:30px;border-radius:20px;background:#f0fdf4;border:2px solid #bbf7d0;text-align:center;animation:slideUp .5s ease}.spinner{width:50px;height:50px;border:5px solid var(--primary-light);border-top-color:var(--primary);border-radius:50%;animation:spin 1s linear infinite}.dashboard-table-container{border:1px solid #e2e8f0;border-radius:16px;overflow:auto;max-height:65vh}.dashboard-table{width:max-content;min-width:100%;border-collapse:separate;border-spacing:0}.dashboard-table th{background:#f8fafc;padding:18px 20px;text-align:left;font-size:.85rem;font-weight:700;color:#64748b;border-bottom:1px solid #e2e8f0;position:sticky;top:0;z-index:10}.dashboard-table td{padding:12px 15px;border-bottom:1px solid #f1f5f9;font-size:.95rem;background:#fff}.dash-inline-input{width:100%;padding:10px 14px;border:1px solid transparent;background:#f8fafc;border-radius:10px;font-size:.9rem}.dash-inline-input:focus{background:#fff;border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-light)}.dashboard-table th:nth-child(1),.dashboard-table td:nth-child(1){position:sticky;left:0;z-index:15;background:#f1f5f9;font-weight:700;border-right:2px solid #e2e8f0;width:70px;min-width:70px;text-align:center}.dashboard-table th:nth-child(2),.dashboard-table td:nth-child(2){position:sticky;left:70px;z-index:14;background:#fff;border-right:1px solid #f1f5f9;box-shadow:5px 0 10px #00000005}.dashboard-table th:nth-child(2){background:#f8fafc;z-index:15}.dashboard-table th:last-child,.dashboard-table td:last-child{position:sticky;right:0;z-index:11;background:#fff;box-shadow:-10px 0 20px #0000000d;border-left:1px solid #f1f5f9}.dashboard-table th:last-child{background:#f8fafc;z-index:12}.action-btns{display:flex;gap:8px}.btn-action{width:38px;height:38px;border-radius:10px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1.1rem;transition:all .2s}.btn-save{background:#f0fdf4;color:#16a34a}.btn-save:hover{background:#16a34a;color:#fff}.btn-edit{background:#eff6ff;color:#2563eb}.btn-edit:hover{background:#2563eb;color:#fff}.btn-pdf{background:#fff7ed;color:#ea580c}.btn-pdf:hover{background:#ea580c;color:#fff}.btn-del{background:#fef2f2;color:#dc2626}.btn-del:hover{background:#dc2626;color:#fff}.table-batch-container{grid-column:span 2;background:#fff;border:1px solid #e2e8f0;border-radius:20px;padding:25px;margin-top:20px;box-shadow:var(--shadow-sm)}.batch-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}.batch-title{font-weight:700;font-size:1.1rem;color:var(--primary-dark)}.btn-add{background:var(--primary);color:#fff;padding:10px 18px;border-radius:10px;border:none;font-weight:700;font-size:.85rem;cursor:pointer}.btn-add:hover{background:var(--primary-dark)}.batch-table-wrapper{overflow-x:auto;border-radius:12px;border:1px solid #e2e8f0}.batch-table{width:100%;border-collapse:collapse}.batch-table th{background:#f8fafc;padding:14px 16px;font-size:.8rem;font-weight:700;color:#64748b;border-bottom:2px solid #e2e8f0;text-align:left}.batch-table td{padding:10px 12px;border-bottom:1px solid #f1f5f9}.batch-table input[type=text]{width:100%;padding:8px 12px;font-size:.9rem;border-radius:8px;border:1px solid #e2e8f0;box-shadow:none}.batch-table input[type=text]:focus{border-color:var(--primary)}.btn-remove{background:#fee2e2;color:#ef4444;border:none;padding:8px 12px;border-radius:8px;font-size:.8rem;font-weight:700;cursor:pointer}.btn-remove:hover{background:#ef4444;color:#fff}.unit-input-group{display:flex;gap:5px}.unit-select{padding:8px 10px;border-radius:8px;border:1px solid #e2e8f0;background:#fff;font-size:.85rem;box-shadow:none}.toast-container{position:fixed;bottom:20px;left:20px;z-index:10005;display:flex;flex-direction:column;gap:10px;max-width:400px;width:90%}.toast{display:flex;align-items:center;gap:15px;background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:16px;box-shadow:0 10px 30px #00000014;position:relative;animation:slideUp .3s cubic-bezier(.34,1.56,.64,1)}.toast.success{border-left:5px solid var(--success)}.toast.error{border-left:5px solid var(--error)}.toast.info{border-left:5px solid var(--primary)}.toast-content{flex:1}.toast-title{font-weight:700;font-size:.95rem;color:#1e293b;margin-bottom:2px}.toast-msg{font-size:.85rem;color:#64748b}.toast-close{cursor:pointer;font-size:1.2rem;color:#94a3b8}.toast-close:hover{color:#475569}.toast.fade-out{opacity:0;transform:translateY(20px);transition:opacity .4s,transform .4s}.stat-card{background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:20px;display:flex;align-items:center;gap:15px;box-shadow:var(--shadow-sm)}.stat-icon{font-size:2.2rem;background:var(--primary-light);width:60px;height:60px;border-radius:12px;display:flex;align-items:center;justify-content:center}.stat-info h4{font-size:.8rem;color:#64748b;text-transform:uppercase}.stat-info p{font-size:1.6rem;font-weight:700;color:#1e293b}.drive-list-container{border-radius:12px;overflow:hidden}@keyframes spin{to{transform:rotate(360deg)}}@keyframes float{0%,to{transform:translateY(0)}50%{transform:translateY(-10px)}}@keyframes slideUp{0%{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}@keyframes fadeIn{0%{opacity:0}to{opacity:1}}@media (max-width: 992px){.workspace-nav{flex-direction:column;gap:15px;align-items:flex-start}}@media (max-width: 768px){.grid-layout{grid-template-columns:1fr}.full-width{grid-column:span 1}.main-container{padding:25px}h1{font-size:1.8rem}}</style>
+    `,t.appendChild(o),setTimeout(()=>{o.classList.add("fade-out"),setTimeout(()=>o.remove(),400)},a)}function re(s,e){const n=e.toLowerCase(),a=document.createElement("div");a.className="form-group";const t=document.createElement("label");t.textContent=Y[n]||e;const o=document.createElement("input");o.id=`input_${e}`,o.placeholder=t.textContent,s.appendChild(t),s.appendChild(o)}function ee(s,e,n,a){const t=document.createElement("label");t.style.display="flex",t.style.alignItems="center",t.style.gap="10px",t.style.cursor="pointer",t.style.padding="8px 12px",t.style.background="white",t.style.borderRadius="10px",t.style.border="1px solid #e2e8f0";const o=document.createElement("input");o.type="checkbox",o.name=e,o.value=a,o.style.width="18px",o.style.height="18px",o.style.accentColor="var(--primary)",t.appendChild(o),t.appendChild(document.createTextNode(n)),s.appendChild(t)}function et(s,e){const n=document.getElementById("linksContainer"),a=document.createElement("div");a.className="batch-link",a.innerHTML=`<a href="${s}" target="_blank" style="text-decoration:none;color:inherit;display:block;width:100%;">📄 เปิดดูไฟล์เอกสาร: ${e}</a>`,n.appendChild(a)}function tt(){return I(this,null,function*(){const s=document.getElementById("adminSettingsModal");if(s){x("กำลังดึงการตั้งค่าระบบปัจจุบันจากหลังบ้าน...");try{const e=localStorage.getItem("spreadsheetId")||"",a=yield(yield fetch(D,{method:"POST",body:JSON.stringify({action:"getConfig",spreadsheetId:e}),headers:{"Content-Type":"text/plain;charset=utf-8"}})).json();if(a.status==="success"&&a.data){const t=a.data;document.getElementById("adminScriptUrl").value=D,document.getElementById("adminSpreadsheetId").value=t.SPREADSHEET_ID||e,["031","033","034","035"].forEach(l=>{const c=t.FORMS&&t.FORMS[l]?t.FORMS[l]:{},i=document.getElementById(`cfg_template_${l}`),r=document.getElementById(`cfg_folder_${l}`);i&&(i.value=c.templateId||""),r&&(r.value=c.folderId||"")});try{const c=yield(yield fetch(D,{method:"POST",body:JSON.stringify({action:"getAutoTriggerStatus",spreadsheetId:e}),headers:{"Content-Type":"text/plain;charset=utf-8"}})).json();c.status==="success"&&(document.getElementById("adminAutoGenerateTrigger").checked=c.data.isActive)}catch(l){}w(),s.classList.add("active")}else throw new Error(a.message||"ไม่สามารถดึงคอนฟิกได้")}catch(e){w(),h("❌ ดึงข้อมูลล้มเหลว","ไม่สามารถเชื่อมโยงค่าระบบได้: "+e.message,!1)}}})}function nt(){return I(this,null,function*(){const s=document.getElementById("adminSettingsModal"),e=document.getElementById("adminScriptUrl").value.trim(),n=document.getElementById("adminSpreadsheetId").value.trim(),a=document.getElementById("adminAutoGenerateTrigger").checked;if(!e){R("⚠️ คำเตือน","กรุณาระบุ Apps Script Web App URL","info");return}if(!n){R("⚠️ คำเตือน","กรุณาระบุ Google Spreadsheet ID","info");return}const t={SPREADSHEET_ID:n,DEBUG_MODE:!0,FORMS:{"031":{templateId:document.getElementById("cfg_template_031").value.trim(),folderId:document.getElementById("cfg_folder_031").value.trim()},"033":{templateId:document.getElementById("cfg_template_033").value.trim(),folderId:document.getElementById("cfg_folder_033").value.trim()},"034":{templateId:document.getElementById("cfg_template_034").value.trim(),folderId:document.getElementById("cfg_folder_034").value.trim()},"035":{templateId:document.getElementById("cfg_template_035").value.trim(),folderId:document.getElementById("cfg_folder_035").value.trim()}}};x("กำลังส่งการตั้งค่าและประมวลผลข้อมูลระบบ...");try{const l=yield(yield fetch(e,{method:"POST",body:JSON.stringify({action:"saveConfig",spreadsheetId:n,configData:t}),headers:{"Content-Type":"text/plain;charset=utf-8"}})).json();if(l.status==="success"){try{yield fetch(e,{method:"POST",body:JSON.stringify({action:"toggleAutoTrigger",enable:a,spreadsheetId:n}),headers:{"Content-Type":"text/plain;charset=utf-8"}})}catch(c){}w(),D=e,localStorage.setItem("scriptUrl",e),sessionStorage.setItem("scriptUrl",e),localStorage.setItem("spreadsheetId",n),sessionStorage.setItem("spreadsheetId",n),s&&s.classList.remove("active"),h("✅ สำเร็จ","บันทึกการตั้งค่าระบบผู้ดูแลลงใน Apps Script และจัดเก็บเสร็จเรียบร้อยแล้ว!",!1),V()}else throw new Error(l.message||"บันทึกล้มเหลว")}catch(o){w(),h("❌ ข้อผิดพลาด","ไม่สามารถบันทึกค่าระบบลงหลังบ้านได้: "+o.message,!1)}})}function Ee(s,e){const n=document.getElementById("progressModal"),a=document.getElementById("progressBarFill"),t=document.getElementById("progressLogBox"),o=document.getElementById("progressBtnContainer"),l=document.getElementById("progressIcon");l&&(l.textContent="⏳",l.style.animation="spin 2s linear infinite"),document.getElementById("progressTitle").textContent=s,document.getElementById("progressDesc").textContent=`กำลังเตรียมข้อมูลประมวลผล (0 / ${e} รายการ)`,a&&(a.style.width="0%"),t&&(t.innerHTML='<div style="color:#64748b;">⏳ เริ่มต้นติดตามและประมวลผลเอกสาร...</div>'),o&&(o.style.display="none"),n&&n.classList.add("active")}function j(s,e,n){const a=document.getElementById("progressBarFill"),t=document.getElementById("progressDesc"),o=Math.round(s/e*100);a&&(a.style.width=`${o}%`),t&&(t.textContent=`${n} (${s} / ${e} รายการ - ${o}%)`)}function k(s){const e=document.getElementById("progressLogBox");if(e){const n=document.createElement("div");n.style.marginBottom="4px",n.textContent=`[${new Date().toLocaleTimeString()}] ${s}`,e.appendChild(n),e.scrollTop=e.scrollHeight}}function te(){const s=document.getElementById("progressBtnContainer"),e=document.getElementById("btnConfirmProgress"),n=document.getElementById("progressIcon");n&&(n.textContent="🎉",n.style.animation="none"),s&&e&&(s.style.display="block",e.onclick=()=>{const a=document.getElementById("progressModal");a&&a.classList.remove("active"),z(),K(B)})}window.saveRecordInline=Ne;window.editRecord=He;window.generateRecordPDF=Ue;window.deleteRecord=je;</script>
+  <style rel="stylesheet" crossorigin>:root{--h: 230;--primary: hsl(var(--h), 85%, 60%);--primary-light: hsl(var(--h), 85%, 95%);--primary-dark: hsl(var(--h), 85%, 45%);--accent: hsl(280, 80%, 65%);--success: hsl(150, 80%, 40%);--warning: hsl(45, 90%, 50%);--error: hsl(0, 80%, 60%);--bg-gradient: linear-gradient(135deg, hsl(var(--h), 30%, 96%) 0%, hsl(280, 20%, 92%) 100%);--glass: rgba(255, 255, 255, .85);--glass-border: rgba(255, 255, 255, .6);--shadow-lg: 0 20px 50px rgba(0, 0, 0, .08);--shadow-sm: 0 5px 15px rgba(0, 0, 0, .04)}*{margin:0;padding:0;box-sizing:border-box;font-family:Outfit,Sarabun,sans-serif;transition:all .3s cubic-bezier(.4,0,.2,1)}body{min-height:100vh;background:var(--bg-gradient);background-attachment:fixed;display:flex;justify-content:center;align-items:center;padding:30px 20px;color:#2c3e50;overflow-x:hidden}.bg-blobs{position:fixed;top:0;left:0;width:100%;height:100%;z-index:-1;overflow:hidden}.blob{position:absolute;width:450px;height:450px;background:radial-gradient(circle,var(--primary-light) 0%,transparent 70%);border-radius:50%;opacity:.6}.main-container{width:100%;max-width:1450px;background:var(--glass);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid var(--glass-border);border-radius:30px;box-shadow:var(--shadow-lg);padding:45px;position:relative;animation:slideUp .5s ease}header{margin-bottom:35px}h1{font-size:2.5rem;font-weight:700;background:linear-gradient(to right,var(--primary),var(--accent));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:8px}.subtitle{font-size:1.05rem;color:#64748b;font-weight:400}.page-section{display:none;width:100%;justify-content:center}.page-section.active{display:flex}.auth-container{display:none;width:100%;justify-content:center;align-items:center;min-height:80vh}.auth-container.active{display:flex}.auth-card{background:#fffc;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.5);padding:50px 40px;border-radius:28px;box-shadow:var(--shadow-lg);max-width:480px;width:100%;text-align:center;animation:slideUp .5s cubic-bezier(.34,1.56,.64,1)}.auth-icon{font-size:3.5rem;margin-bottom:20px;display:inline-block;animation:float 3s ease-in-out infinite}.auth-card h2{font-size:1.8rem;font-weight:700;color:#1e293b;margin-bottom:8px}.auth-card p{color:#64748b;font-size:.95rem;margin-bottom:15px}.header-portal-row{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(0,0,0,.05);padding-bottom:20px;margin-bottom:15px}.portal-logo{font-weight:700;font-size:1.25rem;color:var(--primary-dark)}.btn-logout{background:#fef2f2;color:#ef4444;border:1px solid #fee2e2;padding:10px 18px;border-radius:12px;font-weight:700;font-size:.9rem;cursor:pointer}.btn-logout:hover{background:#ef4444;color:#fff}.btn-sync{background:var(--primary-light);color:var(--primary-dark);border:1px solid rgba(79,70,229,.2);padding:10px 18px;border-radius:12px;font-weight:700;font-size:.9rem;cursor:pointer}.btn-sync:hover{background:var(--primary);color:#fff}.portal-sheets-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(350px,1fr));gap:25px;margin-top:35px}.sheet-card{background:#fff;border:1px solid #e2e8f0;border-radius:20px;padding:30px;position:relative;overflow:hidden;cursor:pointer;box-shadow:var(--shadow-sm);display:flex;flex-direction:column;justify-content:space-between;height:250px}.sheet-card:hover{transform:translateY(-8px);border-color:var(--primary);box-shadow:0 15px 30px #4f46e51f}.sheet-card:before{content:"";position:absolute;top:0;left:0;width:6px;height:100%;background:var(--primary)}.sheet-card.form-033:before{background:#8b5cf6}.sheet-card.form-034:before{background:#f59e0b}.sheet-card.form-035:before{background:#ec4899}.sheet-card-info h3{font-size:1.35rem;font-weight:700;color:#1e293b;margin-bottom:8px}.sheet-card-info p{color:#64748b;font-size:.9rem;margin-bottom:15px}.sheet-stat{display:flex;align-items:center;gap:8px;background:#f8fafc;padding:8px 14px;border-radius:10px;width:fit-content;font-size:.85rem;font-weight:700;color:#475569}.sheet-card-actions{display:flex;gap:12px;margin-top:20px}.sheet-card-actions .btn{padding:10px 15px;font-size:.85rem;border-radius:10px}.workspace-nav{display:flex;justify-content:space-between;align-items:center;background:#fffc;border-bottom:2px solid #f1f5f9;padding:15px 25px;border-radius:20px 20px 0 0;margin:-45px -45px 35px}.btn-nav-back{background:#f1f5f9;border:1px solid #e2e8f0;color:#475569;padding:10px 16px;border-radius:12px;font-weight:700;font-size:.9rem;cursor:pointer}.btn-nav-back:hover{background:#e2e8f0;color:#1e293b}.workspace-title-area{display:flex;align-items:center;gap:10px}.active-sheet-badge{background:var(--primary-light);color:var(--primary-dark);font-size:.75rem;font-weight:700;padding:4px 10px;border-radius:8px;text-transform:uppercase}#activeSheetName{font-size:1.35rem;font-weight:700;color:#1e293b}.workspace-tabs{display:flex;gap:5px;background:#f1f5f9;padding:4px;border-radius:12px}.work-tab{padding:10px 16px;border:none;background:transparent;font-weight:700;font-size:.85rem;color:#64748b;border-radius:8px;cursor:pointer}.work-tab.active{background:#fff;color:var(--primary);box-shadow:var(--shadow-sm)}.workspace-view{display:none}.workspace-view.active{display:block;animation:fadeIn .4s ease}.form-group{display:flex;flex-direction:column;gap:8px}label{font-size:.85rem;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.5px;padding-left:5px}input,select,textarea{padding:14px 18px;border-radius:14px;border:2px solid transparent;background:#fff;box-shadow:var(--shadow-sm);font-size:1rem;outline:none}input:focus,select:focus,textarea:focus{border-color:var(--primary);box-shadow:0 0 0 5px var(--primary-light)}.dynamic-section{display:block}.grid-layout{display:grid;grid-template-columns:repeat(2,1fr);gap:25px}.date-row{grid-column:span 2;display:grid;grid-template-columns:repeat(4,1fr);gap:15px;background:#00000005;padding:15px;border-radius:15px}.full-width{grid-column:span 2}.button-row{margin-top:40px;display:flex;gap:15px}.btn{flex:1;padding:16px 25px;border-radius:15px;border:none;font-weight:700;font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:var(--shadow-sm)}.btn-primary{background:var(--primary);color:#fff}.btn-primary:hover{background:var(--primary-dark);transform:translateY(-3px);box-shadow:0 10px 20px #4f46e533}.btn-outline{background:#fff;color:#475569;border:2px solid #e2e8f0}.btn-outline:hover{border-color:var(--primary);color:var(--primary)}.btn-success{background:var(--success);color:#fff}.btn-success:hover{filter:brightness(1.1);transform:translateY(-3px);box-shadow:0 10px 20px #10b98133}.recurring-row{grid-column:span 2;background:#4f46e50d;border:1px solid rgba(79,70,229,.15);padding:20px;border-radius:20px;margin-bottom:25px;display:flex;flex-direction:column;gap:15px}.switch-label{display:flex;align-items:center;gap:12px;cursor:pointer;user-select:none}.switch-text{font-weight:700;color:var(--primary);font-size:1rem}.recurring-controls{display:grid;grid-template-columns:1fr 1fr;gap:20px;padding-top:15px;border-top:1px dashed rgba(0,0,0,.1);display:none}.recurring-controls.active{display:grid;animation:fadeIn .4s ease}.modal-overlay{position:fixed;inset:0;background:#ffffffb3;backdrop-filter:blur(15px);-webkit-backdrop-filter:blur(15px);z-index:10000;display:none;justify-content:center;align-items:center;opacity:0;transition:opacity .4s ease}.modal-overlay.active{display:flex;opacity:1}.modal-box{background:#ffffffd9;border:1px solid rgba(255,255,255,.5);max-width:600px;width:95%;border-radius:24px;padding:35px;text-align:center;box-shadow:0 40px 100px #0003;transform:scale(.9);transition:transform .4s cubic-bezier(.34,1.56,.64,1)}.modal-overlay.active .modal-box{transform:scale(1)}.modal-icon{font-size:3.5rem;margin-bottom:20px;display:inline-block}.modal-title{font-size:1.5rem;font-weight:700;color:#1e293b;margin-bottom:12px}.modal-desc{font-size:1rem;color:#64748b;line-height:1.6;margin-bottom:30px}.modal-btns{display:flex;gap:12px}.modal-btn{flex:1;padding:12px 20px;border-radius:12px;font-weight:700;cursor:pointer;border:none}.btn-confirm{background:var(--primary);color:#fff}.btn-cancel{background:#f1f5f9;color:#64748b}.result-box{display:none;margin-top:30px;padding:30px;border-radius:20px;background:#f0fdf4;border:2px solid #bbf7d0;text-align:center;animation:slideUp .5s ease}.spinner{width:50px;height:50px;border:5px solid var(--primary-light);border-top-color:var(--primary);border-radius:50%;animation:spin 1s linear infinite}.dashboard-table-container{border:1px solid #e2e8f0;border-radius:16px;overflow:auto;max-height:65vh}.dashboard-table{width:max-content;min-width:100%;border-collapse:separate;border-spacing:0}.dashboard-table th{background:#f8fafc;padding:18px 20px;text-align:left;font-size:.85rem;font-weight:700;color:#64748b;border-bottom:1px solid #e2e8f0;position:sticky;top:0;z-index:10}.dashboard-table td{padding:12px 15px;border-bottom:1px solid #f1f5f9;font-size:.95rem;background:#fff}.dash-inline-input{width:100%;padding:10px 14px;border:1px solid transparent;background:#f8fafc;border-radius:10px;font-size:.9rem}.dash-inline-input:focus{background:#fff;border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-light)}.dashboard-table th:nth-child(1),.dashboard-table td:nth-child(1){position:sticky;left:0;z-index:15;background:#f1f5f9;font-weight:700;border-right:2px solid #e2e8f0;width:70px;min-width:70px;text-align:center}.dashboard-table th:nth-child(2),.dashboard-table td:nth-child(2){position:sticky;left:70px;z-index:14;background:#fff;border-right:1px solid #f1f5f9;box-shadow:5px 0 10px #00000005}.dashboard-table th:nth-child(2){background:#f8fafc;z-index:15}.dashboard-table th:last-child,.dashboard-table td:last-child{position:sticky;right:0;z-index:11;background:#fff;box-shadow:-10px 0 20px #0000000d;border-left:1px solid #f1f5f9}.dashboard-table th:last-child{background:#f8fafc;z-index:12}.action-btns{display:flex;gap:8px}.btn-action{width:38px;height:38px;border-radius:10px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1.1rem;transition:all .2s}.btn-save{background:#f0fdf4;color:#16a34a}.btn-save:hover{background:#16a34a;color:#fff}.btn-edit{background:#eff6ff;color:#2563eb}.btn-edit:hover{background:#2563eb;color:#fff}.btn-pdf{background:#fff7ed;color:#ea580c}.btn-pdf:hover{background:#ea580c;color:#fff}.btn-del{background:#fef2f2;color:#dc2626}.btn-del:hover{background:#dc2626;color:#fff}.table-batch-container{grid-column:span 2;background:#fff;border:1px solid #e2e8f0;border-radius:20px;padding:25px;margin-top:20px;box-shadow:var(--shadow-sm)}.batch-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}.batch-title{font-weight:700;font-size:1.1rem;color:var(--primary-dark)}.btn-add{background:var(--primary);color:#fff;padding:10px 18px;border-radius:10px;border:none;font-weight:700;font-size:.85rem;cursor:pointer}.btn-add:hover{background:var(--primary-dark)}.batch-table-wrapper{overflow-x:auto;border-radius:12px;border:1px solid #e2e8f0}.batch-table{width:100%;border-collapse:collapse}.batch-table th{background:#f8fafc;padding:14px 16px;font-size:.8rem;font-weight:700;color:#64748b;border-bottom:2px solid #e2e8f0;text-align:left}.batch-table td{padding:10px 12px;border-bottom:1px solid #f1f5f9}.batch-table input[type=text]{width:100%;padding:8px 12px;font-size:.9rem;border-radius:8px;border:1px solid #e2e8f0;box-shadow:none}.batch-table input[type=text]:focus{border-color:var(--primary)}.btn-remove{background:#fee2e2;color:#ef4444;border:none;padding:8px 12px;border-radius:8px;font-size:.8rem;font-weight:700;cursor:pointer}.btn-remove:hover{background:#ef4444;color:#fff}.unit-input-group{display:flex;gap:5px}.unit-select{padding:8px 10px;border-radius:8px;border:1px solid #e2e8f0;background:#fff;font-size:.85rem;box-shadow:none}.toast-container{position:fixed;bottom:20px;left:20px;z-index:10005;display:flex;flex-direction:column;gap:10px;max-width:400px;width:90%}.toast{display:flex;align-items:center;gap:15px;background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:16px;box-shadow:0 10px 30px #00000014;position:relative;animation:slideUp .3s cubic-bezier(.34,1.56,.64,1)}.toast.success{border-left:5px solid var(--success)}.toast.error{border-left:5px solid var(--error)}.toast.info{border-left:5px solid var(--primary)}.toast-content{flex:1}.toast-title{font-weight:700;font-size:.95rem;color:#1e293b;margin-bottom:2px}.toast-msg{font-size:.85rem;color:#64748b}.toast-close{cursor:pointer;font-size:1.2rem;color:#94a3b8}.toast-close:hover{color:#475569}.toast.fade-out{opacity:0;transform:translateY(20px);transition:opacity .4s,transform .4s}.stat-card{background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:20px;display:flex;align-items:center;gap:15px;box-shadow:var(--shadow-sm)}.stat-icon{font-size:2.2rem;background:var(--primary-light);width:60px;height:60px;border-radius:12px;display:flex;align-items:center;justify-content:center}.stat-info h4{font-size:.8rem;color:#64748b;text-transform:uppercase}.stat-info p{font-size:1.6rem;font-weight:700;color:#1e293b}.drive-list-container{border-radius:12px;overflow:hidden}@keyframes spin{to{transform:rotate(360deg)}}@keyframes float{0%,to{transform:translateY(0)}50%{transform:translateY(-10px)}}@keyframes slideUp{0%{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}@keyframes fadeIn{0%{opacity:0}to{opacity:1}}@media (max-width: 992px){.workspace-nav{flex-direction:column;gap:15px;align-items:flex-start}}@media (max-width: 768px){.grid-layout{grid-template-columns:1fr}.full-width{grid-column:span 1}.main-container{padding:25px}h1{font-size:1.8rem}}.dash-tool-btns{display:flex;gap:12px;align-items:center}.btn-icon-round{width:44px;height:44px;border-radius:12px;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-size:1.25rem;box-shadow:0 4px 6px -1px #0000000d,0 2px 4px -1px #00000008;position:relative;transition:all .2s cubic-bezier(.4,0,.2,1)}.btn-icon-round:hover{transform:translateY(-3px);box-shadow:0 10px 15px -3px #0000001a,0 4px 6px -2px #0000000d}.btn-icon-round:active{transform:translateY(0) scale(.95)}.btn-refresh-icon{background-color:#f0f9ff;color:#0284c7;border:1px solid #bae6fd}.btn-refresh-icon:hover{background-color:#0284c7;color:#fff}.btn-drive-icon{background-color:#ecfdf5;color:#059669;border:1px solid #a7f3d0}.btn-drive-icon:hover{background-color:#059669;color:#fff}.btn-pdfall-icon{background-color:#fff7ed;color:#ea580c;border:1px solid #fed7aa}.btn-pdfall-icon:hover{background-color:#ea580c;color:#fff}.btn-saveall-icon{background-color:#faf5ff;color:#7c3aed;border:1px solid #e9d5ff}.btn-saveall-icon:hover{background-color:#7c3aed;color:#fff}.btn-globalpdf-icon{background-color:#fefce8;color:#ca8a04;border:1px solid #fef08a}.btn-globalpdf-icon:hover{background-color:#ca8a04;color:#fff}[data-tooltip]{position:relative}[data-tooltip]:after{content:attr(data-tooltip);position:absolute;bottom:125%;left:50%;transform:translate(-50%) scale(.9);background:#1e293b;color:#fff;padding:6px 12px;border-radius:8px;font-size:.8rem;font-weight:600;white-space:nowrap;opacity:0;visibility:hidden;transition:all .2s cubic-bezier(.4,0,.2,1);z-index:1000;box-shadow:0 10px 15px -3px #0000001a,0 4px 6px -2px #0000000d;pointer-events:none}[data-tooltip]:before{content:"";position:absolute;bottom:110%;left:50%;transform:translate(-50%) scale(.9);border-width:6px 6px 0;border-style:solid;border-color:#1e293b transparent transparent;opacity:0;visibility:hidden;transition:all .2s cubic-bezier(.4,0,.2,1);z-index:1000;pointer-events:none}[data-tooltip]:hover:after,[data-tooltip]:hover:before{opacity:1;visibility:visible;transform:translate(-50%) scale(1)}.drive-list-container{display:flex;flex-direction:column;gap:12px;max-height:380px;overflow-y:auto;padding:10px 5px;margin-top:15px;text-align:left}.select-all-header{display:flex;align-items:center;padding:12px 18px;background:#f8fafc;border-radius:12px;border:1px solid #e2e8f0;font-weight:700;color:#334155;margin-bottom:5px;font-size:.95rem}.drive-file-item{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;background:#fff;border:1px solid #e2e8f0;border-radius:14px;cursor:pointer;transition:all .2s cubic-bezier(.4,0,.2,1)}.drive-file-item:hover{background:#f8fafc;border-color:var(--primary-light);transform:translateY(-1px);box-shadow:0 4px 6px -1px #00000008}.drive-file-content{display:flex;align-items:center;flex:1;min-width:0}.drive-file-info{margin-left:14px;min-width:0;flex:1}.drive-file-name{font-weight:600;color:#1e293b;font-size:.95rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.drive-file-date{font-size:.75rem;color:#64748b;margin-top:3px}.drive-file-actions{display:flex;gap:8px;align-items:center;margin-left:15px}.btn-file-action{width:36px;height:36px;border-radius:8px;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-size:1rem;background:#f8fafc;border:1px solid #e2e8f0;transition:all .2s cubic-bezier(.4,0,.2,1)}.btn-file-action:active{transform:scale(.92)}.btn-file-action.btn-download-file:hover{background:#e0f2fe;color:#0284c7;border-color:#bae6fd}.btn-file-action.btn-print-file:hover{background:#ecfdf5;color:#059669;border-color:#a7f3d0}.admin-config-table{margin-top:15px;background:#fff;border-radius:12px;border:1px solid #cbd5e1;overflow:hidden}.admin-config-table th,.admin-config-table td{padding:12px 15px;border-bottom:1px solid #cbd5e1;border-right:1px solid #cbd5e1;vertical-align:middle}.admin-config-table th:last-child,.admin-config-table td:last-child{border-right:none}.admin-config-table tr:last-child td{border-bottom:none}.admin-config-table input[type=text]{width:100%;padding:10px 14px;border:1px solid #cbd5e1;border-radius:8px;font-size:.85rem;background:#f8fafc;transition:all .2s cubic-bezier(.4,0,.2,1)}.admin-config-table input[type=text]:focus{background:#fff;border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-light)}.btn-admin{background-color:#f1f5f9;color:#475569;border:1px solid #cbd5e1;padding:10px 18px;border-radius:12px;font-weight:700;font-size:.9rem;cursor:pointer}.btn-admin:hover{background-color:#cbd5e1;color:#1e293b;transform:translateY(-2px)}.drive-breadcrumb-container{display:flex;align-items:center;gap:8px;background:#f8fafc;padding:10px 18px;border-radius:12px;border:1px solid #e2e8f0;font-size:.9rem;font-weight:600;margin-bottom:15px;flex-wrap:wrap;text-align:left}.drive-breadcrumb-link{color:var(--primary);cursor:pointer;transition:color .2s ease}.drive-breadcrumb-link:hover{color:var(--primary-dark);text-decoration:underline}.drive-breadcrumb-link.active{color:#475569;cursor:default;pointer-events:none;text-decoration:none}.drive-folder-item{border-left:5px solid #d97706!important}.drive-folder-item:hover{background:#fffbeb!important;border-color:#d97706!important}#progressLogBox::-webkit-scrollbar{width:6px}#progressLogBox::-webkit-scrollbar-track{background:transparent}#progressLogBox::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:4px}#progressLogBox::-webkit-scrollbar-thumb:hover{background:#94a3b8}</style>
 </head>
 
 <body>
@@ -125,13 +1052,18 @@
 
     <!-- 1. หน้าจอ Authentication (Login) -->
     <div id="loginPage" class="auth-container active">
-        <div class="auth-card">
+        <!-- การ์ดเข้าสู่ระบบปกติ (Login Card) -->
+        <div id="loginCard" class="auth-card">
             <div class="auth-icon">🔑</div>
             <h2>เข้าสู่ระบบจัดการเอกสาร</h2>
             <p>ระบบสร้างและจัดการเอกสาร PDF อัจฉริยะ</p>
             <div class="form-group" style="margin-top: 25px; text-align: left;">
                 <label for="scriptUrlInput">Apps Script Web App URL</label>
                 <input type="url" id="scriptUrlInput" placeholder="https://script.google.com/macros/s/.../exec">
+            </div>
+            <div class="form-group" style="margin-top: 15px; text-align: left;">
+                <label for="spreadsheetIdInput">Google Spreadsheet ID</label>
+                <input type="text" id="spreadsheetIdInput" placeholder="ป้อน ID ของแผ่นงาน Google Sheets (เว้นว่างไว้เพื่อใช้ค่าเริ่มต้น)">
             </div>
             <form id="loginForm" style="margin-top: 15px; width: 100%; text-align: left;">
                 <div class="form-group">
@@ -140,6 +1072,84 @@
                 </div>
                 <button type="submit" class="btn btn-primary" style="margin-top: 25px; width: 100%; height: 52px; font-weight: 700;">เข้าสู่ระบบ 🚀</button>
             </form>
+            <div style="margin-top: 20px; text-align: center; border-top: 1px dashed rgba(0,0,0,0.08); padding-top: 15px;">
+                <button type="button" id="btnGoToSetup" style="background:none; border:none; color:var(--primary); font-weight:700; cursor:pointer; text-decoration:underline; font-size:0.9rem;">⚙️ ตั้งค่าระบบ / คัดลอกเทมเพลตครั้งแรก</button>
+            </div>
+        </div>
+
+        <!-- การ์ดตั้งค่าระบบครั้งแรก (Setup Card) -->
+        <div id="setupCard" class="auth-card" style="display: none;">
+            <div class="auth-icon">⚙️</div>
+            <h2>ตั้งค่าระบบครั้งแรก</h2>
+            <p>ระบบจะสร้างโฟลเดอร์และคัดลอกไฟล์เทมเพลตทั้งหมด ไปยังบัญชี Google Drive ของคุณโดยอัตโนมัติ</p>
+            
+            <div class="form-group" style="margin-top: 25px; text-align: left;">
+                <label for="setupScriptUrl">Apps Script Web App URL ของคุณ</label>
+                <input type="url" id="setupScriptUrl" placeholder="https://script.google.com/macros/s/.../exec" required>
+                <span style="font-size: 0.75rem; color: #64748b; margin-top: 4px; display: block;">* วางลิงก์เว็บแอปที่ได้จากการ Deploy ในบัญชีของคุณ</span>
+            </div>
+
+            <div class="form-group" style="margin-top: 15px; text-align: left;">
+                <label for="setupFolderUrl">ลิงก์โฟลเดอร์ Google Drive หรือ ID ปลายทาง</label>
+                <input type="text" id="setupFolderUrl" placeholder="https://drive.google.com/drive/folders/..." required>
+                <span style="font-size: 0.75rem; color: #64748b; margin-top: 4px; display: block;">* วางลิงก์โฟลเดอร์ใน Drive ของคุณเพื่อคัดลอกไฟล์เทมเพลตไปบันทึก</span>
+            </div>
+            
+            <div class="form-group" style="margin-top: 15px; text-align: left;">
+                <label for="setupPassword">รหัสผ่านสำหรับยืนยันการตั้งค่า</label>
+                <input type="password" id="setupPassword" placeholder="กรอกรหัสผ่านเพื่อติดตั้ง (เช่น 1234)" required>
+            </div>
+            
+            <button type="button" id="btnStartSetup" class="btn btn-primary" style="margin-top: 25px; width: 100%; height: 52px; font-weight: 700;">เริ่มตั้งค่าระบบอัตโนมัติ 🚀</button>
+            
+            <div id="setupStatus" style="margin-top: 15px; font-weight: 700; color: var(--primary); display: none; text-align: center;">
+                กำลังเริ่มต้นตั้งค่า...
+            </div>
+
+            <div style="margin-top: 20px; text-align: center; border-top: 1px dashed rgba(0,0,0,0.08); padding-top: 15px; display: flex; flex-direction: column; gap: 10px; align-items: center;">
+                <button type="button" id="btnOpenGuide" style="background:none; border:none; color:var(--primary); font-weight:700; cursor:pointer; text-decoration:underline; font-size:0.9rem;">📖 ดูคู่มือการติดตั้งแบบละเอียด (Step-by-Step)</button>
+                <button type="button" id="btnBackToLogin" style="background:none; border:none; color:#64748b; font-weight:700; cursor:pointer; text-decoration:underline; font-size:0.9rem;">⬅️ ย้อนกลับไปหน้าเข้าสู่ระบบ</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. Modal แสดงคู่มือการติดตั้งระบบ (Setup Guide Modal) -->
+    <div id="guideModal" class="modal-overlay">
+        <div class="modal-box" style="max-width: 800px; text-align: left; max-height: 85vh; overflow-y: auto;">
+            <span class="modal-icon" style="font-size: 2.5rem; display: block; text-align: center; margin-bottom: 10px;">📖</span>
+            <div class="modal-title" style="text-align: center; font-size: 1.5rem; margin-bottom: 20px; font-weight: 700; color: #1e293b;">คู่มือการติดตั้งระบบ Step-by-Step</div>
+            
+            <div class="guide-steps" style="display: flex; flex-direction: column; gap: 20px; color: #475569; font-size: 0.95rem; line-height: 1.6;">
+                <div class="step-item" style="border-bottom: 1px solid rgba(0,0,0,0.05); padding-bottom: 15px;">
+                    <strong style="color: var(--primary); display: block; font-size: 1.05rem; margin-bottom: 5px;">ขั้นตอนที่ 1: สร้าง Google Sheets เปล่า</strong>
+                    <p>สร้าง Google Sheets ใหม่ขึ้นมา 1 ชีตบน Google Drive ของคุณ จากนั้นไปที่เมนูหลักด้านบน เลือก <strong>ส่วนขยาย (Extensions) &gt; Apps Script</strong></p>
+                </div>
+                
+                <div class="step-item" style="border-bottom: 1px solid rgba(0,0,0,0.05); padding-bottom: 15px;">
+                    <strong style="color: var(--primary); display: block; font-size: 1.05rem; margin-bottom: 5px;">ขั้นตอนที่ 2: วางโค้ดหลังบ้านของระบบ</strong>
+                    <p>คัดลอกโค้ดไฟล์ Apps Script ทั้งหมด (กดปุ่มคัดลอกด้านล่างนี้ได้เลย) นำไปวางทดแทนโค้ดว่างเดิมทั้งหมดในหน้า Apps Script แล้วกดปุ่ม <strong>บันทึกโครงการ 💾</strong> (ไอคอนแผ่นดิสก์)</p>
+                    <button type="button" id="btnCopyBackendCode" class="btn btn-outline" style="margin-top: 10px; padding: 8px 15px; font-size: 0.85rem; font-weight: 700;">📋 คัดลอกโค้ดหลังบ้านไปที่คลิปบอร์ด</button>
+                </div>
+                
+                <div class="step-item" style="border-bottom: 1px solid rgba(0,0,0,0.05); padding-bottom: 15px;">
+                    <strong style="color: var(--primary); display: block; font-size: 1.05rem; margin-bottom: 5px;">ขั้นตอนที่ 3: Deploy เป็นเว็บแอป (Web App)</strong>
+                    <p>กดปุ่ม <strong>ทำให้ใช้งานได้ (Deploy) &gt; การทำให้ใช้งานได้ใหม่ (New deployment)</strong> เลือกประเภทเป็น <strong>เว็บแอป (Web app)</strong> และตั้งค่าดังนี้:</p>
+                    <ul style="padding-left: 20px; margin-top: 5px; list-style-type: disc;">
+                        <li><strong>เรียกใช้งานในฐานะ (Execute as):</strong> ฉัน (Me)</li>
+                        <li><strong>ผู้มีสิทธิ์เข้าถึง (Who has access):</strong> ทุกคน (Anyone)</li>
+                    </ul>
+                    <p style="margin-top: 10px;">กดปุ่ม <strong>ทำให้ใช้งานได้ (Deploy)</strong> แล้วกดยืนยันการเข้าถึงสิทธิ์ (หากมีกล่องแจ้งเตือน ให้กด Advanced &gt; Go to Untitled project เพื่อยืนยันสิทธิ์) จากนั้นคัดลอก <strong>URL ของเว็บแอป (Web app URL)</strong> ที่ได้รับมา</p>
+                </div>
+                
+                <div class="step-item">
+                    <strong style="color: var(--primary); display: block; font-size: 1.05rem; margin-bottom: 5px;">ขั้นตอนที่ 4: เชื่อมโยงและติดตั้งระบบ</strong>
+                    <p>นำ URL ที่ได้มาวางลงในช่อง <strong>Apps Script Web App URL</strong> ในหน้าตั้งค่าครั้งแรก ป้อนรหัสผ่านสำหรับการติดตั้ง (ค่าดีฟอลต์: 1234) แล้วกดปุ่ม <strong>เริ่มตั้งค่าระบบอัตโนมัติ 🚀</strong> เพื่อให้ระบบสร้างเทมเพลตทั้งหมดเข้าไดรฟ์ของคุณทันที!</p>
+                </div>
+            </div>
+            
+            <div style="margin-top: 30px; display: flex; justify-content: flex-end; border-top: 1px dashed rgba(0,0,0,0.08); padding-top: 15px;">
+                <button type="button" id="btnCloseGuide" class="btn btn-outline" style="padding: 10px 20px; font-weight: 700;">ปิดหน้าต่าง</button>
+            </div>
         </div>
     </div>
 
@@ -149,7 +1159,11 @@
             <header>
                 <div class="header-portal-row">
                     <div class="portal-logo">📂 Document Generator Portal</div>
-                    <button type="button" class="btn-logout" id="btnLogoutPortal">ออกจากระบบ 🚪</button>
+                    <div style="display: flex; gap: 12px; align-items: center;">
+                        <button type="button" class="btn-sync" id="btnOpenAdminSettings">⚙️ ตั้งค่าระบบ (Admin)</button>
+                        <button type="button" class="btn-sync" id="btnSyncSheets">ซิงค์ข้อมูลใหม่ 🔄</button>
+                        <button type="button" class="btn-logout" id="btnLogoutPortal">ออกจากระบบ 🚪</button>
+                    </div>
                 </div>
                 <h1 style="margin-top: 20px;">ระบบจัดการและอนุมัติเอกสารอัจฉริยะ</h1>
                 <p class="subtitle">เลือกแผ่นงานเพื่อบันทึกข้อมูลและสร้างเอกสาร PDF หรือตรวจสอบข้อมูลย้อนหลัง</p>
@@ -256,10 +1270,10 @@
             <div id="tableWorkspaceView" class="workspace-view">
                 <div class="dash-search-container" style="margin-bottom: 20px; display: flex; gap: 15px; justify-content: space-between; align-items: center;">
                     <input type="text" id="dashSearch" placeholder="🔍 ค้นหาชื่อรายการ ชื่อผู้ผลิต หรือข้อมูลอื่นๆ..." oninput="filterDashboard()" style="flex: 1; max-width: 450px;">
-                    <div class="dash-tool-btns" id="dashToolBtns" style="display: flex; gap: 10px;">
-                        <button type="button" class="btn-refresh" id="btnRefreshWorkspace">🔄 อัปเดตจาก Sheet</button>
-                        <button type="button" class="btn-pdf-all" style="background:#4ade80;" id="btnDrivePickerWorkspace">🗂️ ดึงไฟล์จาก Drive</button>
-                        <button type="button" class="btn-pdf-all" id="btnPDFAllWorkspace">📄 สร้าง PDF ทั้งหมด</button>
+                    <div class="dash-tool-btns" id="dashToolBtns">
+                        <button type="button" class="btn-icon-round btn-refresh-icon" id="btnRefreshWorkspace" data-tooltip="อัปเดตข้อมูลจาก Google Sheet 🔄">🔄</button>
+                        <button type="button" class="btn-icon-round btn-drive-icon" id="btnDrivePickerWorkspace" data-tooltip="ดึงไฟล์ PDF จาก Google Drive 🗂️">🗂️</button>
+                        <button type="button" class="btn-icon-round btn-pdfall-icon" id="btnPDFAllWorkspace" data-tooltip="สร้างไฟล์ PDF ทั้งหมด 📄">📄</button>
                     </div>
                 </div>
                 <div class="dashboard-table-container">
@@ -290,6 +1304,103 @@
             <div id="modalBtns" class="modal-btns">
                 <button id="modalCancel" class="modal-btn btn-cancel">ยกเลิก</button>
                 <button id="modalConfirm" class="modal-btn btn-confirm">ตกลง</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal ตั้งค่าผู้ดูแลระบบ (Admin Settings Modal) -->
+    <div id="adminSettingsModal" class="modal-overlay">
+        <div class="modal-box" style="max-width: 800px; text-align: left; max-height: 90vh; overflow-y: auto;">
+            <span class="modal-icon" style="font-size: 2.5rem; display: block; text-align: center; margin-bottom: 10px;">⚙️</span>
+            <div class="modal-title" style="text-align: center; font-size: 1.5rem; margin-bottom: 20px; font-weight: 700; color: #1e293b;">ตั้งค่าระบบผู้ดูแลระบบ (Admin Config)</div>
+            
+            <form id="adminSettingsForm" style="display: flex; flex-direction: column; gap: 20px;">
+                <div class="form-group">
+                    <label for="adminScriptUrl" style="font-weight: 600;">Google Apps Script Web App URL</label>
+                    <input type="url" id="adminScriptUrl" placeholder="https://script.google.com/macros/s/.../exec" required style="width: 100%;">
+                </div>
+                
+                <div class="form-group">
+                    <label for="adminSpreadsheetId" style="font-weight: 600;">Google Spreadsheet ID</label>
+                    <input type="text" id="adminSpreadsheetId" placeholder="ป้อน ID แผ่นงาน Google Sheets ฐานข้อมูล" required style="width: 100%;">
+                </div>
+                
+                <div style="border-top: 1px dashed rgba(0,0,0,0.08); padding-top: 15px;">
+                    <h4 style="margin-bottom: 10px; color: var(--primary); font-weight: 700;">📂 ตั้งค่าแผ่นงาน เทมเพลต และโฟลเดอร์เก็บเอกสาร PDF</h4>
+                    <div style="overflow-x: auto;">
+                        <table class="admin-config-table" style="width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.9rem;">
+                            <thead>
+                                <tr style="background: var(--primary-light); text-align: left;">
+                                    <th style="padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px 0 0 0; width: 220px;">แบบฟอร์ม</th>
+                                    <th style="padding: 10px; border: 1px solid #cbd5e1;">Google Slides Template ID (สไลด์เทมเพลต)</th>
+                                    <th style="padding: 10px; border: 1px solid #cbd5e1; border-radius: 0 8px 0 0; width: 260px;">Google Drive Folder ID (สำหรับเก็บ PDF)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td style="padding: 10px; border: 1px solid #cbd5e1; font-weight: 600; background: #f8fafc;">FM สท.03-1 (031)</td>
+                                    <td style="padding: 5px; border: 1px solid #cbd5e1;"><input type="text" id="cfg_template_031" required style="width:100%; box-sizing:border-box; border:1px solid #e2e8f0; border-radius:6px; padding:6px; background:#fff;"></td>
+                                    <td style="padding: 5px; border: 1px solid #cbd5e1;"><input type="text" id="cfg_folder_031" required style="width:100%; box-sizing:border-box; border:1px solid #e2e8f0; border-radius:6px; padding:6px; background:#fff;"></td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 10px; border: 1px solid #cbd5e1; font-weight: 600; background: #f8fafc;">FM สท.03-3 (033)</td>
+                                    <td style="padding: 5px; border: 1px solid #cbd5e1;"><input type="text" id="cfg_template_033" required style="width:100%; box-sizing:border-box; border:1px solid #e2e8f0; border-radius:6px; padding:6px; background:#fff;"></td>
+                                    <td style="padding: 5px; border: 1px solid #cbd5e1;"><input type="text" id="cfg_folder_033" required style="width:100%; box-sizing:border-box; border:1px solid #e2e8f0; border-radius:6px; padding:6px; background:#fff;"></td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 10px; border: 1px solid #cbd5e1; font-weight: 600; background: #f8fafc;">FM สท.03-4 (034)</td>
+                                    <td style="padding: 5px; border: 1px solid #cbd5e1;"><input type="text" id="cfg_template_034" required style="width:100%; box-sizing:border-box; border:1px solid #e2e8f0; border-radius:6px; padding:6px; background:#fff;"></td>
+                                    <td style="padding: 5px; border: 1px solid #cbd5e1;"><input type="text" id="cfg_folder_034" required style="width:100%; box-sizing:border-box; border:1px solid #e2e8f0; border-radius:6px; padding:6px; background:#fff;"></td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 10px; border: 1px solid #cbd5e1; font-weight: 600; background: #f8fafc;">FM สท.03-5 (035)</td>
+                                    <td style="padding: 5px; border: 1px solid #cbd5e1;"><input type="text" id="cfg_template_035" required style="width:100%; box-sizing:border-box; border:1px solid #e2e8f0; border-radius:6px; padding:6px; background:#fff;"></td>
+                                    <td style="padding: 5px; border: 1px solid #cbd5e1;"><input type="text" id="cfg_folder_035" required style="width:100%; box-sizing:border-box; border:1px solid #e2e8f0; border-radius:6px; padding:6px; background:#fff;"></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- เพิ่มสวิตช์สำหรับเปิด/ปิดทริกเกอร์ระบบ Auto-Generate -->
+                <div style="border-top: 1px dashed rgba(0,0,0,0.08); padding-top: 15px; display: flex; align-items: center; justify-content: space-between; margin-top: 15px;">
+                    <div>
+                        <h4 style="color: var(--primary); font-weight: 700; margin: 0;">🔄 ระบบสร้าง PDF อัตโนมัติ (Auto-Generate Trigger)</h4>
+                        <p style="font-size: 0.8rem; color: #64748b; margin-top: 4px;">เปิดทริกเกอร์ระบบตรวจหาแถวข้อมูลเพิ่มใหม่เพื่อสร้าง PDF ใน Sheets อัตโนมัติ</p>
+                    </div>
+                    <label style="background: #f8fafc; padding: 10px 18px; border-radius: 12px; border: 1px solid #e2e8f0; display: inline-flex; align-items: center; gap: 8px; cursor: pointer;">
+                        <input type="checkbox" id="adminAutoGenerateTrigger" style="width: 20px; height: 20px; cursor: pointer; accent-color: var(--primary);">
+                        <span style="font-size: 0.9rem; font-weight: 700; color: var(--primary);">เปิดใช้งาน</span>
+                    </label>
+                </div>
+                
+                <div style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 12px; border-top: 1px dashed rgba(0,0,0,0.08); padding-top: 15px;">
+                    <button type="button" id="btnCloseAdminSettings" class="btn btn-outline" style="padding: 10px 20px; font-weight: 700;">ยกเลิก ❌</button>
+                    <button type="submit" class="btn btn-success" style="padding: 10px 20px; font-weight: 700; background: var(--success); color: white;">บันทึกตั้งค่าลงหลังบ้าน 💾</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal แสดงระดับความคืบหน้าการทำงาน (Progress Modal) -->
+    <div id="progressModal" class="modal-overlay">
+        <div class="modal-box" style="max-width: 600px; padding: 40px 30px;">
+            <span class="modal-icon" id="progressIcon" style="font-size: 3rem; display: block; text-align: center; margin-bottom: 15px;">⏳</span>
+            <div class="modal-title" id="progressTitle" style="font-size: 1.4rem; font-weight: 700; margin-bottom: 10px;">กำลังสร้างไฟล์ PDF...</div>
+            <div id="progressDesc" style="font-size: 0.95rem; color: #64748b; margin-bottom: 20px;">กำลังเริ่มกระบวนการจัดทำไฟล์</div>
+            
+            <!-- หลอดระดับความคืบหน้า (Progress Bar) -->
+            <div class="progress-bar-container" style="width: 100%; height: 16px; background: #e2e8f0; border-radius: 10px; overflow: hidden; margin-bottom: 25px;">
+                <div id="progressBarFill" style="width: 0%; height: 100%; background: linear-gradient(90deg, var(--primary) 0%, var(--accent) 100%); border-radius: 10px; transition: width 0.3s ease;"></div>
+            </div>
+            
+            <!-- กล่องประวัติกิจกรรมล็อกย่อย (Log Box) -->
+            <div id="progressLogBox" style="width: 100%; height: 180px; overflow-y: auto; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 15px; font-family: monospace; font-size: 0.85rem; text-align: left; line-height: 1.5; color: #334155; display: flex; flex-direction: column; gap: 6px;">
+                <!-- ล็อกย่อยจะเพิ่มที่นี่ -->
+            </div>
+            
+            <div style="margin-top: 30px; display: none;" id="progressBtnContainer">
+                <button type="button" id="btnConfirmProgress" class="btn btn-primary" style="width: 100%; font-weight: 700;">ตกลง (ทำงานเสร็จสิ้น) 👍</button>
             </div>
         </div>
     </div>
