@@ -5,6 +5,7 @@
 
 const DEFAULT_CONFIG = {
   SPREADSHEET_ID: '1xAOgwRIoCLmhYYziPQuDTf_YtvDv-VDuCH3WjeIQou4',
+  ROOT_FOLDER_ID: '1o1tEMbBcdZkqkxwXsa50GoYSlhCV0Dn0', // ID โฟลเดอร์หลักสำหรับจัดเก็บเอกสาร
   DEBUG_MODE: true,
   FORMS: {
     '031': { templateId: '1zcM4L5gSnNRLF2vgzpiE5E5a7C3g-o8qHG_BDppAm-A', folderId: '1i2szOSdvsEnfYrGbGM-0wALzQ1QPqkbc' },
@@ -602,6 +603,7 @@ function setupWorkspace(password, targetFolderId) {
     // บันทึกคอนฟิกใหม่ลงใน Properties
     const newConfig = {
       SPREADSHEET_ID: newSpreadsheetId,
+      ROOT_FOLDER_ID: mainFolder.getId(), // บันทึก ID โฟลเดอร์หลักของโปรเจกต์
       DEBUG_MODE: true,
       FORMS: {
         '031': { templateId: newSlides['031'], folderId: pdfFolders['031'].getId() },

@@ -2442,6 +2442,7 @@ async function openAdminSettings() {
             // นำข้อมูลไปเติมในหน้าฟอร์ม
             document.getElementById('adminScriptUrl').value = scriptUrl;
             document.getElementById('adminSpreadsheetId').value = config.SPREADSHEET_ID || spreadsheetId;
+            document.getElementById('adminRootFolderId').value = config.ROOT_FOLDER_ID || '';
             
             // เติมเทมเพลตและโฟลเดอร์สำหรับ 031 - 035
             const forms = ['031', '033', '034', '035'];
@@ -2482,6 +2483,7 @@ async function saveAdminSettings() {
     const adminSettingsModal = document.getElementById('adminSettingsModal');
     const newScriptUrl = document.getElementById('adminScriptUrl').value.trim();
     const newSpreadsheetId = document.getElementById('adminSpreadsheetId').value.trim();
+    const newRootFolderId = document.getElementById('adminRootFolderId').value.trim();
     const enableAuto = document.getElementById('adminAutoGenerateTrigger').checked;
 
     if (!newScriptUrl) {
@@ -2492,9 +2494,14 @@ async function saveAdminSettings() {
         showToast('⚠️ คำเตือน', 'กรุณาระบุ Google Spreadsheet ID', 'info');
         return;
     }
+    if (!newRootFolderId) {
+        showToast('⚠️ คำเตือน', 'กรุณาระบุ Google Drive Folder ID', 'info');
+        return;
+    }
 
     const configData = {
         SPREADSHEET_ID: newSpreadsheetId,
+        ROOT_FOLDER_ID: newRootFolderId,
         DEBUG_MODE: true,
         FORMS: {
             '031': {
