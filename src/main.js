@@ -1498,7 +1498,7 @@ function restoreBaseData(r, formatFn = null) {
 
 async function deleteRecord(idx) {
     const r = dashboardData[idx];
-    if (await showModal('🗑️ ยืนยันการลบ', 'คุณต้องการลบรายการข้อมูลนี้ออกจากแผ่นงานใช่หรือไม่?', true)) {
+    if (await showModal('🗑️ ยืนยันการลบ', `คุณต้องการลบข้อมูลแถวที่ ${r._rowIndex} ออกจากแผ่นงาน "${activeSheet}" ใช่หรือไม่?`, true)) {
         showLoading('กำลังลบข้อมูลออกจาก Sheet...');
         try {
             const sheetId = localStorage.getItem('spreadsheetId') || '';

@@ -122,24 +122,32 @@ function getTargetSheet(formId, spreadsheetId) {
   const formIdStr = formId.toString().trim();
   const cleanId = formIdStr.replace('.json', '').replace(/[-_\s]/g, '').trim();
 
-  // 1. ค้นหาชื่อตรงกับ formId หรือ cleanId
+  // 1. ค้นหาชื่อตรงกับ formId หรือ cleanId แบบเป๊ะๆ
   let sheet = ss.getSheetByName(formIdStr) || ss.getSheetByName(cleanId);
+  if (sheet) return { sheet, ss, cleanId };
 
-  // 2. หากยังไม่พบ ให้ค้นหาแบบชื่อชีตที่มีรหัสฟอร์ม เช่น 031, 033, 034, 035
-  if (!sheet) {
-    const allSheets = ss.getSheets();
-    let baseId = '';
-    if (cleanId.includes('031')) baseId = '031';
-    else if (cleanId.includes('033')) baseId = '033';
-    else if (cleanId.includes('034')) baseId = '034';
-    else if (cleanId.includes('035')) baseId = '035';
+  // 2. ค้นหาแบบ Case Insensitive + Ignore spaces/symbols
+  const allSheets = ss.getSheets();
+  sheet = allSheets.find(s => s.getName().replace(/[-_\s]/g, '').toLowerCase() === cleanId.toLowerCase());
+  if (sheet) return { sheet, ss, cleanId };
 
+  // 3. Fallback หาจากรหัส 031, 033, 034, 035 อย่างเข้มงวด
+  let baseId = '';
+  if (cleanId.includes('031')) baseId = '031';
+  else if (cleanId.includes('033')) baseId = '033';
+  else if (cleanId.includes('034')) baseId = '034';
+  else if (cleanId.includes('035')) baseId = '035';
+
+  if (baseId) {
     sheet = allSheets.find(s => {
-      const sName = s.getName().trim();
-      const sClean = sName.replace(/[-_\s]/g, '');
-      if (sName === formIdStr || sClean === cleanId) return true;
-      if (baseId && sClean.includes(baseId)) return true;
-      return false;
+      const sClean = s.getName().replace(/[-_\s]/g, '');
+      // ต้องมี baseId และไม่มีรหัสของฟอร์มอื่นปะปนอยู่ (เพื่อป้องกันชื่อชีตที่มีหลายรหัส)
+      if (!sClean.includes(baseId)) return false;
+      const otherIds = ['031', '033', '034', '035'].filter(id => id !== baseId);
+      for (const other of otherIds) {
+          if (sClean.includes(other)) return false; // ถ้ามีรหัสอื่นด้วย ข้ามไปเลย (ป้องกันชีตชื่อ "031_033")
+      }
+      return true;
     });
   }
 
@@ -477,7 +485,7 @@ function deleteData(request) {
   const { sheet } = getTargetSheet(formId, spreadsheetId);
   if (!sheet) return createJsonResponse('error', null, 'ไม่พบ Sheet: ' + (formId || ''));
   sheet.deleteRow(rowIndex);
-  return createJsonResponse('success', null, 'ลบข้อมูลลำดับนั้นแล้ว');
+  return createJsonResponse('success', null, `ลบข้อมูลในแผ่นงาน "${sheet.getName()}" แถวที่ ${rowIndex} เรียบร้อยแล้ว`);
 }
 
 function getDriveFiles(formId, spreadsheetId, customFolderId = null) {
