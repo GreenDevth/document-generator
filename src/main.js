@@ -1503,7 +1503,12 @@ async function deleteRecord(idx) {
             const response = await fetch(scriptUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                body: JSON.stringify({ action: 'deleteData', rowIndex: r._rowIndex, spreadsheetId: sheetId })
+                body: JSON.stringify({ 
+                    action: 'deleteData', 
+                    formId: activeSheet, 
+                    rowIndex: r._rowIndex, 
+                    spreadsheetId: sheetId 
+                })
             });
             const json = await response.json();
             if (json.status === 'success') {
