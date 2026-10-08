@@ -57,7 +57,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // ตั้งค่า URL เริ่มต้นในหน้าล็อกอิน
     const scriptUrlInput = document.getElementById('scriptUrlInput');
     if (scriptUrlInput) {
-        scriptUrlInput.value = savedUrl || 'https://script.google.com/macros/s/AKfycbydeCn_wKywlK6l9aRbcUZcjEbLfV1LweCCt7cfdk0Uwpx-ytDoIwiD5BUD2j7pjYXZ/exec';
+        scriptUrlInput.value = savedUrl || 'https://script.google.com/macros/s/AKfycbwm-SyYDpQ6jH0zl0EhnbqAc54vEiXj9sExbTymswBz78p-5nfxMtI5AlY_IC5OwXjf/exec';
     }
 
     // ตั้งค่า Spreadsheet ID เริ่มต้นในหน้าล็อกอิน
@@ -98,8 +98,8 @@ function setupEventListeners() {
             try {
                 const response = await fetch(url, {
                     method: 'POST',
-                    body: JSON.stringify({ action: 'verifyPassword', password: password }),
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `data=${encodeURIComponent(JSON.stringify({ action: 'verifyPassword', password: password }))}`
                 });
                 const result = await response.json();
 
@@ -170,16 +170,13 @@ function setupEventListeners() {
                 showModal('⚠️ คำเตือน', 'กรุณาระบุ Apps Script Web App URL', false);
                 return;
             }
-            if (!folderUrlVal) {
-                showModal('⚠️ คำเตือน', 'กรุณาระบุลิงก์โฟลเดอร์ Google Drive สำหรับจัดเก็บไฟล์', false);
-                return;
-            }
+            // ไม่บังคับให้ใส่ลิงก์โฟลเดอร์แล้ว เพื่อให้ระบบสร้างโฟลเดอร์ให้ใหม่แบบอัตโนมัติ
             if (!password) {
                 showModal('⚠️ คำเตือน', 'กรุณากรอกรหัสผ่านติดตั้งโครงการ', false);
                 return;
             }
 
-            // สกัดหา ID ของโฟลเดอร์ Google Drive จาก URL
+            // สกัดหา ID ของโฟลเดอร์ Google Drive จาก URL เพื่อให้ระบุโฟลเดอร์ปลายทางได้
             const folderIdMatch = folderUrlVal.match(/[-\w]{25,}/);
             const targetFolderId = folderIdMatch ? folderIdMatch[0] : folderUrlVal;
 
@@ -193,12 +190,12 @@ function setupEventListeners() {
             try {
                 const response = await fetch(url, {
                     method: 'POST',
-                    body: JSON.stringify({ 
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `data=${encodeURIComponent(JSON.stringify({ 
                         action: 'setupWorkspace', 
                         password: password,
                         targetFolderId: targetFolderId 
-                    }),
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+                    }))}`
                 });
                 const result = await response.json();
 
@@ -515,14 +512,18 @@ async function loadDynamicSheets() {
     const grid = document.getElementById('portalSheetsGrid');
     if (!grid) return;
 
+    showLoading('กำลังซิงค์ข้อมูลจาก Google Sheets...');
+
     try {
         const sheetId = localStorage.getItem('spreadsheetId') || '';
         const response = await fetch(scriptUrl, {
             method: 'POST',
-            body: JSON.stringify({ action: 'getSheets', spreadsheetId: sheetId }),
-            headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: `data=${encodeURIComponent(JSON.stringify({ action: 'getSheets', spreadsheetId: sheetId }))}`
         });
         const json = await response.json();
+        
+        hideLoading();
 
         if (json.status === 'success' && Array.isArray(json.data)) {
             grid.innerHTML = '';
@@ -571,6 +572,7 @@ async function loadDynamicSheets() {
             throw new Error(json.message || 'ไม่สามารถโหลดรายชื่อแผ่นงานได้');
         }
     } catch (err) {
+        hideLoading();
         grid.innerHTML = `<div style="grid-column:span 3;color:var(--error);text-align:center;padding:20px;">⚠️ โหลดข้อมูลล้มเหลว: ${err.message}</div>`;
     }
 }
@@ -641,7 +643,7 @@ async function loadFormSchema(formId) {
         const response = await fetch(scriptUrl, {
             method: 'POST',
             body: JSON.stringify({ action: 'getSchema', formId, spreadsheetId: sheetId }),
-            headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+            headers: { 'Content-Type': 'text/plain' }, credentials: 'omit'
         });
         const json = await response.json();
         if (json.status === 'success') {
@@ -1051,7 +1053,7 @@ async function sendData(action) {
                 // เปลี่ยนไปส่งคำขอและรอรับผลลัพธ์แบบ Sequential ด้วย await
                 const response = await fetch(scriptUrl, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    headers: { 'Content-Type': 'text/plain' }, credentials: 'omit',
                     body: JSON.stringify({ action, formId: activeSheet, data: currentData, tableData, rowIndex: currentEditRowIndex, spreadsheetId: sheetId })
                 });
                 const result = await response.json();
@@ -1116,7 +1118,7 @@ async function fetchRecentData(targetFormId) {
         const sheetId = localStorage.getItem('spreadsheetId') || '';
         const response = await fetch(scriptUrl, {
             method: 'POST',
-            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            headers: { 'Content-Type': 'text/plain' }, credentials: 'omit',
             body: JSON.stringify({ action: 'getRecentData', formId: targetFormId, limit: 100, spreadsheetId: sheetId })
         });
         const json = await response.json();
@@ -1502,7 +1504,7 @@ async function deleteRecord(idx) {
             const sheetId = localStorage.getItem('spreadsheetId') || '';
             const response = await fetch(scriptUrl, {
                 method: 'POST',
-                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                headers: { 'Content-Type': 'text/plain' }, credentials: 'omit',
                 body: JSON.stringify({ 
                     action: 'deleteData', 
                     formId: activeSheet, 
@@ -1606,7 +1608,7 @@ async function generateBatchPDF034() {
         const sheetId = localStorage.getItem('spreadsheetId') || '';
         const response = await fetch(scriptUrl, {
             method: 'POST',
-            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            headers: { 'Content-Type': 'text/plain' }, credentials: 'omit',
             body: JSON.stringify({
                 action: 'generate',
                 formId: activeSheet,
@@ -1668,7 +1670,7 @@ async function generateAllPDFs() {
                 const sheetId = localStorage.getItem('spreadsheetId') || '';
                 const response = await fetch(scriptUrl, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    headers: { 'Content-Type': 'text/plain' }, credentials: 'omit',
                     body: JSON.stringify({
                         action: 'generate',
                         formId: activeSheet,
@@ -2524,7 +2526,7 @@ async function openAdminSettings() {
         const response = await fetch(scriptUrl, {
             method: 'POST',
             body: JSON.stringify({ action: 'getConfig', spreadsheetId: spreadsheetId }),
-            headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+            headers: { 'Content-Type': 'text/plain' }, credentials: 'omit'
         });
         const json = await response.json();
         
@@ -2551,7 +2553,7 @@ async function openAdminSettings() {
                 const triggerRes = await fetch(scriptUrl, {
                     method: 'POST',
                     body: JSON.stringify({ action: 'getAutoTriggerStatus', spreadsheetId: spreadsheetId }),
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+                    headers: { 'Content-Type': 'text/plain' }, credentials: 'omit'
                 });
                 const triggerJson = await triggerRes.json();
                 if (triggerJson.status === 'success') {
@@ -2624,7 +2626,7 @@ async function saveAdminSettings() {
                 spreadsheetId: newSpreadsheetId, 
                 configData: configData 
             }),
-            headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+            headers: { 'Content-Type': 'text/plain' }, credentials: 'omit'
         });
         const json = await response.json();
 
@@ -2638,7 +2640,7 @@ async function saveAdminSettings() {
                         enable: enableAuto, 
                         spreadsheetId: newSpreadsheetId 
                     }),
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+                    headers: { 'Content-Type': 'text/plain' }, credentials: 'omit'
                 });
             } catch (err) {}
 

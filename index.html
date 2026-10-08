@@ -64,7 +64,7 @@
 
             <div class="form-group" style="margin-top: 15px; text-align: left;">
                 <label for="setupFolderUrl">ลิงก์โฟลเดอร์ Google Drive หรือ ID ปลายทาง</label>
-                <input type="text" id="setupFolderUrl" placeholder="https://drive.google.com/drive/folders/..." required>
+                <input type="text" id="setupFolderUrl" placeholder="https://drive.google.com/drive/folders/...">
                 <span style="font-size: 0.75rem; color: #64748b; margin-top: 4px; display: block;">* วางลิงก์โฟลเดอร์ใน Drive ของคุณเพื่อคัดลอกไฟล์เทมเพลตไปบันทึก</span>
             </div>
             
@@ -94,29 +94,39 @@
             
             <div class="guide-steps" style="display: flex; flex-direction: column; gap: 20px; color: #475569; font-size: 0.95rem; line-height: 1.6;">
                 <div class="step-item" style="border-bottom: 1px solid rgba(0,0,0,0.05); padding-bottom: 15px;">
-                    <strong style="color: var(--primary); display: block; font-size: 1.05rem; margin-bottom: 5px;">ขั้นตอนที่ 1: สร้าง Google Sheets เปล่า</strong>
-                    <p>สร้าง Google Sheets ใหม่ขึ้นมา 1 ชีตบน Google Drive ของคุณ จากนั้นไปที่เมนูหลักด้านบน เลือก <strong>ส่วนขยาย (Extensions) &gt; Apps Script</strong></p>
+                    <strong style="color: var(--primary); display: block; font-size: 1.05rem; margin-bottom: 5px;">ขั้นตอนที่ 1: สร้างและแชร์สิทธิ์โฟลเดอร์ใน Google Drive</strong>
+                    <p>สร้างโฟลเดอร์ใหม่ใน Google Drive ด้วยบัญชีอีเมลที่จะใช้เก็บไฟล์ (แนะนำอีเมลหลัก) จากนั้นคลิกขวาที่โฟลเดอร์เลือก <strong>แชร์ (Share)</strong></p>
+                    <ul style="padding-left: 20px; margin-top: 5px; list-style-type: disc; color: var(--error); font-weight: 600;">
+                        <li>สิทธิ์ทั่วไป: เปลี่ยนเป็น <strong>"ทุกคนที่มีลิงก์ (Anyone with the link)"</strong></li>
+                        <li>บทบาท (สำคัญมาก): เปลี่ยนเป็น <strong>"ผู้มีส่วนร่วม (Editor)"</strong></li>
+                    </ul>
+                    <p style="margin-top: 5px;">จากนั้นก๊อปปี้ลิงก์โฟลเดอร์เตรียมเอาไว้ใส่ในหน้าตั้งค่า</p>
                 </div>
                 
                 <div class="step-item" style="border-bottom: 1px solid rgba(0,0,0,0.05); padding-bottom: 15px;">
-                    <strong style="color: var(--primary); display: block; font-size: 1.05rem; margin-bottom: 5px;">ขั้นตอนที่ 2: วางโค้ดหลังบ้านของระบบ</strong>
-                    <p>คัดลอกโค้ดไฟล์ Apps Script ทั้งหมด (กดปุ่มคัดลอกด้านล่างนี้ได้เลย) นำไปวางทดแทนโค้ดว่างเดิมทั้งหมดในหน้า Apps Script แล้วกดปุ่ม <strong>บันทึกโครงการ 💾</strong> (ไอคอนแผ่นดิสก์)</p>
+                    <strong style="color: var(--primary); display: block; font-size: 1.05rem; margin-bottom: 5px;">ขั้นตอนที่ 2: สร้าง Apps Script</strong>
+                    <p>เข้าไปในโฟลเดอร์ที่เพิ่งสร้าง แล้วสร้าง Google Sheets ใหม่ขึ้นมา 1 ชีต จากนั้นไปที่เมนู <strong>ส่วนขยาย (Extensions) &gt; Apps Script</strong></p>
+                </div>
+                
+                <div class="step-item" style="border-bottom: 1px solid rgba(0,0,0,0.05); padding-bottom: 15px;">
+                    <strong style="color: var(--primary); display: block; font-size: 1.05rem; margin-bottom: 5px;">ขั้นตอนที่ 3: วางโค้ดหลังบ้านของระบบ</strong>
+                    <p>คัดลอกโค้ดไฟล์ Apps Script ทั้งหมด นำไปวางทดแทนโค้ดว่างเดิมทั้งหมดในหน้า Apps Script แล้วกดปุ่ม <strong>บันทึกโครงการ 💾</strong></p>
                     <button type="button" id="btnCopyBackendCode" class="btn btn-outline" style="margin-top: 10px; padding: 8px 15px; font-size: 0.85rem; font-weight: 700;">📋 คัดลอกโค้ดหลังบ้านไปที่คลิปบอร์ด</button>
                 </div>
                 
                 <div class="step-item" style="border-bottom: 1px solid rgba(0,0,0,0.05); padding-bottom: 15px;">
-                    <strong style="color: var(--primary); display: block; font-size: 1.05rem; margin-bottom: 5px;">ขั้นตอนที่ 3: Deploy เป็นเว็บแอป (Web App)</strong>
+                    <strong style="color: var(--primary); display: block; font-size: 1.05rem; margin-bottom: 5px;">ขั้นตอนที่ 4: Deploy เป็นเว็บแอป (Web App)</strong>
                     <p>กดปุ่ม <strong>ทำให้ใช้งานได้ (Deploy) &gt; การทำให้ใช้งานได้ใหม่ (New deployment)</strong> เลือกประเภทเป็น <strong>เว็บแอป (Web app)</strong> และตั้งค่าดังนี้:</p>
                     <ul style="padding-left: 20px; margin-top: 5px; list-style-type: disc;">
                         <li><strong>เรียกใช้งานในฐานะ (Execute as):</strong> ฉัน (Me)</li>
                         <li><strong>ผู้มีสิทธิ์เข้าถึง (Who has access):</strong> ทุกคน (Anyone)</li>
                     </ul>
-                    <p style="margin-top: 10px;">กดปุ่ม <strong>ทำให้ใช้งานได้ (Deploy)</strong> แล้วกดยืนยันการเข้าถึงสิทธิ์ (หากมีกล่องแจ้งเตือน ให้กด Advanced &gt; Go to Untitled project เพื่อยืนยันสิทธิ์) จากนั้นคัดลอก <strong>URL ของเว็บแอป (Web app URL)</strong> ที่ได้รับมา</p>
+                    <p style="margin-top: 10px;">กดปุ่ม <strong>ทำให้ใช้งานได้ (Deploy)</strong> แล้วกดยืนยันการเข้าถึงสิทธิ์ (กด Advanced &gt; Go to Untitled project) จากนั้นคัดลอก <strong>URL ของเว็บแอป (Web app URL)</strong> ที่ได้รับมา</p>
                 </div>
                 
                 <div class="step-item">
-                    <strong style="color: var(--primary); display: block; font-size: 1.05rem; margin-bottom: 5px;">ขั้นตอนที่ 4: เชื่อมโยงและติดตั้งระบบ</strong>
-                    <p>นำ URL ที่ได้มาวางลงในช่อง <strong>Apps Script Web App URL</strong> ในหน้าตั้งค่าครั้งแรก ป้อนรหัสผ่านสำหรับการติดตั้ง (ค่าดีฟอลต์: 1234) แล้วกดปุ่ม <strong>เริ่มตั้งค่าระบบอัตโนมัติ 🚀</strong> เพื่อให้ระบบสร้างเทมเพลตทั้งหมดเข้าไดรฟ์ของคุณทันที!</p>
+                    <strong style="color: var(--primary); display: block; font-size: 1.05rem; margin-bottom: 5px;">ขั้นตอนที่ 5: เชื่อมโยงและติดตั้งระบบ</strong>
+                    <p>นำ URL และลิงก์โฟลเดอร์ที่ได้ มาวางลงในหน้าตั้งค่าครั้งแรก ป้อนรหัสผ่านสำหรับการติดตั้ง (ค่าดีฟอลต์: 1234) แล้วกดปุ่ม <strong>เริ่มตั้งค่าระบบอัตโนมัติ 🚀</strong> เพื่อให้ระบบสร้างเทมเพลตทั้งหมดเข้าไดรฟ์ของคุณทันที!</p>
                 </div>
             </div>
             
