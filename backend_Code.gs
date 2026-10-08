@@ -29,7 +29,20 @@ function getConfig() {
   return DEFAULT_CONFIG;
 }
 
-function doGet() {
+function doGet(e) {
+  if (e && e.parameter && e.parameter.action) {
+    const action = e.parameter.action;
+    const spreadsheetId = e.parameter.spreadsheetId;
+    
+    try {
+      if (action === 'verifyPassword') return verifyPassword(e.parameter.password);
+      if (action === 'getSheets') return getSheets(spreadsheetId);
+      // Other actions can be added here if needed via GET
+    } catch (err) {
+      return createJsonResponse('error', null, err.toString());
+    }
+  }
+
   return ContentService.createTextOutput(JSON.stringify({
     status: 'online',
     version: 'v3.5-Slides-Power',
@@ -39,7 +52,13 @@ function doGet() {
 
 function doPost(e) {
   try {
-    const request = JSON.parse(e.postData.contents);
+    let rawBody = e.postData.contents || "";
+    let request;
+    if (rawBody.startsWith("data=")) {
+      request = JSON.parse(decodeURIComponent(rawBody.substring(5)));
+    } else {
+      request = JSON.parse(rawBody);
+    }
     const action = request.action;
     const spreadsheetId = request.spreadsheetId; // ดึงไอดีชีตที่ส่งมาจากหน้าบ้าน
     
@@ -618,7 +637,7 @@ function setupWorkspace(password, targetFolderId) {
       try {
         mainFolder = DriveApp.getFolderById(targetFolderId);
       } catch (err) {
-        return createJsonResponse('error', null, 'ไม่สามารถเข้าถึงโฟลเดอร์ Google Drive ตาม ID ที่ป้อนมาได้ กรุณาตรวจสอบลิงก์โฟลเดอร์และสิทธิ์การเข้าถึง');
+        return createJsonResponse('error', null, 'ไม่สามารถเข้าถึงโฟลเดอร์ Google Drive ได้! รายละเอียด: ' + err.toString());
       }
     } else {
       const mainFolderName = "ระบบจัดการเอกสารอัจฉริยะ (Smart Document Generator)";
