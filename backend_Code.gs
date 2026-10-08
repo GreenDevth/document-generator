@@ -30,10 +30,11 @@ function getConfig() {
 }
 
 function doGet() {
-  return HtmlService.createTemplateFromFile('index').evaluate()
-    .setTitle('Smart PDF Generator | ระบบสร้างเอกสารอัจฉริยะ')
-    .addMetaTag('viewport', 'width=device-width, initial-scale=1')
-    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+  return ContentService.createTextOutput(JSON.stringify({
+    status: 'online',
+    version: 'v3.5-Slides-Power',
+    message: 'Google Apps Script API พร้อมทำงาน'
+  })).setMimeType(ContentService.MimeType.JSON);
 }
 
 function doPost(e) {
@@ -60,14 +61,43 @@ function doPost(e) {
     if (action === 'saveConfig') return saveBackendConfig(request.configData); // เพิ่มบันทึกค่าคอนฟิก
     if (action === 'toggleAutoTrigger') return toggleAutoTrigger(request.enable, spreadsheetId); // เปิด-ปิดทริกเกอร์ออโต้
     if (action === 'getAutoTriggerStatus') return getAutoTriggerStatus(); // เช็คสถานะทริกเกอร์ออโต้
-    return createJsonResponse('error', null, 'Invalid action');
+    return createJsonResponse('error', null, 'Invalid action: ' + action);
   } catch (err) { return createJsonResponse('error', null, err.toString()); }
 }
 
-function getTargetSheet(formId, spreadsheetId) {
+// ฟังก์ชันเปิด Spreadsheet อย่างปลอดภัย รองรับทั้งเปิดจาก Sheet โดยตรง และระบุ ID
+function getActiveOrOpenSpreadsheet(spreadsheetId) {
+  // 1. ถ้ามี spreadsheetId ส่งมา ให้ลองเปิดด้วย ID นั้น
+  if (spreadsheetId && spreadsheetId.toString().trim() !== "") {
+    try {
+      return SpreadsheetApp.openById(spreadsheetId.toString().trim());
+    } catch (e) {
+      Logger.log("openById with spreadsheetId failed: " + e.message);
+    }
+  }
+
+  // 2. ถ้า Apps Script ผูกกับ Google Sheet (Container-bound Script) ให้ดึงชีตที่เปิดอยู่
+  try {
+    const active = SpreadsheetApp.getActiveSpreadsheet();
+    if (active) return active;
+  } catch (e) {}
+
+  // 3. ลองเปิดจาก Config SPREADSHEET_ID
   const config = getConfig();
-  const ssId = spreadsheetId || config.SPREADSHEET_ID;
-  const ss = SpreadsheetApp.openById(ssId);
+  if (config && config.SPREADSHEET_ID) {
+    try {
+      return SpreadsheetApp.openById(config.SPREADSHEET_ID);
+    } catch (e) {
+      Logger.log("openById with config SPREADSHEET_ID failed: " + e.message);
+    }
+  }
+
+  return null;
+}
+
+function getTargetSheet(formId, spreadsheetId) {
+  const ss = getActiveOrOpenSpreadsheet(spreadsheetId);
+  if (!ss) return { sheet: null, ss: null, cleanId: '' };
   if (!formId) return { sheet: null, ss, cleanId: '' };
 
   const formIdStr = formId.toString().trim();
@@ -550,9 +580,10 @@ function getFormConfig(sheetName) {
 
 function getSheets(spreadsheetId) {
   try {
-    const config = getConfig();
-    const ssId = spreadsheetId || config.SPREADSHEET_ID;
-    const ss = SpreadsheetApp.openById(ssId);
+    const ss = getActiveOrOpenSpreadsheet(spreadsheetId);
+    if (!ss) {
+      return createJsonResponse('error', null, 'ไม่สามารถเปิด Google Spreadsheet ได้ กรุณาระบุ Google Spreadsheet ID ในหน้าเข้าสู่ระบบ หรือตรวจสอบสิทธิ์ของบัญชี');
+    }
     const sheets = ss.getSheets();
     const result = sheets.map(s => {
       const name = s.getName();
