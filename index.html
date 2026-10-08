@@ -43,7 +43,20 @@ function getConfig() {\r
   return DEFAULT_CONFIG;\r
 }\r
 \r
-function doGet() {\r
+function doGet(e) {\r
+  if (e && e.parameter && e.parameter.action) {\r
+    const action = e.parameter.action;\r
+    const spreadsheetId = e.parameter.spreadsheetId;\r
+    \r
+    try {\r
+      if (action === 'verifyPassword') return verifyPassword(e.parameter.password);\r
+      if (action === 'getSheets') return getSheets(spreadsheetId);\r
+      // Other actions can be added here if needed via GET\r
+    } catch (err) {\r
+      return createJsonResponse('error', null, err.toString());\r
+    }\r
+  }\r
+\r
   return ContentService.createTextOutput(JSON.stringify({\r
     status: 'online',\r
     version: 'v3.5-Slides-Power',\r
@@ -53,7 +66,13 @@ function doGet() {\r
 \r
 function doPost(e) {\r
   try {\r
-    const request = JSON.parse(e.postData.contents);\r
+    let rawBody = e.postData.contents || "";\r
+    let request;\r
+    if (rawBody.startsWith("data=")) {\r
+      request = JSON.parse(decodeURIComponent(rawBody.substring(5)));\r
+    } else {\r
+      request = JSON.parse(rawBody);\r
+    }\r
     const action = request.action;\r
     const spreadsheetId = request.spreadsheetId; // ดึงไอดีชีตที่ส่งมาจากหน้าบ้าน\r
     \r
@@ -632,7 +651,7 @@ function setupWorkspace(password, targetFolderId) {\r
       try {\r
         mainFolder = DriveApp.getFolderById(targetFolderId);\r
       } catch (err) {\r
-        return createJsonResponse('error', null, 'ไม่สามารถเข้าถึงโฟลเดอร์ Google Drive ตาม ID ที่ป้อนมาได้ กรุณาตรวจสอบลิงก์โฟลเดอร์และสิทธิ์การเข้าถึง');\r
+        return createJsonResponse('error', null, 'ไม่สามารถเข้าถึงโฟลเดอร์ Google Drive ได้! รายละเอียด: ' + err.toString());\r
       }\r
     } else {\r
       const mainFolderName = "ระบบจัดการเอกสารอัจฉริยะ (Smart Document Generator)";\r
